@@ -1,0 +1,33 @@
+# Docker Compose for EduCare Development Database
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: educare_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: educare
+      POSTGRES_PASSWORD: educare_dev_2024
+      POSTGRES_DB: educare_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U educare -d educare_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Adminer for database management UI
+  adminer:
+    image: adminer:latest
+    container_name: educare_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
