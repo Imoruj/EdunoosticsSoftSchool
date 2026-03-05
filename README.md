@@ -1,21 +1,30 @@
 # Report Card Management System
 
 ## Project Overview
-This project aims to provide a comprehensive management system for report cards that allows educational institutions to handle student grades efficiently.
-
-## Features
-- User authentication and authorization
-- Ability to add, update, delete, and view report cards
-- Grade calculation and summary generation
-- User-friendly interface for teachers and administrators
+This project is a comprehensive Report Card Management System built to provide a seamless user experience for managing student reports.
 
 ## Tech Stack
-- **Frontend**: React.js
-- **Backend**: Node.js, Express
-- **Database**: MongoDB
-- **Authentication**: JWT (JSON Web Tokens)
+- **Frontend:** Next.js
+- **Backend:** Prisma, PostgreSQL
+- **Languages:** TypeScript
+- **Styling:** Tailwind CSS
 
-## Setup Instructions
+## Features
+- User Authentication via JWT
+- Responsive Design for mobile and desktop
+- Create, Read, Update, and Delete (CRUD) functionality for student report cards
+- Admin dashboard for managing student records
+- Export reports in PDF format
+- And much more based on the dependencies specified in package.json!
+
+## Environment Configuration
+- Ensure to have PostgreSQL installed and running.
+- Create a `.env` file in the root of the project with the following variables:
+  - `DATABASE_URL=` (PostgreSQL connection string)
+  - `JWT_SECRET=` (Secret key for JWT)
+  - Other environment variables as required for your deployment.
+
+### Installation
 1. Clone the repository:
    ```bash
    git clone https://github.com/Imoruj/ReportCardManagementSystem.git
@@ -24,16 +33,14 @@ This project aims to provide a comprehensive management system for report cards 
    ```bash
    cd ReportCardManagementSystem
    ```
-3. Install the dependencies:
+3. Install dependencies:
    ```bash
    npm install
    ```
-4. Set up the database and configure your environment variables.
-5. Start the application:
+4. Run the development server:
    ```bash
-   npm start
+   npm run dev
    ```
 
-## Usage
-- Access the application at `http://localhost:3000`
-- Log in with your credentials, and start managing report cards.
+## Contributing
+Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
