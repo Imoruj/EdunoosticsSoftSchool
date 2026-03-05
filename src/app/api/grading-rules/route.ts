@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
-// GET - Fetch all grading rules for the school
+// GET - Fetch grading rules for the school, optionally filtered by category
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -24,8 +24,16 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        const { searchParams } = new URL(req.url);
+        const category = searchParams.get("category"); // e.g. "PRIMARY" | "JUNIOR_SECONDARY" | "SENIOR_SECONDARY" | null
+
+        const where: any = { schoolId };
+        if (category) {
+            where.schoolCategory = category;
+        }
+
         const gradingRules = await prisma.gradingRule.findMany({
-            where: { schoolId },
+            where,
             orderBy: { minScore: "desc" },
         });
 
@@ -61,7 +69,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { grade, minScore, maxScore, remark } = body;
+        const { grade, minScore, maxScore, remark, schoolCategory } = body;
 
         if (!grade || minScore === undefined || maxScore === undefined || !remark) {
             return NextResponse.json(
@@ -77,6 +85,7 @@ export async function POST(req: NextRequest) {
                 maxScore: parseInt(maxScore),
                 remark,
                 schoolId,
+                schoolCategory: schoolCategory || null,
             },
         });
 
@@ -85,7 +94,7 @@ export async function POST(req: NextRequest) {
         console.error("Error creating grading rule:", error);
         if (error.code === "P2002") {
             return NextResponse.json(
-                { error: "Grading rule with this grade already exists" },
+                { error: "A grading rule with this grade already exists for the selected category" },
                 { status: 400 }
             );
         }
@@ -108,9 +117,8 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
         const body = await req.json();
-        const { id, grade, minScore, maxScore, remark } = body;
+        const { id, grade, minScore, maxScore, remark, schoolCategory } = body;
 
         if (!id) {
             return NextResponse.json(
@@ -126,12 +134,22 @@ export async function PUT(req: NextRequest) {
                 minScore: minScore !== undefined ? parseInt(minScore) : undefined,
                 maxScore: maxScore !== undefined ? parseInt(maxScore) : undefined,
                 remark,
+                // Only update schoolCategory if explicitly provided
+                ...(schoolCategory !== undefined
+                    ? { schoolCategory: schoolCategory || null }
+                    : {}),
             },
         });
 
         return NextResponse.json(gradingRule);
     } catch (error: any) {
         console.error("Error updating grading rule:", error);
+        if (error.code === "P2002") {
+            return NextResponse.json(
+                { error: "A grading rule with this grade already exists for the selected category" },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             { error: error.message || "Failed to update grading rule" },
             { status: 500 }

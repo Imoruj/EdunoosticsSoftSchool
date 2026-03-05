@@ -18,7 +18,7 @@ export default function Home() {
                         <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                             <span className="text-primary-600 font-bold text-xl">E</span>
                         </div>
-                        <span className="text-white font-semibold text-xl">EduCare</span>
+                        <span className="text-white font-semibold text-xl">Edunostics</span>
                     </div>
                     <div className="hidden md:flex items-center gap-8">
                         <Link href="#features" className="text-white/80 hover:text-white transition-colors">
@@ -210,7 +210,7 @@ export default function Home() {
                         Ready to Modernize Your School&apos;s Report Cards?
                     </h2>
                     <p className="text-lg text-white/70 mb-8">
-                        Join hundreds of Nigerian schools already using EduCare to manage their academic records.
+                        Join hundreds of Nigerian schools already using Edunostics to manage their academic records.
                     </p>
                     <Link
                         href="/auth/register"
@@ -229,10 +229,10 @@ export default function Home() {
                             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold">E</span>
                             </div>
-                            <span className="text-white font-semibold">EduCare</span>
+                            <span className="text-white font-semibold">Edunostics</span>
                         </div>
                         <p className="text-sm">
-                            © 2026 EduCare. Designed for Nigerian Schools.
+                            © 2026 Edunostics. Designed for Nigerian Schools.
                         </p>
                     </div>
                 </div>

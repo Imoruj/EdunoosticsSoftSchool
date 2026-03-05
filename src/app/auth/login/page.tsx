@@ -18,12 +18,21 @@ export default function LoginPage() {
 
         const formData = new FormData(e.currentTarget);
         const email = formData.get("email") as string;
-        const password = formData.get("password") as string;
+        const admission = formData.get("admissionNumber") as string;
+        const password = (formData.get("password") || formData.get("pin")) as string;
+
+        const identifier =
+            loginType === "student"
+                ? (admission || "")
+                : (email || "");
+
+        console.log(`[LOGIN_FORM] Submitting ${loginType}:`, { identifier, loginType });
 
         try {
             const result = await signIn("credentials", {
-                email,
+                email: identifier,
                 password,
+                loginType,
                 redirect: false,
             });
 
@@ -49,7 +58,7 @@ export default function LoginPage() {
                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
                             <span className="text-primary-600 font-bold text-2xl">E</span>
                         </div>
-                        <span className="text-white font-semibold text-2xl">EduCare</span>
+                        <span className="text-white font-semibold text-2xl">Edunostics</span>
                     </Link>
                 </div>
 
@@ -86,7 +95,7 @@ export default function LoginPage() {
                                 <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                                     <span className="text-white font-bold text-xl">E</span>
                                 </div>
-                                <span className="text-gray-900 font-semibold text-xl">EduCare</span>
+                                <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
                             </Link>
                         </div>
 
@@ -169,16 +178,16 @@ export default function LoginPage() {
                             {loginType === "parent" && (
                                 <>
                                     <div>
-                                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Phone Number
+                                        <label htmlFor="parentEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Parent Email Address
                                         </label>
                                         <input
-                                            id="phone"
+                                            id="parentEmail"
                                             name="email"
-                                            type="tel"
+                                            type="email"
                                             required
                                             className="input"
-                                            placeholder="08012345678"
+                                            placeholder="parent@email.com"
                                         />
                                     </div>
                                     <div>
@@ -187,7 +196,7 @@ export default function LoginPage() {
                                         </label>
                                         <input
                                             id="pin"
-                                            name="password"
+                                            name="pin"
                                             type="password"
                                             required
                                             maxLength={6}
@@ -206,7 +215,7 @@ export default function LoginPage() {
                                         </label>
                                         <input
                                             id="admission"
-                                            name="email"
+                                            name="admissionNumber"
                                             type="text"
                                             required
                                             className="input"
@@ -219,7 +228,7 @@ export default function LoginPage() {
                                         </label>
                                         <input
                                             id="studentPin"
-                                            name="password"
+                                            name="pin"
                                             type="password"
                                             required
                                             maxLength={4}

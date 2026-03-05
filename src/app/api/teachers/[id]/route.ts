@@ -3,20 +3,102 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
-// PATCH /api/teachers/[id] - Update teacher profile or status
+type SubjectAssignmentInput = {
+    subjectId: string;
+    classArmId: string;
+};
+
+function normalizeSubjectAssignments(raw: any): SubjectAssignmentInput[] {
+    if (!Array.isArray(raw)) return [];
+
+    const seen = new Set<string>();
+    const normalized: SubjectAssignmentInput[] = [];
+
+    for (const item of raw) {
+        const subjectId = typeof item?.subjectId === "string" ? item.subjectId.trim() : "";
+        const classArmId = typeof item?.classArmId === "string" ? item.classArmId.trim() : "";
+        if (!subjectId || !classArmId) continue;
+
+        const key = `${subjectId}:${classArmId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        normalized.push({ subjectId, classArmId });
+    }
+
+    return normalized;
+}
+
+function normalizeIdList(raw: any): string[] {
+    if (!Array.isArray(raw)) return [];
+    return Array.from(
+        new Set(
+            raw
+                .filter((item) => typeof item === "string")
+                .map((item) => item.trim())
+                .filter(Boolean)
+        )
+    );
+}
+
+function resolveSubjectAssignments(
+    rawSubjectAssignments: any,
+    rawSubjectIds: any,
+    rawSubjectClassArmIds: any
+): SubjectAssignmentInput[] {
+    const explicitAssignments = normalizeSubjectAssignments(rawSubjectAssignments);
+    if (explicitAssignments.length > 0) {
+        return explicitAssignments;
+    }
+
+    const subjectIds = normalizeIdList(rawSubjectIds);
+    const classArmIds = normalizeIdList(rawSubjectClassArmIds);
+    if (subjectIds.length === 0 || classArmIds.length === 0) {
+        return [];
+    }
+
+    const generatedAssignments = subjectIds.flatMap((subjectId) =>
+        classArmIds.map((classArmId) => ({ subjectId, classArmId }))
+    );
+    return normalizeSubjectAssignments(generatedAssignments);
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const actor = session.user as any;
+
+        const schoolId = actor.schoolId;
         const teacherId = params.id;
         const body = await req.json();
-        const { firstName, lastName, email, phone, roles, isActive, classArmIds, subjectIds } = body;
+        const {
+            firstName,
+            lastName,
+            email,
+            phone,
+            roles,
+            isActive,
+            classArmIds,
+            subjectAssignments: rawSubjectAssignments,
+            subjectIds: rawSubjectIds,
+            subjectClassArmIds: rawSubjectClassArmIds
+        } = body;
+        const normalizedSubjectAssignments = resolveSubjectAssignments(
+            rawSubjectAssignments,
+            rawSubjectIds,
+            rawSubjectClassArmIds
+        );
+        const shouldSyncSubjectAssignments =
+            Array.isArray(rawSubjectAssignments) ||
+            Array.isArray(rawSubjectIds) ||
+            Array.isArray(rawSubjectClassArmIds);
 
         // Verify the teacher belongs to the same school
         const existingTeacher = await prisma.user.findFirst({
@@ -25,6 +107,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         if (!existingTeacher) {
             return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+        }
+
+        const effectiveRoles: string[] = roles || existingTeacher.roles || [];
+        if (effectiveRoles.includes("SUBJECT_TEACHER") && shouldSyncSubjectAssignments && normalizedSubjectAssignments.length === 0) {
+            return NextResponse.json(
+                { error: "Subject teachers must have at least one subject-class assignment." },
+                { status: 400 }
+            );
         }
 
         const updatedTeacher = await prisma.$transaction(async (tx: any) => {
@@ -48,31 +138,119 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
                 }
             });
 
-            // Sync Class Assignments if roles provided
-            if (roles && roles.includes("CLASS_TEACHER") && classArmIds) {
-                // Clear old assignments (optional or specific arm update)
+            // If CLASS_TEACHER role is removed, unassign class teacher records.
+            if (roles && !roles.includes("CLASS_TEACHER")) {
                 await tx.classArm.updateMany({
-                    where: { teacherId: user.id },
-                    data: { teacherId: null }
+                    where: { classTeacherId: user.id },
+                    data: { classTeacherId: null }
+                });
+            }
+
+            // Sync Class Assignments only when provided.
+            if (effectiveRoles.includes("CLASS_TEACHER") && classArmIds) {
+                await tx.classArm.updateMany({
+                    where: { classTeacherId: user.id },
+                    data: { classTeacherId: null }
                 });
                 if (classArmIds.length > 0) {
                     await tx.classArm.updateMany({
                         where: { id: { in: classArmIds }, class: { schoolId } },
-                        data: { teacherId: user.id }
+                        data: { classTeacherId: user.id }
                     });
                 }
             }
 
-            // Sync Subject Assignments if roles provided
-            if (roles && roles.includes("SUBJECT_TEACHER") && subjectIds) {
+            // If SUBJECT_TEACHER role is removed, clear all subject assignments.
+            if (roles && !roles.includes("SUBJECT_TEACHER")) {
                 await tx.teacherSubject.deleteMany({
                     where: { teacherId: user.id }
                 });
-                if (subjectIds.length > 0) {
+            }
+
+            // Sync Subject Assignments only when provided.
+            if (effectiveRoles.includes("SUBJECT_TEACHER") && shouldSyncSubjectAssignments) {
+                const subjectIds = Array.from(new Set(normalizedSubjectAssignments.map((a) => a.subjectId)));
+                const classArmAssignmentIds = Array.from(new Set(normalizedSubjectAssignments.map((a) => a.classArmId)));
+
+                const [subjects, classArms] = await Promise.all([
+                    tx.subject.findMany({
+                        where: { id: { in: subjectIds }, schoolId },
+                        select: { id: true, name: true }
+                    }),
+                    tx.classArm.findMany({
+                        where: { id: { in: classArmAssignmentIds }, class: { schoolId } },
+                        select: {
+                            id: true,
+                            armName: true,
+                            class: { select: { id: true, name: true } }
+                        }
+                    })
+                ]);
+
+                if (subjects.length !== subjectIds.length) {
+                    throw new Error("One or more selected subjects are invalid.");
+                }
+                if (classArms.length !== classArmAssignmentIds.length) {
+                    throw new Error("One or more selected classes are invalid.");
+                }
+
+                const allowedSubjectClassArms = await tx.subjectClassArm.findMany({
+                    where: {
+                        classArmId: { in: classArmAssignmentIds },
+                        subjectId: { in: subjectIds }
+                    },
+                    select: { subjectId: true, classArmId: true }
+                });
+
+                const allowedPairSet = new Set(
+                    allowedSubjectClassArms.map((pair: any) => `${pair.subjectId}:${pair.classArmId}`)
+                );
+
+                const invalidAssignments = normalizedSubjectAssignments.filter((assignment) => {
+                    return !allowedPairSet.has(`${assignment.subjectId}:${assignment.classArmId}`);
+                });
+
+                if (invalidAssignments.length > 0) {
+                    throw new Error("Some subject assignments do not match the subject offerings for the selected classes.");
+                }
+
+                const conflicts = await tx.teacherSubject.findMany({
+                    where: {
+                        teacherId: { not: user.id },
+                        OR: normalizedSubjectAssignments.map((assignment) => ({
+                            subjectId: assignment.subjectId,
+                            classArmId: assignment.classArmId
+                        }))
+                    },
+                    include: {
+                        teacher: { select: { firstName: true, lastName: true } },
+                        subject: { select: { name: true } },
+                        classArm: {
+                            select: {
+                                armName: true,
+                                class: { select: { name: true } }
+                            }
+                        }
+                    }
+                });
+
+                if (conflicts.length > 0) {
+                    const conflict = conflicts[0];
+                    throw new Error(
+                        `${conflict.subject.name} for ${conflict.classArm.class.name} ${conflict.classArm.armName} is already assigned to ${conflict.teacher.firstName} ${conflict.teacher.lastName}.`
+                    );
+                }
+
+                await tx.teacherSubject.deleteMany({
+                    where: { teacherId: user.id }
+                });
+
+                if (normalizedSubjectAssignments.length > 0) {
                     await tx.teacherSubject.createMany({
-                        data: subjectIds.map((subjectId: string) => ({
+                        data: normalizedSubjectAssignments.map((assignment) => ({
                             teacherId: user.id,
-                            subjectId
+                            subjectId: assignment.subjectId,
+                            classArmId: assignment.classArmId
                         }))
                     });
                 }
@@ -96,16 +274,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 }
 
-// DELETE /api/teachers/[id] - Delete or Deactivate a teacher
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const actor = session.user as any;
+
+        const schoolId = actor.schoolId;
         const teacherId = params.id;
 
         // Verify the teacher belongs to the same school

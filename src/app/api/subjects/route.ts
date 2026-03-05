@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET /api/subjects - List all subjects
 export async function GET(req: NextRequest) {
@@ -12,33 +13,57 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const user = session.user as any;
+        const schoolId = user.schoolId;
+        const roles = user.roles || [];
+
         const { searchParams } = new URL(req.url);
         const category = searchParams.get("category");
 
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+
         const where: any = {
-            schoolId: (session.user as any).schoolId,
+            schoolId,
         };
 
         if (category && category !== "All") {
             where.category = category;
         }
 
+        // If subject teacher, only show subjects they are assigned to
+        if (!isAdmin && roles.includes("SUBJECT_TEACHER")) {
+            const teacherSubjectAssignments = await prisma.teacherSubject.findMany({
+                where: { teacherId: user.id },
+                select: { subjectId: true }
+            });
+
+            const assignedSubjectIds = teacherSubjectAssignments.map(ts => ts.subjectId);
+
+            if (assignedSubjectIds.length > 0) {
+                where.id = { in: assignedSubjectIds };
+            } else {
+                // Teacher has no subject assignments, return empty array
+                return NextResponse.json({ subjects: [] });
+            }
+        }
+
         const subjects = await prisma.subject.findMany({
             where,
             orderBy: { name: "asc" },
             include: {
-                classSubjects: {
+                subjectClassArms: {
                     select: {
-                        classId: true
+                        classArmId: true
                     }
                 }
             }
         });
 
-        // Transform response to include classIds array
+        // Transform response to include classArmIds array (for backwards compatibility, we'll also call it classIds)
         const transformedSubjects = subjects.map((subject: any) => ({
             ...subject,
-            classIds: subject.classSubjects.map((c: any) => c.classId)
+            classIds: subject.subjectClassArms.map((c: any) => c.classArmId),
+            classArmIds: subject.subjectClassArms.map((c: any) => c.classArmId)
         }));
 
         return NextResponse.json({ subjects: transformedSubjects });
@@ -51,13 +76,12 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// PUT /api/subjects - Update a subject
 export async function PUT(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -91,18 +115,18 @@ export async function PUT(req: NextRequest) {
                 },
             });
 
-            // Update class assignments if provided
+            // Update class arm assignments if provided
             if (classIds && Array.isArray(classIds)) {
                 // Delete existing assignments
-                await tx.classSubject.deleteMany({
+                await tx.subjectClassArm.deleteMany({
                     where: { subjectId: id },
                 });
 
-                // Create new assignments
+                // Create new assignments (classIds now contains classArmIds)
                 if (classIds.length > 0) {
-                    await tx.classSubject.createMany({
-                        data: classIds.map((classId: string) => ({
-                            classId,
+                    await tx.subjectClassArm.createMany({
+                        data: classIds.map((classArmId: string) => ({
+                            classArmId,
                             subjectId: id,
                         })),
                     });
@@ -122,13 +146,12 @@ export async function PUT(req: NextRequest) {
     }
 }
 
-// POST /api/subjects - Create a new subject
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -171,9 +194,9 @@ export async function POST(req: NextRequest) {
             });
 
             if (classIds && Array.isArray(classIds) && classIds.length > 0) {
-                await tx.classSubject.createMany({
-                    data: classIds.map((classId: string) => ({
-                        classId,
+                await tx.subjectClassArm.createMany({
+                    data: classIds.map((classArmId: string) => ({
+                        classArmId,
                         subjectId: newSubject.id,
                     })),
                 });
@@ -192,13 +215,12 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// DELETE /api/subjects - Delete a subject
 export async function DELETE(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);

@@ -37,11 +37,11 @@ export async function GET(
                                 email: true,
                             },
                         },
-                    },
-                },
-                classSubjects: {
-                    include: {
-                        subject: true,
+                        subjectClassArms: {
+                            include: {
+                                subject: true,
+                            },
+                        },
                     },
                 },
             },

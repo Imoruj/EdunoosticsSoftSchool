@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { slugify } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
     try {
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
             const school = await tx.school.create({
                 data: {
                     name: schoolName,
+                    slug: slugify(schoolName),
                     address: schoolAddress || null,
                     email: schoolEmail || null,
                     phone: schoolPhone || null,
@@ -68,6 +70,7 @@ export async function POST(req: NextRequest) {
                     roles: ["SCHOOL_ADMIN"],
                     schoolId: school.id,
                     isActive: true,
+                    mustChangePassword: false,
                 },
             });
 

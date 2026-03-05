@@ -391,9 +391,6 @@ export async function GET(req: NextRequest) {
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit),
-                femaleCount,
-                maleCount,
-                activeCount
             },
         });
     } catch (error: any) {
@@ -537,7 +534,7 @@ export async function POST(req: NextRequest) {
 
         // Generate dummy email for student user — add timestamp to avoid collisions
         const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
-        let studentEmail = `${cleanAdmission}@student.educare.local`;
+        let studentEmail = `${cleanAdmission}@student.edunostics.local`;
 
         // Check if user email already exists (from previously deleted student, etc.)
         const existingUser = await prisma.user.findUnique({
@@ -547,7 +544,7 @@ export async function POST(req: NextRequest) {
         if (existingUser) {
             // Append a unique suffix to avoid collision
             const suffix = Date.now().toString(36);
-            studentEmail = `${cleanAdmission}-${suffix}@student.educare.local`;
+            studentEmail = `${cleanAdmission}-${suffix}@student.edunostics.local`;
         }
 
         const student = await prisma.student.create({
@@ -624,9 +621,10 @@ export async function POST(req: NextRequest) {
 // PUT /api/students - Update a student
 export async function PUT(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
+
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -657,26 +655,12 @@ export async function PUT(req: NextRequest) {
         // Validate required fields if they are being updated
         if (firstName === "" || lastName === "" || gender === "" || classArmId === "") {
             return NextResponse.json(
-            { error: "Required fields cannot be empty" },
+                { error: "Required fields cannot be empty" },
                 { status: 400 }
             );
         }
 
-        const user = session.user as any;
-        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const schoolId = user.schoolId;
-        const userId = user.id;
-        const isAdmin =
-            roles.includes(UserRole.SUPER_ADMIN) ||
-            roles.includes(UserRole.SCHOOL_ADMIN);
-        const isClassTeacher = roles.includes(UserRole.CLASS_TEACHER);
-
-        if (!isAdmin && !isClassTeacher) {
-            return NextResponse.json(
-                { error: "Unauthorized: Only admin and class teachers can update students." },
-                { status: 403 }
-            );
-        }
+        const schoolId = (session.user as any).schoolId;
 
         // Verify student belongs to school
         const existingStudent = await prisma.student.findFirst({
@@ -684,10 +668,6 @@ export async function PUT(req: NextRequest) {
                 id,
                 schoolId,
             },
-            select: {
-                id: true,
-                classArmId: true
-            }
         });
 
         if (!existingStudent) {
@@ -695,48 +675,6 @@ export async function PUT(req: NextRequest) {
                 { error: "Student not found" },
                 { status: 404 }
             );
-        }
-
-        if (!isAdmin && isClassTeacher) {
-            const allowedArms = await prisma.classArm.findMany({
-                where: {
-                    classTeacherId: userId,
-                    class: { schoolId }
-                },
-                select: { id: true }
-            });
-            const allowedArmIds = new Set(allowedArms.map((arm) => arm.id));
-
-            if (!existingStudent.classArmId || !allowedArmIds.has(existingStudent.classArmId)) {
-                return NextResponse.json(
-                    { error: "Unauthorized: You are not assigned to this student's class." },
-                    { status: 403 }
-                );
-            }
-
-            if (classArmId && !allowedArmIds.has(classArmId)) {
-                return NextResponse.json(
-                    { error: "Unauthorized: You can only assign students to your assigned class." },
-                    { status: 403 }
-                );
-            }
-        }
-
-        if (classArmId) {
-            const targetClassArm = await prisma.classArm.findFirst({
-                where: {
-                    id: classArmId,
-                    class: { schoolId }
-                },
-                select: { id: true }
-            });
-
-            if (!targetClassArm) {
-                return NextResponse.json(
-                    { error: "Invalid class selection." },
-                    { status: 400 }
-                );
-            }
         }
 
         // Use a transaction to ensure all related records stay in sync

@@ -1,22 +1,18 @@
+
 "use client";
 
-import { useState } from "react";
-
-// Mock data
-const mockClasses = ["Primary 1A", "Primary 1B", "Primary 2A", "JSS 1A", "SSS 1A"];
-
-const mockStudents = [
-    { id: "1", firstName: "Adaeze", lastName: "Okonkwo", admissionNumber: "SCH/2024/001" },
-    { id: "2", firstName: "Chinedu", lastName: "Eze", admissionNumber: "SCH/2024/002" },
-    { id: "3", firstName: "Fatima", lastName: "Ibrahim", admissionNumber: "SCH/2024/003" },
-    { id: "4", firstName: "Oluwaseun", lastName: "Adeleke", admissionNumber: "SCH/2024/004" },
-    { id: "5", firstName: "Amara", lastName: "Nwosu", admissionNumber: "SCH/2024/005" },
-];
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
+import { showSuccessMessage } from "@/lib/successMessage";
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 
 interface StudentAttendance {
-    studentId: string;
+    id: string; // studentId
+    firstName: string;
+    lastName: string;
+    admissionNumber: string;
     status: AttendanceStatus;
 }
 
@@ -28,37 +24,109 @@ const statusColors: Record<AttendanceStatus, { bg: string; text: string }> = {
 };
 
 export default function AttendancePage() {
-    const [selectedClass, setSelectedClass] = useState("");
+    const { data: session } = useSession();
+    const [classes, setClasses] = useState<any[]>([]);
+    const [selectedClassArmId, setSelectedClassArmId] = useState("");
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-    const [attendance, setAttendance] = useState<StudentAttendance[]>(
-        mockStudents.map((s) => ({ studentId: s.id, status: "PRESENT" }))
-    );
+    const [students, setStudents] = useState<StudentAttendance[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
+
+    useEffect(() => {
+        if (selectedClassArmId && selectedDate) {
+            fetchAttendance();
+        }
+    }, [selectedClassArmId, selectedDate]);
+
+    const fetchClasses = async () => {
+        try {
+            const res = await fetch("/api/classes");
+            if (res.ok) {
+                const data = await res.json();
+                // Flatten classes into arms
+                const arms = data.classes.flatMap((c: any) =>
+                    c.arms.map((a: any) => ({
+                        id: a.id,
+                        name: `${c.name} ${a.armName}`,
+                        classTeacherId: a.classTeacherId
+                    }))
+                );
+                setClasses(arms);
+            }
+        } catch (err) {
+            console.error("Failed to fetch classes", err);
+        }
+    };
+
+    const fetchAttendance = async () => {
+        setIsLoading(true);
+        setError("");
+        try {
+            const res = await fetch(`/api/attendance?classArmId=${selectedClassArmId}&date=${selectedDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                setStudents(data);
+            } else {
+                setError("Failed to fetch attendance records");
+            }
+        } catch (err) {
+            setError("Connection error");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-        setAttendance((prev) =>
-            prev.map((a) => (a.studentId === studentId ? { ...a, status } : a))
+        setStudents((prev) =>
+            prev.map((s) => (s.id === studentId ? { ...s, status } : s))
         );
     };
 
     const handleMarkAll = (status: AttendanceStatus) => {
-        setAttendance((prev) => prev.map((a) => ({ ...a, status })));
+        setStudents((prev) => prev.map((s) => ({ ...s, status })));
     };
 
     const handleSave = async () => {
         setIsSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setIsSaving(false);
-        alert("Attendance saved successfully!");
+        setError("");
+        try {
+            const res = await fetch("/api/attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    classArmId: selectedClassArmId,
+                    date: selectedDate,
+                    attendance: students.map(s => ({ studentId: s.id, status: s.status }))
+                })
+            });
+            if (res.ok) {
+                showSuccessMessage("Attendance saved successfully!", { title: "Attendance Saved!" });
+            } else {
+                const data = await res.json();
+                setError(data.error || "Failed to save attendance");
+                toast.error(data.error || "Failed to save attendance");
+            }
+        } catch (err) {
+            setError("Failed to save attendance");
+            toast.error("Failed to save attendance");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const showTable = selectedClass && selectedDate;
+    const showTable = selectedClassArmId && selectedDate;
+    const selectedClassName = classes.find(c => c.id === selectedClassArmId)?.name || "";
 
     const stats = {
-        present: attendance.filter((a) => a.status === "PRESENT").length,
-        absent: attendance.filter((a) => a.status === "ABSENT").length,
-        late: attendance.filter((a) => a.status === "LATE").length,
-        excused: attendance.filter((a) => a.status === "EXCUSED").length,
+        present: students.filter((s) => s.status === "PRESENT").length,
+        absent: students.filter((s) => s.status === "ABSENT").length,
+        late: students.filter((s) => s.status === "LATE").length,
+        excused: students.filter((s) => s.status === "EXCUSED").length,
     };
 
     return (
@@ -72,25 +140,10 @@ export default function AttendancePage() {
                 {showTable && (
                     <button
                         onClick={handleSave}
-                        disabled={isSaving}
+                        disabled={isSaving || students.length === 0}
                         className="btn-primary flex items-center gap-2"
                     >
-                        {isSaving ? (
-                            <>
-                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                Save Attendance
-                            </>
-                        )}
+                        {isSaving ? "Saving..." : "Save Attendance"}
                     </button>
                 )}
             </div>
@@ -103,13 +156,13 @@ export default function AttendancePage() {
                             Select Class *
                         </label>
                         <select
-                            value={selectedClass}
-                            onChange={(e) => setSelectedClass(e.target.value)}
+                            value={selectedClassArmId}
+                            onChange={(e) => setSelectedClassArmId(e.target.value)}
                             className="input w-full"
                         >
                             <option value="">Choose a class</option>
-                            {mockClasses.map((cls) => (
-                                <option key={cls} value={cls}>{cls}</option>
+                            {classes.map((cls) => (
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
                             ))}
                         </select>
                     </div>
@@ -129,34 +182,32 @@ export default function AttendancePage() {
                             <button
                                 onClick={() => handleMarkAll("PRESENT")}
                                 className="btn-secondary text-sm"
-                                disabled={!showTable}
+                                disabled={!showTable || students.length === 0}
                             >
                                 Mark All Present
                             </button>
                             <button
                                 onClick={() => handleMarkAll("ABSENT")}
                                 className="btn-secondary text-sm"
-                                disabled={!showTable}
+                                disabled={!showTable || students.length === 0}
                             >
                                 Mark All Absent
                             </button>
                         </div>
                     </div>
                 </div>
+                {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
             </div>
 
             {/* Stats */}
-            {showTable && (
+            {showTable && students.length > 0 && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="card p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <span className="text-green-600 font-bold">{stats.present}</span>
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-green-600">{stats.present}</p>
                                 <p className="text-sm text-gray-500">Present</p>
                             </div>
                         </div>
@@ -164,12 +215,9 @@ export default function AttendancePage() {
                     <div className="card p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <span className="text-red-600 font-bold">{stats.absent}</span>
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-red-600">{stats.absent}</p>
                                 <p className="text-sm text-gray-500">Absent</p>
                             </div>
                         </div>
@@ -177,12 +225,9 @@ export default function AttendancePage() {
                     <div className="card p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <span className="text-amber-600 font-bold">{stats.late}</span>
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-amber-600">{stats.late}</p>
                                 <p className="text-sm text-gray-500">Late</p>
                             </div>
                         </div>
@@ -190,12 +235,9 @@ export default function AttendancePage() {
                     <div className="card p-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
+                                <span className="text-blue-600 font-bold">{stats.excused}</span>
                             </div>
                             <div>
-                                <p className="text-2xl font-bold text-blue-600">{stats.excused}</p>
                                 <p className="text-sm text-gray-500">Excused</p>
                             </div>
                         </div>
@@ -208,34 +250,37 @@ export default function AttendancePage() {
                 <div className="card overflow-hidden">
                     <div className="p-4 bg-gray-50 border-b border-gray-200">
                         <h3 className="font-semibold text-gray-900">
-                            {selectedClass} - {new Date(selectedDate).toLocaleDateString("en-NG", {
+                            {selectedClassName} - {new Date(selectedDate).toLocaleDateString("en-NG", {
                                 weekday: "long",
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric",
                             })}
                         </h3>
-                        <p className="text-sm text-gray-500">{mockStudents.length} students</p>
+                        <p className="text-sm text-gray-500">{students.length} students</p>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">
-                                        S/N
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        Student
-                                    </th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                                        Status
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {mockStudents.map((student, index) => {
-                                    const studentAttendance = attendance.find((a) => a.studentId === student.id);
-                                    return (
+                        {isLoading ? (
+                            <div className="p-12 text-center text-gray-500">Loading students...</div>
+                        ) : students.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">No students found in this class.</div>
+                        ) : (
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">
+                                            S/N
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Student
+                                        </th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {students.map((student, index) => (
                                         <tr key={student.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
                                             <td className="px-6 py-4">
@@ -255,9 +300,9 @@ export default function AttendancePage() {
                                                             <button
                                                                 key={status}
                                                                 onClick={() => handleStatusChange(student.id, status)}
-                                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${studentAttendance?.status === status
-                                                                        ? `${statusColors[status].bg} ${statusColors[status].text} ring-2 ring-offset-1 ring-current`
-                                                                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${student.status === status
+                                                                    ? `${statusColors[status].bg} ${statusColors[status].text} ring-2 ring-offset-1 ring-current`
+                                                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                                                                     }`}
                                                             >
                                                                 {status.charAt(0) + status.slice(1).toLowerCase()}
@@ -267,26 +312,28 @@ export default function AttendancePage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
 
                     {/* Summary Footer */}
-                    <div className="p-4 bg-gray-50 border-t border-gray-200">
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">
-                                Attendance Rate:{" "}
-                                <span className="font-bold text-green-600">
-                                    {((stats.present / mockStudents.length) * 100).toFixed(1)}%
+                    {!isLoading && students.length > 0 && (
+                        <div className="p-4 bg-gray-50 border-t border-gray-200">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">
+                                    Attendance Rate:{" "}
+                                    <span className="font-bold text-green-600">
+                                        {((stats.present / students.length) * 100).toFixed(1)}%
+                                    </span>
                                 </span>
-                            </span>
-                            <span className="text-gray-500">
-                                Total: <span className="font-medium">{mockStudents.length}</span> students
-                            </span>
+                                <span className="text-gray-500">
+                                    Total: <span className="font-medium">{students.length}</span> students
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             ) : (
                 <div className="card p-12 text-center">

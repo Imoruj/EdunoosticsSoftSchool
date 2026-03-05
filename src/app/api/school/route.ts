@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
                 email: true,
                 website: true,
                 logoUrl: true,
+                principalSignatureUrl: true,
                 stampUrl: true,
             },
         });
@@ -79,7 +80,7 @@ export async function PUT(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, motto, address, city, state, phone, email, website, logoUrl } = body;
+        const { name, motto, address, city, state, phone, email, website, logoUrl, principalSignatureUrl } = body;
 
         const updatedSchool = await prisma.school.update({
             where: { id: schoolId },
@@ -93,6 +94,7 @@ export async function PUT(req: NextRequest) {
                 email,
                 website,
                 logoUrl,
+                principalSignatureUrl,
             },
         });
 

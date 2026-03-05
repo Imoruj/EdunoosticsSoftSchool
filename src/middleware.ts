@@ -4,45 +4,57 @@ import { NextResponse } from "next/server";
 export default withAuth(
     function middleware(req) {
         const token = req.nextauth.token;
-        const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
-        const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
-        const isApi = req.nextUrl.pathname.startsWith("/api");
+        const pathname = req.nextUrl.pathname;
+        const isAuthPage = pathname.startsWith("/auth");
+        const isChangePasswordPage = pathname === "/auth/change-password";
+        const isDashboard = pathname.startsWith("/dashboard");
+        const isAdmin = pathname.startsWith("/admin");
+        const isApi = pathname.startsWith("/api");
 
-        // If user is logged in and trying to access auth pages, redirect to dashboard
+        const roles: string[] = (token as any)?.roles || [];
+        const isSuperAdmin = roles.includes("SUPER_ADMIN");
+
+        // ── Force password change ────────────────────────────────
+        if (token && (token as any).mustChangePassword) {
+            if (isChangePasswordPage || isApi) return NextResponse.next();
+            return NextResponse.redirect(new URL("/auth/change-password", req.url));
+        }
+
+        // ── Logged-in → redirect away from auth pages ────────────
         if (token && isAuthPage) {
+            const dest = isSuperAdmin ? "/admin" : "/dashboard";
+            return NextResponse.redirect(new URL(dest, req.url));
+        }
+
+        // ── SUPER_ADMIN must go to /admin, not /dashboard ────────
+        if (token && isDashboard && isSuperAdmin) {
+            return NextResponse.redirect(new URL("/admin", req.url));
+        }
+
+        // ── Non-super-admins cannot access /admin ────────────────
+        if (token && isAdmin && !isSuperAdmin) {
             return NextResponse.redirect(new URL("/dashboard", req.url));
         }
 
-        // API routes are handled by their own auth checks
-        if (isApi) {
-            return NextResponse.next();
-        }
+        // ── API routes handle their own auth ─────────────────────
+        if (isApi) return NextResponse.next();
 
         return NextResponse.next();
     },
     {
         callbacks: {
             authorized: ({ token, req }) => {
-                const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
-                const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
-                const isApi = req.nextUrl.pathname.startsWith("/api");
-                const isPublic = req.nextUrl.pathname === "/" || req.nextUrl.pathname.startsWith("/_next");
+                const pathname = req.nextUrl.pathname;
+                const isAuthPage = pathname.startsWith("/auth");
+                const isDashboard = pathname.startsWith("/dashboard");
+                const isAdminPage = pathname.startsWith("/admin");
+                const isPublic =
+                    pathname === "/" ||
+                    pathname.startsWith("/_next") ||
+                    pathname.startsWith("/api");
 
-                // Allow public pages and auth pages
-                if (isPublic || isAuthPage) {
-                    return true;
-                }
-
-                // Dashboard requires authentication
-                if (isDashboard) {
-                    return !!token;
-                }
-
-                // API routes handle their own auth
-                if (isApi) {
-                    return true;
-                }
-
+                if (isPublic || isAuthPage) return true;
+                if (isDashboard || isAdminPage) return !!token;
                 return true;
             },
         },
@@ -50,8 +62,5 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: [
-        "/dashboard/:path*",
-        "/auth/:path*",
-    ],
+    matcher: ["/dashboard/:path*", "/admin/:path*", "/auth/:path*"],
 };

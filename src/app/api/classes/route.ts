@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET /api/classes - List all classes with arms
 export async function GET(req: NextRequest) {
@@ -13,12 +14,53 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const { searchParams } = new URL(req.url);
+        const sessionId = searchParams.get("sessionId");
+
+        const user = session.user as any;
+        const schoolId = user.schoolId;
+        const roles = user.roles || [];
+
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+
+        const where: any = { schoolId };
+
+        let assignedArmIds: string[] = [];
+
+        // If teacher (class teacher or subject teacher), only show classes they are assigned to
+        if (!isAdmin && (roles.includes("CLASS_TEACHER") || roles.includes("SUBJECT_TEACHER"))) {
+            // Find class arm IDs where user is the class teacher
+            const classArmAsTeacher = await prisma.classArm.findMany({
+                where: { classTeacherId: user.id },
+                select: { id: true }
+            });
+
+            // Find class arm IDs where user is a subject teacher
+            const classArmAsSubjectTeacher = await prisma.teacherSubject.findMany({
+                where: { teacherId: user.id },
+                select: { classArmId: true }
+            });
+
+            assignedArmIds = Array.from(new Set([
+                ...classArmAsTeacher.map(a => a.id),
+                ...classArmAsSubjectTeacher.map(a => a.classArmId).filter((id): id is string => id !== null)
+            ]));
+
+            // If teacher has no assignments, return empty array
+            if (assignedArmIds.length === 0) {
+                return NextResponse.json({ classes: [] });
+            }
+
+            where.arms = { some: { id: { in: assignedArmIds } } };
+        }
+
         const classes = await prisma.class.findMany({
-            where: {
-                schoolId: (session.user as any).schoolId,
-            },
+            where,
             include: {
                 arms: {
+                    where: !isAdmin ? {
+                        id: { in: assignedArmIds }
+                    } : undefined,
                     include: {
                         _count: {
                             select: { students: true },
@@ -35,6 +77,50 @@ export async function GET(req: NextRequest) {
             orderBy: { name: "asc" },
         });
 
+        // If sessionId is provided, override student counts with session-specific historical counts
+        if (sessionId) {
+            const sessionTerms = await prisma.term.findMany({
+                where: { sessionId },
+                select: { id: true }
+            });
+            const sessionTermIds = sessionTerms.map(t => t.id);
+
+            if (sessionTermIds.length > 0) {
+                const [rcRecords, seRecords] = await Promise.all([
+                    prisma.reportCard.findMany({
+                        where: { termId: { in: sessionTermIds } },
+                        select: { classArmId: true, studentId: true },
+                        distinct: ['classArmId', 'studentId']
+                    }),
+                    prisma.subjectEnrollment.findMany({
+                        where: { termId: { in: sessionTermIds } },
+                        select: { classArmId: true, studentId: true },
+                        distinct: ['classArmId', 'studentId']
+                    })
+                ]);
+
+                const countMap = new Map<string, Set<string>>();
+                for (const record of [...rcRecords, ...seRecords]) {
+                    if (!countMap.has(record.classArmId)) {
+                        countMap.set(record.classArmId, new Set());
+                    }
+                    countMap.get(record.classArmId)!.add(record.studentId);
+                }
+
+                for (const cls of classes) {
+                    for (const arm of cls.arms) {
+                        (arm as any)._count.students = countMap.get(arm.id)?.size || 0;
+                    }
+                }
+            } else {
+                for (const cls of classes) {
+                    for (const arm of cls.arms) {
+                        (arm as any)._count.students = 0;
+                    }
+                }
+            }
+        }
+
         return NextResponse.json({ classes });
     } catch (error: any) {
         console.error("Error fetching classes:", error);
@@ -48,10 +134,10 @@ export async function GET(req: NextRequest) {
 // POST /api/classes - Create a new class or add arms to existing class
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -157,10 +243,10 @@ export async function POST(req: NextRequest) {
 // Currently deletes entire class
 export async function DELETE(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);

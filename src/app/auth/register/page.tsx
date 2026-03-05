@@ -107,7 +107,7 @@ export default function RegisterPage() {
                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
                             <span className="text-primary-600 font-bold text-2xl">E</span>
                         </div>
-                        <span className="text-white font-semibold text-2xl">EduCare</span>
+                        <span className="text-white font-semibold text-2xl">Edunostics</span>
                     </Link>
                 </div>
 
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                         Register Your School
                     </h1>
                     <p className="text-white/70 text-lg mb-8">
-                        Get started with EduCare today. Set up your school in minutes and
+                        Get started with Edunostics today. Set up your school in minutes and
                         start generating professional report cards.
                     </p>
 
@@ -150,7 +150,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="text-white/50 text-sm">
-                    Already using EduCare?{" "}
+                    Already using Edunostics?{" "}
                     <Link href="/auth/login" className="text-white hover:underline">
                         Sign in here
                     </Link>
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                                 <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
                                     <span className="text-white font-bold text-xl">E</span>
                                 </div>
-                                <span className="text-gray-900 font-semibold text-xl">EduCare</span>
+                                <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
                             </Link>
                         </div>
 

@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface Teacher {
     id: string;
@@ -209,7 +213,7 @@ export default function ClassesPage() {
 
             fetchClasses();
         } catch (err: any) {
-            alert(err.message);
+            toast.error(err.message || "Failed to delete arm");
         }
     };
 
@@ -228,7 +232,7 @@ export default function ClassesPage() {
 
             fetchClasses();
         } catch (err: any) {
-            alert(err.message);
+            toast.error(err.message || "Failed to delete class");
         }
     };
 
@@ -252,15 +256,15 @@ export default function ClassesPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Classes</h1>
                     <p className="text-gray-500 mt-1">Manage class structure and arm assignments</p>
                 </div>
-                <button
+                <Button
                     onClick={() => setShowAddModal(true)}
-                    className="btn-primary flex items-center gap-2"
+                    className="flex items-center gap-2"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                     Add Class
-                </button>
+                </Button>
             </div>
 
             {/* Error Message */}
@@ -272,22 +276,22 @@ export default function ClassesPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="card p-4 text-center sm:text-left shadow-sm border-gray-100">
+                <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Classes</p>
                     <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
-                </div>
-                <div className="card p-4 text-center sm:text-left shadow-sm border-gray-100">
+                </Card>
+                <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Arms</p>
                     <p className="text-2xl font-bold text-gray-900">{totalArms}</p>
-                </div>
-                <div className="card p-4 text-center sm:text-left shadow-sm border-gray-100">
+                </Card>
+                <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Students</p>
                     <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
-                </div>
-                <div className="card p-4 text-center sm:text-left shadow-sm border-gray-100">
+                </Card>
+                <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Avg per Arm</p>
                     <p className="text-2xl font-bold text-gray-900">{totalArms > 0 ? Math.round(totalStudents / totalArms) : 0}</p>
-                </div>
+                </Card>
             </div>
 
             {/* Level Filter */}
@@ -312,13 +316,13 @@ export default function ClassesPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             ) : filteredClasses.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
+                <Card className="text-center py-12 text-gray-500 border border-dashed border-gray-300">
                     <p>No classes found. Add your first class.</p>
-                </div>
+                </Card>
             ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredClasses.map((cls) => (
-                        <div key={cls.id} className="card overflow-hidden hover:shadow-md transition-shadow group/card">
+                        <Card key={cls.id} className="overflow-hidden hover:shadow-md transition-shadow group/card">
                             <div className="p-5 border-b border-gray-100">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-bold text-gray-900">{cls.name}</h3>
@@ -419,7 +423,7 @@ export default function ClassesPage() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}
@@ -436,20 +440,26 @@ function AddClassModal({ onClose, onSubmit, submitting }: { onClose: () => void;
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" onClick={onClose} />
-                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                        <h3 className="text-lg font-bold text-gray-900">Add New Class</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-500 text-2xl font-light">&times;</button>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+                <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
+                        <h3 className="text-xl font-bold text-slate-900">Add New Class</h3>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Class Name *</label>
-                            <input name="name" type="text" className="input w-full" placeholder="e.g., Primary 1, JSS 1" required />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Level *</label>
-                            <select name="level" className="input w-full" required>
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                        <Input
+                            name="name"
+                            label="Class Name *"
+                            placeholder="e.g., Primary 1, JSS 1"
+                            required
+                        />
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">Level *</label>
+                            <select name="level" className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300" required>
                                 <option value="">Select level</option>
                                 <option value="NURSERY">Nursery</option>
                                 <option value="PRIMARY">Primary</option>
@@ -457,17 +467,20 @@ function AddClassModal({ onClose, onSubmit, submitting }: { onClose: () => void;
                                 <option value="SENIOR_SECONDARY">Senior Secondary</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Arms (comma separated)</label>
-                            <input name="arms" type="text" className="input w-full" placeholder="A, B, C or Science, Arts" />
-                            <p className="text-[10px] text-gray-400 mt-1 font-medium">Leave empty to add arms later</p>
-                        </div>
-                        <div className="flex items-center justify-end gap-3 pt-6">
-                            <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>Cancel</button>
-                            <button type="submit" className="btn-primary px-8" disabled={submitting}>{submitting ? "Adding..." : "Add Class"}</button>
+                        <Input
+                            name="arms"
+                            label="Arms (comma separated)"
+                            placeholder="A, B, C or Science, Arts"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1 font-medium bg-slate-50 p-2 rounded border border-slate-100">
+                            Leave empty to add arms later. Use commas to separate multiple arms.
+                        </p>
+                        <div className="flex items-center justify-end gap-3 pt-4">
+                            <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
+                            <Button type="submit" isLoading={submitting}>Add Class</Button>
                         </div>
                     </form>
-                </div>
+                </Card>
             </div>
         </div>
     );
@@ -477,24 +490,33 @@ function AddArmModal({ cls, onClose, onSubmit, submitting }: { cls: Class; onClo
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" onClick={onClose} />
-                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                        <h3 className="text-lg font-bold text-gray-900">Add Arm to {cls.name}</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-500 text-2xl font-light">&times;</button>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+                <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
+                        <h3 className="text-xl font-bold text-slate-900">Add Arm to {cls.name}</h3>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Arm Names (comma separated) *</label>
-                            <input name="arms" type="text" className="input w-full" placeholder="e.g., D, E, F" required autoFocus />
-                            <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Enter names for the new arms you want to add.</p>
-                        </div>
-                        <div className="flex items-center justify-end gap-3 pt-6">
-                            <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>Cancel</button>
-                            <button type="submit" className="btn-primary px-8" disabled={submitting}>{submitting ? "Adding..." : "Add Arm(s)"}</button>
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                        <Input
+                            name="arms"
+                            label="Arm Names (comma separated) *"
+                            placeholder="e.g., D, E, F"
+                            required
+                            autoFocus
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1 font-medium bg-slate-50 p-2 rounded border border-slate-100">
+                            Enter names for the new arms you want to add to this class.
+                        </p>
+                        <div className="flex items-center justify-end gap-3 pt-4">
+                            <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
+                            <Button type="submit" isLoading={submitting}>Add Arm(s)</Button>
                         </div>
                     </form>
-                </div>
+                </Card>
             </div>
         </div>
     );
@@ -504,20 +526,26 @@ function EditArmModal({ arm, teachers, onClose, onSubmit, onDelete, submitting }
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-screen items-center justify-center p-4">
-                <div className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity" onClick={onClose} />
-                <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                        <h3 className="text-lg font-bold text-gray-900">Edit Arm: {arm.armName}</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-500 text-2xl font-light">&times;</button>
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+                <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
+                        <h3 className="text-xl font-bold text-slate-900">Edit Arm: {arm.armName}</h3>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-5">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Arm Name *</label>
-                            <input name="armName" type="text" defaultValue={arm.armName} className="input w-full" required />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Class Teacher</label>
-                            <select name="classTeacherId" defaultValue={arm.classTeacherId || ""} className="input w-full">
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                        <Input
+                            name="armName"
+                            label="Arm Name *"
+                            defaultValue={arm.armName}
+                            required
+                        />
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-slate-700">Class Teacher</label>
+                            <select name="classTeacherId" defaultValue={arm.classTeacherId || ""} className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300">
                                 <option value="">No Teacher Assigned</option>
                                 {teachers.map(teacher => (
                                     <option key={teacher.id} value={teacher.id}>
@@ -526,20 +554,20 @@ function EditArmModal({ arm, teachers, onClose, onSubmit, onDelete, submitting }
                                 ))}
                             </select>
                         </div>
-                        <div className="flex items-center justify-between pt-6 border-t border-gray-50">
-                            <button type="button" onClick={onDelete} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest transition-colors flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                            <button type="button" onClick={onDelete} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest transition-colors flex items-center gap-1 group">
+                                <svg className="w-3.5 h-3.5 group-hover:animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 Delete Arm
                             </button>
                             <div className="flex gap-3">
-                                <button type="button" onClick={onClose} className="btn-secondary" disabled={submitting}>Cancel</button>
-                                <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? "Saving..." : "Save Changes"}</button>
+                                <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
+                                <Button type="submit" isLoading={submitting}>Save Changes</Button>
                             </div>
                         </div>
                     </form>
-                </div>
+                </Card>
             </div>
         </div>
     );
