@@ -286,7 +286,10 @@ export default function ProfilePage() {
                 </div>
                 {isAdmin && !isEditing && (
                     <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => {
+                            setIsEditing(true);
+                            setFormData((prev: any) => ({ ...prev, currentPassword: "", newPassword: "" }));
+                        }}
                         className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 py-2.5 px-5 rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
                     >
                         <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -298,7 +301,10 @@ export default function ProfilePage() {
                 {isAdmin && isEditing && (
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setIsEditing(false)}
+                            onClick={() => {
+                                setIsEditing(false);
+                                setFormData((prev: any) => ({ ...prev, currentPassword: "", newPassword: "" }));
+                            }}
                             className="py-2.5 px-5 text-sm font-medium text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-200"
                         >
                             Cancel
