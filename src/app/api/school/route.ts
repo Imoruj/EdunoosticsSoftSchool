@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
     try {
@@ -61,12 +62,12 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 

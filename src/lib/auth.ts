@@ -1,115 +1,170 @@
-// PrismaAdapter removed — not needed for JWT+CredentialsProvider and missing required DB tables
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
+import { rateLimit } from "@/lib/rateLimit";
+
+type AuthUserRecord = {
+    id: string;
+    email: string;
+    passwordHash: string | null;
+    firstName: string;
+    lastName: string;
+    roles: string[];
+    schoolId: string | null;
+    avatarUrl?: string | null;
+    mustChangePassword?: boolean | null;
+    isActive?: boolean | null;
+    school?: {
+        name?: string | null;
+        isActive?: boolean | null;
+        registrationStatus?: string | null;
+        registrationRejectionReason?: string | null;
+    } | null;
+    // Populated via Prisma include for admin login
+    classArms?: Array<{ armName: string; class: { name: string } }> | null;
+    // Populated via spread for student login
+    student?: { photoUrl?: string | null } | null;
+    // Populated via Prisma include for parent login
+    parent?: { id?: string | null } | null;
+};
+
+function assertActiveAccount(user: AuthUserRecord): asserts user is AuthUserRecord & { passwordHash: string } {
+    if (!user.passwordHash) {
+        throw new Error("Your account is not set up yet. Please contact your school administrator.");
+    }
+
+    if (user.isActive === false) {
+        throw new Error("This account is inactive. Please contact your school administrator.");
+    }
+
+    if (user.school?.isActive === false) {
+        if (user.school.registrationStatus === "PENDING") {
+            throw new Error("Your school registration is pending approval. Please wait for administrator review.");
+        }
+        if (user.school.registrationStatus === "REJECTED") {
+            const reason = user.school.registrationRejectionReason;
+            throw new Error(
+                reason
+                    ? `Your school registration was rejected: ${reason}`
+                    : "Your school registration was rejected. Please contact support."
+            );
+        }
+        throw new Error("Your school account is inactive. Please contact support.");
+    }
+}
 
 export const authOptions: NextAuthOptions = {
-    // adapter removed — using JWT strategy only, no Account/Session tables needed
     providers: [
         CredentialsProvider({
             name: "credentials",
             credentials: {
                 email: { label: "Email/Admission", type: "text" },
                 password: { label: "Password/PIN", type: "password" },
-                loginType: { label: "Login Type", type: "text" }, // "admin", "parent", "student"
+                loginType: { label: "Login Type", type: "text" },
             },
             async authorize(credentials) {
-                console.log("[AUTH] Raw credentials:", JSON.stringify(credentials));
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Credentials are required");
                 }
 
                 const loginType = credentials.loginType || "admin";
                 const identifier = credentials.email.trim();
+
+                // Rate limit: 10 attempts per identifier per 15 minutes
+                const allowed = rateLimit("login", identifier, { limit: 10, windowMs: 15 * 60 * 1000 });
+                if (!allowed) {
+                    throw new Error("Too many login attempts. Please try again later.");
+                }
                 const password = credentials.password.trim();
 
-                console.log(`[AUTH] Attempting ${loginType} login for: ${identifier}`);
-                let user = null;
+                let user: AuthUserRecord | null = null;
+                let loginProfileId: string | null = null;
 
                 try {
-                    let loginProfileId = null;
-
                     if (loginType === "admin") {
-                        // Admin/Teacher Login (Email)
                         user = await prisma.user.findUnique({
                             where: { email: identifier.toLowerCase() },
                             include: {
                                 school: true,
                                 classArms: {
-                                    include: { class: true }
-                                }
+                                    include: { class: true },
+                                },
                             },
-                        });
+                        }) as AuthUserRecord | null;
                     } else if (loginType === "parent") {
-                        // Parent Login (Email only)
                         user = await prisma.user.findFirst({
                             where: {
                                 email: {
                                     equals: identifier.toLowerCase(),
                                     mode: "insensitive",
                                 },
-                                roles: { has: "PARENT" }
+                                roles: { has: "PARENT" },
                             },
                             include: { school: true, parent: true },
-                        });
+                        }) as AuthUserRecord | null;
 
                         loginProfileId = user?.parent?.id || null;
                     } else if (loginType === "student") {
-                        // Student Login (Admission Number)
                         const student = await prisma.student.findFirst({
                             where: {
                                 admissionNumber: {
                                     equals: identifier,
-                                    mode: 'insensitive'
-                                }
+                                    mode: "insensitive",
+                                },
                             },
-                            include: { user: { include: { school: true } } }
+                            include: { user: { include: { school: true } } },
                         });
+
                         if (student) {
                             if (!student.user) {
-                                console.log("[AUTH] Student found but has no User account:", identifier);
                                 throw new Error("Your account is not set up yet. Please contact your school administrator.");
                             }
-                            user = { ...student.user, student };
+
+                            user = {
+                                ...student.user,
+                                student,
+                            } as AuthUserRecord;
                             loginProfileId = student.id;
                         }
                     }
 
                     if (!user) {
-                        console.log("[AUTH] User NOT found for identifier:", identifier);
                         throw new Error("Invalid credentials");
                     }
 
-                    console.log("[AUTH] User found:", user.email, "Roles:", user.roles, "Has Hash:", !!user.passwordHash);
+                    assertActiveAccount(user);
 
-                    // ... rest of validation ...
-                    const isValid = await bcrypt.compare(password, user.passwordHash!);
-                    console.log("[AUTH] Password check for", identifier, ":", isValid ? "SUCCESS" : "FAILED");
-                    if (!isValid) throw new Error("Invalid credentials");
+                    const isValid = await bcrypt.compare(password, user.passwordHash);
+                    if (!isValid) {
+                        throw new Error("Invalid credentials");
+                    }
+
+                    const firstArm = user.classArms?.[0];
+                    const assignedClass = firstArm
+                        ? `${firstArm.class.name} ${firstArm.armName}`
+                        : null;
+                    const photoUrl =
+                        (loginType === "student" ? user.student?.photoUrl : null) ||
+                        user.avatarUrl ||
+                        null;
 
                     return {
-                        id: user.id || "",
-                        email: user.email || "",
+                        id: user.id,
+                        email: user.email,
                         name: `${user.firstName} ${user.lastName}`,
-                        roles: user.roles as string[],
+                        roles: user.roles,
                         schoolId: user.schoolId || null,
                         schoolName: user.school?.name || null,
-                        loginType: loginType,
-                        loginProfileId: loginProfileId, // Parent.id or Student.id
-                        assignedClass: (user as any).classArms && (user as any).classArms.length > 0
-                            ? `${(user as any).classArms[0].class.name} ${(user as any).classArms[0].armName}`
-                            : null,
-                        image: (loginType === "student" && (user as any).student?.photoUrl
-                            ? (user as any).student.photoUrl
-                            : user.avatarUrl) || null,
-                        avatarUrl: (loginType === "student" && (user as any).student?.photoUrl
-                            ? (user as any).student.photoUrl
-                            : user.avatarUrl) || null,
-                        mustChangePassword: (user as any).mustChangePassword ?? false,
+                        loginType,
+                        loginProfileId,
+                        assignedClass,
+                        image: photoUrl,
+                        avatarUrl: photoUrl,
+                        mustChangePassword: user.mustChangePassword ?? false,
                     };
-
                 } catch (error: any) {
+                    console.error("[AUTH] Authorization error:", error?.message || error);
                     throw new Error(error.message || "Authentication failed");
                 }
             },
@@ -117,29 +172,26 @@ export const authOptions: NextAuthOptions = {
     ],
     session: {
         strategy: "jwt",
-        maxAge: 24 * 60 * 60, // 24 hours
+        maxAge: 24 * 60 * 60,
     },
     callbacks: {
         async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.id = user.id;
-                token.roles = (user as any).roles;
-                token.schoolId = (user as any).schoolId;
-                token.schoolName = (user as any).schoolName;
-                token.loginType = (user as any).loginType;
-                token.loginProfileId = (user as any).loginProfileId;
-                token.assignedClass = (user as any).assignedClass;
-                token.avatarUrl = (user as any).avatarUrl;
-                token.image = (user as any).image;
-                token.mustChangePassword = (user as any).mustChangePassword ?? false;
+                token.roles = user.roles;
+                token.schoolId = user.schoolId;
+                token.schoolName = user.schoolName;
+                token.loginType = user.loginType;
+                token.loginProfileId = user.loginProfileId;
+                token.assignedClass = user.assignedClass;
+                token.avatarUrl = user.avatarUrl;
+                token.mustChangePassword = user.mustChangePassword ?? false;
             }
 
-            // Handle session update
             if (trigger === "update" && session) {
                 if (session.user.name) token.name = session.user.name;
                 if (session.user.avatarUrl) {
                     token.avatarUrl = session.user.avatarUrl;
-                    token.image = session.user.avatarUrl;
                 }
                 if (session.user.mustChangePassword !== undefined) {
                     token.mustChangePassword = session.user.mustChangePassword;
@@ -150,16 +202,16 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user) {
-                (session.user as any).id = token.id;
-                (session.user as any).roles = token.roles;
-                (session.user as any).schoolId = token.schoolId;
-                (session.user as any).schoolName = token.schoolName;
-                (session.user as any).loginType = token.loginType;
-                (session.user as any).loginProfileId = token.loginProfileId;
-                (session.user as any).assignedClass = token.assignedClass;
-                (session.user as any).avatarUrl = token.avatarUrl;
-                (session.user as any).image = token.image;
-                (session.user as any).mustChangePassword = token.mustChangePassword ?? false;
+                session.user.id = token.id;
+                session.user.roles = token.roles;
+                session.user.schoolId = token.schoolId;
+                session.user.schoolName = token.schoolName;
+                session.user.loginType = token.loginType;
+                session.user.loginProfileId = token.loginProfileId;
+                session.user.assignedClass = token.assignedClass;
+                session.user.avatarUrl = token.avatarUrl;
+                session.user.image = token.avatarUrl ?? null;
+                session.user.mustChangePassword = token.mustChangePassword ?? false;
             }
             return session;
         },

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { clampLimit } from "@/lib/apiError";
+import { checkCsrf } from "@/lib/csrf";
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -100,9 +103,7 @@ function getSchoolAcronym(name: string): string {
 
 // GET /api/students - List students with pagination and filters
 export async function GET(req: NextRequest) {
-    console.log("[API] GET /api/students started");
     try {
-
         const session = await getServerSession(authOptions);
 
         if (!session?.user) {
@@ -132,8 +133,8 @@ export async function GET(req: NextRequest) {
         }
 
         const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get("page") || "1");
-        const limit = parseInt(searchParams.get("limit") || "20");
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+        const limit = clampLimit(searchParams.get("limit"));
         const search = searchParams.get("search") || "";
         const classArmId = searchParams.get("classArmId");
         const gender = searchParams.get("gender");
@@ -358,8 +359,7 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        console.log("[API] Executing student query...");
-        const [students, total, femaleCount, maleCount, activeCount] = await Promise.all([
+        const [students, total] = await Promise.all([
             prisma.student.findMany({
                 where,
                 include,
@@ -368,21 +368,7 @@ export async function GET(req: NextRequest) {
                 take: limit,
             }),
             prisma.student.count({ where }),
-            prisma.student.count({ where: { ...where, gender: "FEMALE" } }),
-            prisma.student.count({ where: { ...where, gender: "MALE" } }),
-            prisma.student.count({ where: { ...where, isActive: true } }),
         ]);
-        console.log(`[API] Query successful. Found ${students.length} students. Total: ${total}`);
-
-        try {
-            const fs = require('fs');
-            fs.writeFileSync('C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\api_students_log.json', JSON.stringify({
-                url: req.url,
-                whereQuery: where,
-                numReturned: students.length,
-                topNames: students.map((s: any) => `${s.firstName} ${s.lastName} - ClassArm: ${s.classArmId}`).slice(0, 10)
-            }, null, 2));
-        } catch (e) { }
 
         return NextResponse.json({
             students,
@@ -395,16 +381,15 @@ export async function GET(req: NextRequest) {
         });
     } catch (error: any) {
         console.error("[API] Error fetching students:", error);
-        console.error("[API] Error details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        return NextResponse.json(
-            { error: error.message || "Failed to fetch students", code: error.code || null, details: error.meta || null },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });
     }
 }
 
 // POST /api/students - Create a new student
 export async function POST(req: NextRequest) {
+    const csrfError = checkCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -515,8 +500,11 @@ export async function POST(req: NextRequest) {
         }
 
         // Verify the classArmId exists
-        const classArm = await prisma.classArm.findUnique({
-            where: { id: classArmId },
+        const classArm = await prisma.classArm.findFirst({
+            where: {
+                id: classArmId,
+                class: { schoolId },
+            },
             include: { class: true },
         });
 
@@ -528,7 +516,6 @@ export async function POST(req: NextRequest) {
         }
 
         // Generate default password hash (PIN: 1234)
-        const bcrypt = require("bcryptjs");
         const defaultPin = "1234";
         const passwordHash = await bcrypt.hash(defaultPin, 10);
 
@@ -607,8 +594,6 @@ export async function POST(req: NextRequest) {
             errorMessage = "Invalid reference: the selected class or arm does not exist.";
         } else if (error.code === "P2025") {
             errorMessage = "A required related record was not found.";
-        } else if (error.message) {
-            errorMessage = error.message;
         }
 
         return NextResponse.json(
@@ -620,6 +605,9 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/students - Update a student
 export async function PUT(req: NextRequest) {
+    const csrfError = checkCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -661,6 +649,23 @@ export async function PUT(req: NextRequest) {
         }
 
         const schoolId = (session.user as any).schoolId;
+
+        if (classArmId !== undefined) {
+            const classArm = await prisma.classArm.findFirst({
+                where: {
+                    id: classArmId,
+                    class: { schoolId },
+                },
+                select: { id: true },
+            });
+
+            if (!classArm) {
+                return NextResponse.json(
+                    { error: "Invalid class/arm selected. Please select a valid class." },
+                    { status: 400 }
+                );
+            }
+        }
 
         // Verify student belongs to school
         const existingStudent = await prisma.student.findFirst({
@@ -711,6 +716,7 @@ export async function PUT(req: NextRequest) {
                     data: {
                         firstName: firstName || undefined,
                         lastName: lastName || undefined,
+                        isActive: isActive !== undefined ? isActive : undefined,
                     }
                 });
             }
@@ -768,6 +774,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/students - Delete a student
 export async function DELETE(req: NextRequest) {
+    const csrfError = checkCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const session = await requireSchoolAdmin(req);
 

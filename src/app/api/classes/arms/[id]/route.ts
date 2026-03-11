@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
 // PATCH /api/classes/arms/[id] - Update arm details (teacher assignment, name)
 export async function PATCH(
@@ -10,10 +9,10 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         const body = await req.json();
@@ -28,6 +27,27 @@ export async function PATCH(
 
         const armId = params.id;
         const schoolId = (session.user as any).schoolId;
+
+        if (classTeacherId) {
+            const teacher = await prisma.user.findFirst({
+                where: {
+                    id: classTeacherId,
+                    schoolId,
+                    isActive: true,
+                    roles: {
+                        hasSome: ["CLASS_TEACHER", "SCHOOL_ADMIN", "SUPER_ADMIN"],
+                    },
+                },
+                select: { id: true },
+            });
+
+            if (!teacher) {
+                return NextResponse.json(
+                    { error: "Selected class teacher is invalid for this school." },
+                    { status: 400 }
+                );
+            }
+        }
 
         // Verify arm belongs to school through class
         const arm = await prisma.classArm.findUnique({
@@ -68,10 +88,10 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         const armId = params.id;

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import prisma from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET - Fetch grading rules for the school, optionally filtered by category
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 
@@ -50,12 +49,12 @@ export async function GET(req: NextRequest) {
 // POST - Create a new grading rule
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 
@@ -108,15 +107,16 @@ export async function POST(req: NextRequest) {
 // PUT - Update a grading rule
 export async function PUT(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 
+        const schoolId = (session.user as any).schoolId;
         const body = await req.json();
         const { id, grade, minScore, maxScore, remark, schoolCategory } = body;
 
@@ -127,8 +127,20 @@ export async function PUT(req: NextRequest) {
             );
         }
 
+        const existingRule = await prisma.gradingRule.findFirst({
+            where: { id, schoolId },
+            select: { id: true },
+        });
+
+        if (!existingRule) {
+            return NextResponse.json(
+                { error: "Grading rule not found" },
+                { status: 404 }
+            );
+        }
+
         const gradingRule = await prisma.gradingRule.update({
-            where: { id },
+            where: { id: existingRule.id },
             data: {
                 grade,
                 minScore: minScore !== undefined ? parseInt(minScore) : undefined,
@@ -160,15 +172,16 @@ export async function PUT(req: NextRequest) {
 // DELETE - Delete a grading rule
 export async function DELETE(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await requireSchoolAdmin(req);
 
         if (!session?.user) {
             return NextResponse.json(
                 { error: "Unauthorized" },
-                { status: 401 }
+                { status: 403 }
             );
         }
 
+        const schoolId = (session.user as any).schoolId;
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
 
@@ -179,8 +192,20 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
+        const existingRule = await prisma.gradingRule.findFirst({
+            where: { id, schoolId },
+            select: { id: true },
+        });
+
+        if (!existingRule) {
+            return NextResponse.json(
+                { error: "Grading rule not found" },
+                { status: 404 }
+            );
+        }
+
         await prisma.gradingRule.delete({
-            where: { id },
+            where: { id: existingRule.id },
         });
 
         return NextResponse.json({ success: true });

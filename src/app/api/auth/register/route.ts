@@ -6,6 +6,17 @@ import { slugify } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
     try {
+        // Check if signup is enabled
+        const settings = await prisma.platformSettings.findUnique({
+            where: { id: "platform" },
+        });
+        if (settings && !settings.signupEnabled) {
+            return NextResponse.json(
+                { error: "School registration is currently disabled. Please contact the platform administrator." },
+                { status: 403 }
+            );
+        }
+
         const body = await req.json();
         const { schoolName, schoolAddress, schoolEmail, schoolPhone, adminFirstName, adminLastName, adminEmail, adminPassword } = body;
 
@@ -48,7 +59,7 @@ export async function POST(req: NextRequest) {
 
         // Create school and admin user in a transaction
         const result = await prisma.$transaction(async (tx: any) => {
-            // Create school
+            // Create school — starts as PENDING until super admin approves
             const school = await tx.school.create({
                 data: {
                     name: schoolName,
@@ -56,7 +67,8 @@ export async function POST(req: NextRequest) {
                     address: schoolAddress || null,
                     email: schoolEmail || null,
                     phone: schoolPhone || null,
-                    isActive: true,
+                    isActive: false,
+                    registrationStatus: "PENDING",
                 },
             });
 

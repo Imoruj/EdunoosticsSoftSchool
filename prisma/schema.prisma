@@ -23,7 +23,9 @@ model School {
   slug                   String?                 @unique // URL-friendly name for branded login
   principalSignatureUrl  String?
   stampUrl               String?
-  isActive               Boolean                 @default(true)
+  isActive                    Boolean                  @default(true)
+  registrationStatus          SchoolRegistrationStatus @default(APPROVED)
+  registrationRejectionReason String?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   academicSessions       AcademicSession[]
@@ -41,6 +43,7 @@ model School {
   reportCardConfig       ReportCardConfig?
   communicationConfig    CommunicationConfig?
   broadsheetConfig       BroadsheetConfig?
+  featureControls        SchoolFeatureControl?
   backgroundJobs         BackgroundJob[]
   scoreSheetWorkflows    ScoreSheetWorkflow[]
   classReportWorkflows   ClassReportWorkflow[]
@@ -489,6 +492,12 @@ model AiSettings {
   school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
+enum SchoolRegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SchoolCategory {
   PRIMARY
   JUNIOR_SECONDARY
@@ -800,6 +809,44 @@ model CommunicationConfig {
   school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
+model SchoolFeatureControl {
+  id                   String   @id @default(cuid())
+  schoolId             String   @unique
+  school               School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // People
+  studentsEnabled      Boolean  @default(true)
+  teachersEnabled      Boolean  @default(true)
+
+  // Academics
+  scoreEntryEnabled    Boolean  @default(true)
+  scoreReviewsEnabled  Boolean  @default(true)
+  subjectsEnabled      Boolean  @default(true)
+  lessonsEnabled       Boolean  @default(true)
+  quizzesEnabled       Boolean  @default(true)
+  assignmentsEnabled   Boolean  @default(true)
+  classesEnabled       Boolean  @default(true)
+  broadsheetEnabled    Boolean  @default(true)
+  transcriptsEnabled   Boolean  @default(true)
+
+  // Reports
+  reportCardsEnabled   Boolean  @default(true)
+  legacyRecordsEnabled Boolean  @default(true)
+  uploadRequestsEnabled Boolean @default(true)
+
+  // School
+  attendanceEnabled    Boolean  @default(true)
+  behaviourEnabled     Boolean  @default(true)
+  communicationEnabled Boolean  @default(true)
+  feesEnabled          Boolean  @default(true)
+
+  // Settings
+  settingsEnabled      Boolean  @default(true)
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 model BroadsheetConfig {
   id               String   @id @default(cuid())
   schoolId         String   @unique
@@ -911,4 +958,10 @@ model SignalingMessage {
 
   @@index([toUserId, isRead])
   @@index([createdAt])
+}
+
+model PlatformSettings {
+  id            String   @id @default("platform")
+  signupEnabled Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
 }

@@ -39,7 +39,12 @@ export default function LoginPage() {
             if (result?.error) {
                 setError(result.error);
             } else if (result?.ok) {
-                router.push("/dashboard");
+                // Fetch session to route super admin to /admin, others to /dashboard
+                const sessionRes = await fetch("/api/auth/session");
+                const session = await sessionRes.json();
+                const roles: string[] = session?.user?.roles || [];
+                const dest = roles.includes("SUPER_ADMIN") ? "/admin" : "/dashboard";
+                router.push(dest);
                 router.refresh();
             }
         } catch (err) {
@@ -107,7 +112,7 @@ export default function LoginPage() {
                         </p>
 
                         {/* Login Type Tabs */}
-                        <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+                        <div className="flex bg-gray-100 rounded-lg p-1 mb-2">
                             <button
                                 onClick={() => setLoginType("admin")}
                                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "admin"
@@ -136,6 +141,14 @@ export default function LoginPage() {
                                 Student
                             </button>
                         </div>
+
+                        {/* Super Admin hint — shown on Admin/Teacher tab */}
+                        {loginType === "admin" && (
+                            <p className="text-xs text-center text-gray-400 mb-6">
+                                Platform super admin? Use this tab with your super admin email.
+                            </p>
+                        )}
+                        {loginType !== "admin" && <div className="mb-6" />}
 
                         {error && (
                             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
@@ -224,16 +237,15 @@ export default function LoginPage() {
                                     </div>
                                     <div>
                                         <label htmlFor="studentPin" className="block text-sm font-medium text-gray-700 mb-2">
-                                            PIN
+                                            Password
                                         </label>
                                         <input
                                             id="studentPin"
                                             name="pin"
                                             type="password"
                                             required
-                                            maxLength={4}
                                             className="input"
-                                            placeholder="••••"
+                                            placeholder="••••••••"
                                         />
                                     </div>
                                 </>
@@ -295,6 +307,19 @@ export default function LoginPage() {
                                 Register your school
                             </Link>
                         </p>
+
+                        <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+                            <p className="text-xs text-gray-400">
+                                Platform administrator?{" "}
+                                <span className="inline-flex items-center gap-1 font-semibold text-red-600">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    SUPER ADMIN
+                                </span>{" "}
+                                — use the <span className="font-medium text-gray-600">Admin/Teacher</span> tab above with your super admin email &amp; password.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

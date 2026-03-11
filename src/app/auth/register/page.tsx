@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 
 interface SchoolData {
     schoolName: string;
@@ -13,14 +12,23 @@ interface SchoolData {
 
 export default function RegisterPage() {
     const router = useRouter();
+    const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [submitted, setSubmitted] = useState(false);
     const [step, setStep] = useState(1);
     const [schoolData, setSchoolData] = useState<SchoolData>({
         schoolName: "",
         schoolAddress: "",
         schoolPhone: "",
     });
+
+    useEffect(() => {
+        fetch("/api/auth/register/status")
+            .then((r) => r.json())
+            .then((d) => setSignupEnabled(d.signupEnabled ?? true))
+            .catch(() => setSignupEnabled(true));
+    }, []);
 
     const handleStep1Continue = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -77,20 +85,8 @@ export default function RegisterPage() {
                 throw new Error(data.error || "Registration failed");
             }
 
-            // Auto-login after successful registration
-            const loginResult = await signIn("credentials", {
-                email: formData.get("email"),
-                password: password,
-                redirect: false,
-            });
-
-            if (loginResult?.ok) {
-                router.push("/dashboard");
-                router.refresh();
-            } else {
-                // Registration succeeded but login failed - redirect to login page
-                router.push("/auth/login");
-            }
+            // Show pending approval message instead of auto-login
+            setSubmitted(true);
         } catch (err: any) {
             setError(err.message || "Registration failed. Please try again.");
         } finally {
@@ -98,64 +94,129 @@ export default function RegisterPage() {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
-            {/* Left Panel - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
-                <div>
-                    <Link href="/" className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                            <span className="text-primary-600 font-bold text-2xl">E</span>
+    const leftPanel = (
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
+            <div>
+                <Link href="/" className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                        <span className="text-primary-600 font-bold text-2xl">E</span>
+                    </div>
+                    <span className="text-white font-semibold text-2xl">Edunostics</span>
+                </Link>
+            </div>
+
+            <div className="max-w-md">
+                <h1 className="text-4xl font-bold text-white mb-6">Register Your School</h1>
+                <p className="text-white/70 text-lg mb-8">
+                    Get started with Edunostics today. Set up your school in minutes and
+                    start generating professional report cards.
+                </p>
+                <ul className="space-y-4">
+                    {["Automated report card generation", "Nigerian grading system (A1-F9)", "Parent & student portals", "SMS notifications"].map((item) => (
+                        <li key={item} className="flex items-center gap-3 text-white/80">
+                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            {item}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="text-white/50 text-sm">
+                Already using Edunostics?{" "}
+                <Link href="/auth/login" className="text-white hover:underline">
+                    Sign in here
+                </Link>
+            </div>
+        </div>
+    );
+
+    // Loading state
+    if (signupEnabled === null) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    // Signup disabled
+    if (!signupEnabled) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+                {leftPanel}
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+                    <div className="w-full max-w-lg">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+                            <div className="lg:hidden flex justify-center mb-8">
+                                <Link href="/" className="flex items-center gap-2">
+                                    <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                                        <span className="text-white font-bold text-xl">E</span>
+                                    </div>
+                                    <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                                </Link>
+                            </div>
+                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Closed</h2>
+                            <p className="text-gray-500 mb-6">
+                                New school registrations are currently not being accepted. Please contact the platform administrator for assistance.
+                            </p>
+                            <Link href="/auth/login" className="btn-primary inline-block px-6 py-3">
+                                Go to Login
+                            </Link>
                         </div>
-                        <span className="text-white font-semibold text-2xl">Edunostics</span>
-                    </Link>
-                </div>
-
-                <div className="max-w-md">
-                    <h1 className="text-4xl font-bold text-white mb-6">
-                        Register Your School
-                    </h1>
-                    <p className="text-white/70 text-lg mb-8">
-                        Get started with Edunostics today. Set up your school in minutes and
-                        start generating professional report cards.
-                    </p>
-
-                    {/* Benefits List */}
-                    <ul className="space-y-4">
-                        <li className="flex items-center gap-3 text-white/80">
-                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Automated report card generation
-                        </li>
-                        <li className="flex items-center gap-3 text-white/80">
-                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Nigerian grading system (A1-F9)
-                        </li>
-                        <li className="flex items-center gap-3 text-white/80">
-                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Parent & student portals
-                        </li>
-                        <li className="flex items-center gap-3 text-white/80">
-                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            SMS notifications
-                        </li>
-                    </ul>
-                </div>
-
-                <div className="text-white/50 text-sm">
-                    Already using Edunostics?{" "}
-                    <Link href="/auth/login" className="text-white hover:underline">
-                        Sign in here
-                    </Link>
+                    </div>
                 </div>
             </div>
+        );
+    }
+
+    // Submission success — pending approval
+    if (submitted) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+                {leftPanel}
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+                    <div className="w-full max-w-lg">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+                            <div className="lg:hidden flex justify-center mb-8">
+                                <Link href="/" className="flex items-center gap-2">
+                                    <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                                        <span className="text-white font-bold text-xl">E</span>
+                                    </div>
+                                    <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                                </Link>
+                            </div>
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Submitted!</h2>
+                            <p className="text-gray-500 mb-2">
+                                <span className="font-semibold text-gray-700">{schoolData.schoolName}</span> has been registered successfully.
+                            </p>
+                            <p className="text-gray-500 mb-6">
+                                Your registration is <span className="font-semibold text-orange-600">pending approval</span> by the platform administrator. You will be notified once your account is activated.
+                            </p>
+                            <Link href="/auth/login" className="btn-primary inline-block px-6 py-3">
+                                Go to Login
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+            {leftPanel}
 
             {/* Right Panel - Registration Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
@@ -251,7 +312,6 @@ export default function RegisterPage() {
                                             <option value="Delta">Delta</option>
                                             <option value="Anambra">Anambra</option>
                                             <option value="Ogun">Ogun</option>
-                                            {/* Add more states */}
                                         </select>
                                     </div>
                                 </div>
@@ -269,10 +329,7 @@ export default function RegisterPage() {
                                     />
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    className="btn-primary w-full py-3 text-base"
-                                >
+                                <button type="submit" className="btn-primary w-full py-3 text-base">
                                     Continue
                                 </button>
                             </form>
@@ -398,7 +455,7 @@ export default function RegisterPage() {
                                         disabled={isLoading}
                                         className="btn-primary flex-1 py-3"
                                     >
-                                        {isLoading ? "Creating..." : "Create Account"}
+                                        {isLoading ? "Submitting..." : "Submit Registration"}
                                     </button>
                                 </div>
                             </form>
@@ -406,10 +463,7 @@ export default function RegisterPage() {
 
                         <p className="text-center text-gray-500 text-sm mt-8 lg:hidden">
                             Already have an account?{" "}
-                            <Link
-                                href="/auth/login"
-                                className="text-primary-600 hover:text-primary-700 font-medium"
-                            >
+                            <Link href="/auth/login" className="text-primary-600 hover:text-primary-700 font-medium">
                                 Sign in
                             </Link>
                         </p>

@@ -1,6 +1,7 @@
 
 import nodemailer from "nodemailer";
 import prisma from "@/lib/prisma";
+import { decryptSecret } from "@/lib/serverEncrypt";
 
 export const sendEmail = async (schoolId: string, to: string, subject: string, html: string, userId: string) => {
     try {
@@ -20,7 +21,7 @@ export const sendEmail = async (schoolId: string, to: string, subject: string, h
             secure: config.emailPort === 465, // true for 465, false for other ports
             auth: {
                 user: config.emailUser,
-                pass: config.emailPassword,
+                pass: decryptSecret(config.emailPassword),
             },
         });
 

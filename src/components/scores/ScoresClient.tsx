@@ -1,0 +1,1328 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSession } from "next-auth/react";
+
+import {
+    StudentScore,
+    EnrollmentStudent,
+    AssessmentType,
+    ClassLink,
+    GradingRule,
+    Subject,
+    Session,
+    Term,
+    SchoolCategory,
+    ScoreWorkflowState,
+} from "./types";
+
+import { Card } from "@/components/ui/Card";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
+import { Input } from "@/components/ui/Input";
+
+interface ScoresClientProps {
+    initialClasses: ClassLink[];
+    initialSubjects: Subject[];
+    initialAssessmentTypes: AssessmentType[];
+    initialGradingRules: GradingRule[];
+    initialSessions: Session[];
+}
+
+export default function ScoresClient({
+    initialClasses,
+    initialSubjects,
+    initialAssessmentTypes,
+    initialGradingRules,
+    initialSessions
+}: ScoresClientProps) {
+    const { data: sessionData } = useSession();
+    const userRoles: string[] = Array.isArray((sessionData?.user as any)?.roles) ? (sessionData?.user as any).roles : [];
+    const isAdmin = userRoles.includes("SUPER_ADMIN") || userRoles.includes("SCHOOL_ADMIN");
+
+    // State for dropdowns
+    const [classes, setClasses] = useState<ClassLink[]>(initialClasses);
+    const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
+    const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>(initialAssessmentTypes);
+    const [gradingRules, setGradingRules] = useState<GradingRule[]>(initialGradingRules);
+    const [sessions, setSessions] = useState<Session[]>(initialSessions);
+
+    // Selection state
+    const [selectedArmId, setSelectedArmId] = useState("");
+    const [selectedSubjectId, setSelectedSubjectId] = useState("");
+    const [selectedSessionId, setSelectedSessionId] = useState("");
+    const [selectedTermId, setSelectedTermId] = useState("");
+
+    // Data state
+    const [students, setStudents] = useState<StudentScore[]>([]);
+    const [loadingData, setLoadingData] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [scoreWorkflow, setScoreWorkflow] = useState<ScoreWorkflowState | null>(null);
+    const [workflowActionLoading, setWorkflowActionLoading] = useState<null | "approve" | "reject" | "broadcast">(null);
+    const [showRejectPrompt, setShowRejectPrompt] = useState(false);
+    const [rejectionNote, setRejectionNote] = useState("");
+
+    // Enrollment state
+    const [hasEnrollments, setHasEnrollments] = useState(false);
+    const [enrolledCount, setEnrolledCount] = useState(0);
+    const [totalClassStudents, setTotalClassStudents] = useState(0);
+    const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+    const [enrollmentStudents, setEnrollmentStudents] = useState<EnrollmentStudent[]>([]);
+
+    // Template download state
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+
+    // Upload state
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadResult, setUploadResult] = useState<any>(null);
+    const [showOverrideConfirm, setShowOverrideConfirm] = useState(false);
+    const [overrideData, setOverrideData] = useState<any>(null);
+    const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+    const [enrollmentSaving, setEnrollmentSaving] = useState(false);
+    const [enrollmentSearch, setEnrollmentSearch] = useState("");
+
+    // Initial Data Setup (from props)
+    useEffect(() => {
+        const currentSession = initialSessions.find((s: Session) => s.isCurrent) || initialSessions[0];
+        if (currentSession) {
+            setSelectedSessionId(currentSession.id);
+            const currentTerm = currentSession.terms.find((t: Term) => t.isCurrent) || currentSession.terms[0];
+            if (currentTerm) {
+                setSelectedTermId(currentTerm.id);
+            }
+        }
+    }, [initialSessions]);
+
+    // Helper to calculate adjusted total and grade locally
+    // Adjustment only applies when exam score has been entered (exam > 0)
+    const calculateAdjustedTotal = (ca1: number, ca2: number, ca3: number, exam: number) => {
+        const rawTotal = ca1 + ca2 + ca3 + exam;
+
+        const caTypes = assessmentTypes
+            .filter(t => !t.name.toLowerCase().includes("exam"))
+            .sort((a, b) => a.order - b.order);
+
+        let missedMax = 0;
+        // Only calculate adjustment if exam score exists
+        if (exam > 0) {
+            if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
+            if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
+            if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
+        }
+
+        const obtainable = 100 - missedMax;
+        let adjustedTotal = rawTotal;
+        if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
+            adjustedTotal = Math.round((rawTotal / obtainable) * 100);
+        }
+
+        return { rawTotal, adjustedTotal, isAdjusted: missedMax > 0 && rawTotal > 0 };
+    };
+
+    const classLevelToCategory = (level: string | undefined): SchoolCategory | null => {
+        if (!level) return null;
+        if (level === "PRIMARY" || level === "NURSERY") return "PRIMARY";
+        if (level === "JUNIOR_SECONDARY") return "JUNIOR_SECONDARY";
+        if (level === "SENIOR_SECONDARY") return "SENIOR_SECONDARY";
+        return null;
+    };
+
+    const selectedCategory = useMemo<SchoolCategory | null>(() => {
+        if (!selectedArmId) return null;
+
+        for (const cls of classes) {
+            const arm = cls.arms.find((item) => item.id === selectedArmId);
+            if (arm) {
+                return classLevelToCategory(arm.level);
+            }
+        }
+
+        return null;
+    }, [classes, selectedArmId]);
+
+    const activeGradingRules = useMemo(() => {
+        const categoryRules = selectedCategory
+            ? gradingRules.filter((rule) => rule.schoolCategory === selectedCategory)
+            : [];
+        const schoolWideRules = gradingRules.filter((rule) => rule.schoolCategory === null);
+        return categoryRules.length > 0 ? categoryRules : schoolWideRules;
+    }, [gradingRules, selectedCategory]);
+
+    const normalizeScoreForRuleScale = (total: number, rules: GradingRule[]) => {
+        const maxRuleScore = rules.reduce((max, rule) => Math.max(max, rule.maxScore), 0);
+        if (maxRuleScore <= 50 && total > 50) {
+            return Math.round(total / 2);
+        }
+        return total;
+    };
+
+    // Fetch scores when selection changes
+    const fetchScores = useCallback(async () => {
+        if (!selectedArmId || !selectedSubjectId || !selectedTermId) return;
+
+        setLoadingData(true);
+        setError(null);
+        setStudents([]); // Clear previous
+
+        try {
+            const params = new URLSearchParams({
+                classArmId: selectedArmId,
+                subjectId: selectedSubjectId,
+                termId: selectedTermId,
+            });
+
+            const response = await fetch(`/api/scores?${params.toString()}`);
+            if (!response.ok) throw new Error("Failed to fetch students/scores");
+
+            const data = await response.json();
+
+            // Update enrollment info
+            setHasEnrollments(data.hasEnrollments || false);
+            setEnrolledCount(data.enrolledCount || 0);
+            setTotalClassStudents(data.totalClassStudents || 0);
+            setScoreWorkflow(data.workflow || null);
+
+            // Determine active fields based on assessmentTypes
+            const activeFields = new Set<string>();
+            assessmentTypes.forEach((type) => {
+                if (type.name.toLowerCase().includes("exam")) {
+                    activeFields.add("exam");
+                } else {
+                    const caTypes = assessmentTypes
+                        .filter(t => !t.name.toLowerCase().includes("exam"))
+                        .sort((a, b) => a.order - b.order);
+                    const caIndex = caTypes.indexOf(type);
+                    if (caIndex === 0) activeFields.add("ca1");
+                    else if (caIndex === 1) activeFields.add("ca2");
+                    else activeFields.add("ca3");
+                }
+            });
+
+            // Clean data: Set inactive fields to 0 and recalculate total
+            const dynamicStudents = (data.students || []).map((s: any) => {
+                const cleaned = { ...s };
+
+                // Zero out inactive fields
+                if (!activeFields.has("ca1")) cleaned.ca1 = 0;
+                if (!activeFields.has("ca2")) cleaned.ca2 = 0;
+                if (!activeFields.has("ca3")) cleaned.ca3 = 0;
+                if (!activeFields.has("exam")) cleaned.exam = 0;
+
+                // Calculate totals
+                const { rawTotal, adjustedTotal, isAdjusted } = calculateAdjustedTotal(
+                    cleaned.ca1 || 0, cleaned.ca2 || 0, cleaned.ca3 || 0, cleaned.exam || 0
+                );
+                cleaned.total = rawTotal;
+                cleaned.adjustedTotal = adjustedTotal;
+                cleaned.isAdjusted = isAdjusted;
+
+                const { grade, remark } = calculateGrade(adjustedTotal);
+                return { ...cleaned, grade, remark };
+            });
+
+            setStudents(dynamicStudents);
+        } catch (err: any) {
+            setError(err.message || "Failed to load scores");
+            setScoreWorkflow(null);
+        } finally {
+            setLoadingData(false);
+        }
+    }, [selectedArmId, selectedSubjectId, selectedTermId, activeGradingRules, assessmentTypes]);
+
+    useEffect(() => {
+        if (selectedArmId && selectedSubjectId) {
+            fetchScores();
+        } else {
+            setScoreWorkflow(null);
+        }
+    }, [fetchScores, selectedArmId, selectedSubjectId]);
+
+    // Helper to calculate grade locally for immediate feedback
+    const calculateGrade = (total: number) => {
+        const score = normalizeScoreForRuleScale(Number(total), activeGradingRules);
+        const rule = activeGradingRules.find(r => score >= r.minScore && score <= r.maxScore);
+
+        if (rule) {
+            let color = "bg-gray-100 text-gray-800";
+            if (rule.grade.startsWith("A")) color = "bg-green-100 text-green-800";
+            else if (rule.grade.startsWith("B")) color = "bg-blue-100 text-blue-800";
+            else if (rule.grade.startsWith("C")) color = "bg-yellow-100 text-yellow-800";
+            else if (rule.grade.startsWith("D")) color = "bg-orange-100 text-orange-800";
+            else if (rule.grade.startsWith("E")) color = "bg-orange-50 text-orange-800";
+            else if (rule.grade.startsWith("F")) color = "bg-red-100 text-red-800";
+
+            return { grade: rule.grade, remark: rule.remark, color };
+        }
+        return { grade: "-", remark: "-", color: "bg-gray-100 text-gray-800" };
+    };
+
+    const handleScoreChange = (studentId: string, field: "ca1" | "ca2" | "ca3" | "exam", value: string) => {
+        let numValue = value === "" ? 0 : parseFloat(value);
+        if (isNaN(numValue)) numValue = 0;
+
+        // Validation caps from assessmentTypes
+        const typeIndex = field === "ca1" ? 0 : field === "ca2" ? 1 : field === "ca3" ? 2 : 3;
+        const type = assessmentTypes[typeIndex];
+        const max = type?.maxScore || 100;
+
+        if (numValue > max) numValue = max;
+        if (numValue < 0) numValue = 0;
+
+        setStudents(prev => prev.map(s => {
+            if (s.id === studentId) {
+                const updated = { ...s, [field]: numValue };
+                // Recalculate totals
+                const { rawTotal, adjustedTotal, isAdjusted } = calculateAdjustedTotal(
+                    updated.ca1 || 0, updated.ca2 || 0, updated.ca3 || 0, updated.exam || 0
+                );
+                updated.total = rawTotal;
+                updated.adjustedTotal = adjustedTotal;
+                updated.isAdjusted = isAdjusted;
+                const { grade, remark } = calculateGrade(adjustedTotal);
+                updated.grade = grade;
+                updated.remark = remark;
+                return updated;
+            }
+            return s;
+        }));
+    };
+
+    const handleSave = async () => {
+        if (!selectedArmId || !selectedSubjectId || students.length === 0) return;
+
+        setIsSaving(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const payload = {
+                scores: students.map(s => ({
+                    studentId: s.id,
+                    ca1: s.ca1,
+                    ca2: s.ca2,
+                    ca3: s.ca3,
+                    exam: s.exam
+                })),
+                subjectId: selectedSubjectId,
+                termId: selectedTermId,
+                classArmId: selectedArmId
+            };
+
+            const response = await fetch("/api/scores", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const res = await response.json();
+                throw new Error(res.error || "Failed to save scores");
+            }
+
+            const data = await response.json();
+            if (data.workflow) {
+                setScoreWorkflow((prev) => ({
+                    id: data.workflow.id ?? prev?.id ?? null,
+                    status: data.workflow.status ?? prev?.status ?? "PENDING_REVIEW",
+                    rejectionReason: data.workflow.rejectionReason ?? null,
+                    reviewedAt: data.workflow.reviewedAt ?? null,
+                    broadcastedAt: data.workflow.broadcastedAt ?? null,
+                    canReview: prev?.canReview ?? false,
+                    canBroadcast: prev?.canBroadcast ?? false,
+                }));
+            }
+
+            await fetchScores();
+            setSuccessMessage(data.message || "Scores saved successfully!");
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const submitWorkflowAction = async (action: "approve" | "reject" | "broadcast", note?: string) => {
+        if (!selectedArmId || !selectedSubjectId || !selectedTermId) return;
+
+        setWorkflowActionLoading(action);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const response = await fetch("/api/scores/workflow", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    classArmId: selectedArmId,
+                    subjectId: selectedSubjectId,
+                    termId: selectedTermId,
+                    action,
+                    note,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to update score workflow");
+            }
+
+            setSuccessMessage(data.message || "Workflow updated.");
+            setShowRejectPrompt(false);
+            setRejectionNote("");
+            await fetchScores();
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (err: any) {
+            setError(err.message || "Failed to update score workflow");
+        } finally {
+            setWorkflowActionLoading(null);
+        }
+    };
+
+    // --- Enrollment Modal Logic ---
+    const openEnrollmentModal = async () => {
+        if (!selectedArmId || !selectedSubjectId || !selectedTermId) return;
+
+        setShowEnrollmentModal(true);
+        setEnrollmentLoading(true);
+        setEnrollmentSearch("");
+
+        try {
+            const params = new URLSearchParams({
+                classArmId: selectedArmId,
+                subjectId: selectedSubjectId,
+                termId: selectedTermId,
+            });
+
+            const response = await fetch(`/api/scores/enrollment?${params.toString()}`);
+            if (!response.ok) throw new Error("Failed to fetch enrollment data");
+
+            const data = await response.json();
+            setEnrollmentStudents(data.students || []);
+        } catch (err: any) {
+            setError(err.message);
+            setShowEnrollmentModal(false);
+        } finally {
+            setEnrollmentLoading(false);
+        }
+    };
+
+    const toggleEnrollment = (studentId: string) => {
+        setEnrollmentStudents(prev =>
+            prev.map(s =>
+                s.id === studentId ? { ...s, isEnrolled: !s.isEnrolled } : s
+            )
+        );
+    };
+
+    const enrollAll = () => {
+        setEnrollmentStudents(prev => prev.map(s => ({ ...s, isEnrolled: true })));
+    };
+
+    const unenrollAll = () => {
+        setEnrollmentStudents(prev => prev.map(s => ({ ...s, isEnrolled: false })));
+    };
+
+    const saveEnrollment = async () => {
+        setEnrollmentSaving(true);
+
+        try {
+            const enrolledIds = enrollmentStudents.filter(s => s.isEnrolled).map(s => s.id);
+            const unenrolledIds = enrollmentStudents.filter(s => !s.isEnrolled).map(s => s.id);
+
+            // Enroll selected students
+            if (enrolledIds.length > 0) {
+                await fetch("/api/scores/enrollment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        studentIds: enrolledIds,
+                        subjectId: selectedSubjectId,
+                        classArmId: selectedArmId,
+                        termId: selectedTermId,
+                        action: "enroll",
+                    }),
+                });
+            }
+
+            // Unenroll deselected students
+            if (unenrolledIds.length > 0) {
+                await fetch("/api/scores/enrollment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        studentIds: unenrolledIds,
+                        subjectId: selectedSubjectId,
+                        classArmId: selectedArmId,
+                        termId: selectedTermId,
+                        action: "unenroll",
+                    }),
+                });
+            }
+
+            setShowEnrollmentModal(false);
+            setSuccessMessage("Enrollment updated successfully!");
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+            // Refresh scores to reflect enrollment changes
+            fetchScores();
+        } catch (err: any) {
+            setError(err.message || "Failed to save enrollment");
+        } finally {
+            setEnrollmentSaving(false);
+        }
+    };
+
+    const filteredEnrollmentStudents = enrollmentStudents.filter(s => {
+        if (!enrollmentSearch) return true;
+        const search = enrollmentSearch.toLowerCase();
+        return (
+            s.firstName.toLowerCase().includes(search) ||
+            s.lastName.toLowerCase().includes(search) ||
+            s.admissionNumber.toLowerCase().includes(search)
+        );
+    });
+
+    // Helper: map assessment type to score field key
+    const getColumnOptions = () => {
+        const caTypes = assessmentTypes
+            .filter(t => !t.name.toLowerCase().includes("exam"))
+            .sort((a, b) => a.order - b.order);
+        const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
+
+        const options: { key: string; label: string }[] = [];
+        if (caTypes[0]) options.push({ key: "ca1", label: caTypes[0].name });
+        if (caTypes[1]) options.push({ key: "ca2", label: caTypes[1].name });
+        if (caTypes[2]) options.push({ key: "ca3", label: caTypes[2].name });
+        if (examType) options.push({ key: "exam", label: examType.name });
+        return options;
+    };
+
+    const handleDownloadTemplate = () => {
+        if (selectedColumns.length === 0) return;
+        const columnsParam = selectedColumns.join(",");
+        const url = `/api/scores/template?classArmId=${selectedArmId}&subjectId=${selectedSubjectId}&termId=${selectedTermId}&columns=${columnsParam}`;
+        window.open(url, "_blank");
+        setShowTemplateModal(false);
+    };
+
+    const handleUploadScores = async (forceOverwrite = false) => {
+        if (!uploadFile) return;
+        setUploading(true);
+        setUploadResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append("file", uploadFile);
+            formData.append("subjectId", selectedSubjectId);
+            formData.append("termId", selectedTermId);
+            formData.append("classArmId", selectedArmId);
+            if (forceOverwrite) formData.append("forceOverwrite", "true");
+
+            const res = await fetch("/api/scores/upload", { method: "POST", body: formData });
+            const data = await res.json();
+
+            if (data.status === "conflict_admin") {
+                setOverrideData(data);
+                setShowOverrideConfirm(true);
+                setShowUploadModal(false);
+            } else if (data.status === "pending_approval") {
+                setUploadResult(data);
+                setShowOverrideConfirm(false);
+            } else if (data.status === "saved") {
+                setUploadResult(data);
+                setShowOverrideConfirm(false);
+                // Reload scores
+                if (selectedArmId && selectedSubjectId && selectedTermId) {
+                    const scoresRes = await fetch(`/api/scores?classArmId=${selectedArmId}&subjectId=${selectedSubjectId}&termId=${selectedTermId}`);
+                    if (scoresRes.ok) {
+                        const scoresData = await scoresRes.json();
+                        setStudents(scoresData.students || []);
+                    }
+                }
+            } else if (data.error) {
+                setUploadResult({ status: "error", message: data.error, errors: data.errors || [] });
+            }
+        } catch (err) {
+            setUploadResult({ status: "error", message: "Failed to upload scores" });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleForceOverride = async () => {
+        setShowOverrideConfirm(false);
+        setShowUploadModal(true);
+        await handleUploadScores(true);
+    };
+
+    // Derived stats - use adjustedTotal for average/pass rate
+    const classAverage = students.length > 0
+        ? (students.reduce((acc, s) => acc + (s.adjustedTotal ?? s.total), 0) / students.length).toFixed(1)
+        : "0.0";
+    const passRate = students.length > 0
+        ? ((students.filter(s => (s.adjustedTotal ?? s.total) >= 40).length / students.length) * 100).toFixed(0)
+        : "0";
+
+    const selectionReady = selectedArmId && selectedSubjectId && selectedTermId;
+    const workflowStatusMeta = useMemo(() => {
+        switch (scoreWorkflow?.status) {
+            case "APPROVED":
+                return {
+                    label: "Approved",
+                    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+                    help: "Class teacher has approved these scores.",
+                };
+            case "REJECTED":
+                return {
+                    label: "Rejected",
+                    color: "bg-red-100 text-red-700 border-red-200",
+                    help: "Update the scores using the note, then save again.",
+                };
+            case "BROADCASTED":
+                return {
+                    label: "Broadcasted",
+                    color: "bg-blue-100 text-blue-700 border-blue-200",
+                    help: "Scores are broadcasted and ready for report workflow.",
+                };
+            default:
+                return {
+                    label: "Pending Review",
+                    color: "bg-amber-100 text-amber-700 border-amber-200",
+                    help: "Awaiting class teacher review.",
+                };
+        }
+    }, [scoreWorkflow?.status]);
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Score Entry</h1>
+                    <p className="text-gray-500 mt-1">Record and manage assessment scores</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {selectionReady && (
+                        <button
+                            onClick={openEnrollmentModal}
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Manage Students
+                        </button>
+                    )}
+                    {selectionReady && students.length > 0 && (
+                        <button
+                            onClick={() => { setSelectedColumns([]); setShowTemplateModal(true); }}
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download Template
+                        </button>
+                    )}
+                    {selectionReady && students.length > 0 && (
+                        <button
+                            onClick={() => { setUploadFile(null); setUploadResult(null); setShowUploadModal(true); }}
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Upload Scores
+                        </button>
+                    )}
+                    {students.length > 0 && (
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className={`btn-primary flex items-center gap-2 ${isSaving ? "opacity-75 cursor-not-allowed" : ""}`}
+                        >
+                            {isSaving ? "Saving..." : "Save Scores"}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Error / Success Messages */}
+            {error && (
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
+                    {error}
+                </div>
+            )}
+            {successMessage && (
+                <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
+                    {successMessage}
+                </div>
+            )}
+
+            {/* Selection Controls */}
+            <div className="card p-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                        <select
+                            className="input w-full"
+                            value={selectedSessionId}
+                            onChange={(e) => {
+                                const sid = e.target.value;
+                                setSelectedSessionId(sid);
+                                const session = sessions.find(s => s.id === sid);
+                                if (session) {
+                                    const currentTerm = session.terms.find(t => t.isCurrent) || session.terms[0];
+                                    if (currentTerm) setSelectedTermId(currentTerm.id);
+                                }
+                            }}
+                            disabled={!isAdmin}
+                        >
+                            <option value="">Select Session</option>
+                            {sessions.map(session => (
+                                <option key={session.id} value={session.id}>
+                                    {session.name} {session.isCurrent ? "(Current)" : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
+                        <select
+                            className="input w-full"
+                            value={selectedTermId}
+                            onChange={(e) => setSelectedTermId(e.target.value)}
+                            disabled={!isAdmin}
+                        >
+                            <option value="">Select Term</option>
+                            {sessions.find(s => s.id === selectedSessionId)?.terms.map(term => (
+                                <option key={term.id} value={term.id}>
+                                    {term.name} {term.isCurrent ? "(Active)" : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Class Arm</label>
+                        <select
+                            className="input w-full"
+                            value={selectedArmId}
+                            onChange={(e) => setSelectedArmId(e.target.value)}
+                        >
+                            <option value="">Select Class</option>
+                            {classes.map(cls => (
+                                <optgroup key={cls.id} label={cls.name}>
+                                    {cls.arms.map(arm => (
+                                        <option key={arm.id} value={arm.id}>
+                                            {cls.name} {arm.armName}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                        <select
+                            className="input w-full"
+                            value={selectedSubjectId}
+                            onChange={(e) => setSelectedSubjectId(e.target.value)}
+                        >
+                            <option value="">Select Subject</option>
+                            {subjects
+                                .filter((subj: any) => {
+                                    // If no class arm selected, show all subjects
+                                    if (!selectedArmId) return true;
+                                    // If class arm is selected, only show subjects assigned to this class arm
+                                    return subj.classArmIds?.includes(selectedArmId);
+                                })
+                                .map(subj => (
+                                    <option key={subj.id} value={subj.id}>{subj.name} ({subj.code})</option>
+                                ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Score Workflow Status */}
+            {selectionReady && scoreWorkflow && (
+                <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${workflowStatusMeta.color}`}>
+                                    {workflowStatusMeta.label}
+                                </span>
+                                <span className="text-sm text-slate-600">{workflowStatusMeta.help}</span>
+                            </div>
+                            {scoreWorkflow.rejectionReason && (
+                                <p className="mt-2 text-sm text-red-600">
+                                    <span className="font-semibold">Rejection note:</span> {scoreWorkflow.rejectionReason}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            {scoreWorkflow.canReview && scoreWorkflow.status !== "BROADCASTED" && (
+                                <button
+                                    onClick={() => submitWorkflowAction("approve")}
+                                    disabled={workflowActionLoading !== null}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 ${workflowActionLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+                                >
+                                    {workflowActionLoading === "approve" ? "Approving..." : "Approve"}
+                                </button>
+                            )}
+
+                            {scoreWorkflow.canReview && scoreWorkflow.status !== "BROADCASTED" && (
+                                <button
+                                    onClick={() => setShowRejectPrompt((prev) => !prev)}
+                                    disabled={workflowActionLoading !== null}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 ${workflowActionLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+                                >
+                                    Reject
+                                </button>
+                            )}
+
+                            {scoreWorkflow.canBroadcast && scoreWorkflow.status === "APPROVED" && (
+                                <button
+                                    onClick={() => submitWorkflowAction("broadcast")}
+                                    disabled={workflowActionLoading !== null}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 ${workflowActionLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+                                >
+                                    {workflowActionLoading === "broadcast" ? "Broadcasting..." : "Broadcast"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {showRejectPrompt && scoreWorkflow.canReview && scoreWorkflow.status !== "BROADCASTED" && (
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                            <Input
+                                value={rejectionNote}
+                                onChange={(e) => setRejectionNote(e.target.value)}
+                                placeholder="Enter rejection note"
+                                className="flex-1"
+                            />
+                            <button
+                                onClick={() => submitWorkflowAction("reject", rejectionNote)}
+                                disabled={!rejectionNote.trim() || workflowActionLoading !== null}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 ${!rejectionNote.trim() || workflowActionLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+                            >
+                                {workflowActionLoading === "reject" ? "Rejecting..." : "Submit Rejection"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Enrollment Info Banner */}
+            {selectionReady && !loadingData && (
+                <div className={`flex items-center justify-between p-3 rounded-lg border ${hasEnrollments
+                        ? "bg-blue-50 border-blue-200"
+                        : "bg-amber-50 border-amber-200"
+                    }`}>
+                    <div className="flex items-center gap-2 text-sm">
+                        <svg className={`w-4 h-4 ${hasEnrollments ? "text-blue-600" : "text-amber-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {hasEnrollments ? (
+                            <span className="text-blue-800">
+                                <span className="font-semibold">{enrolledCount}</span> of{" "}
+                                <span className="font-semibold">{totalClassStudents}</span> students enrolled in this subject
+                            </span>
+                        ) : (
+                            <span className="text-amber-800">
+                                Showing all <span className="font-semibold">{totalClassStudents}</span> students.
+                                Click <strong>Manage Students</strong> to enroll specific students for this subject.
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={openEnrollmentModal}
+                        className="text-sm font-medium text-blue-700 hover:text-blue-900 underline"
+                    >
+                        Manage
+                    </button>
+                </div>
+            )}
+
+            {/* Score Table */}
+            {loadingData ? (
+                <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+            ) : students.length > 0 ? (
+                <div className="card overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="font-semibold text-gray-900">Student Scores</h3>
+                        <div className="text-sm space-x-4">
+                            <span className="text-gray-500">Avg: <span className="font-bold text-gray-900">{classAverage}</span></span>
+                            <span className="text-gray-500">Pass Rate: <span className="font-bold text-green-600">{passRate}%</span></span>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
+                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
+                                    {assessmentTypes.map((type) => (
+                                        <TableHead key={type.id} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24">
+                                            {type.name} ({type.maxScore})
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
+                                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>
+                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {students.map((student, index) => {
+                                    const displayTotal = student.adjustedTotal ?? student.total;
+                                    const { color } = calculateGrade(displayTotal);
+                                    return (
+                                        <TableRow key={student.id} className="hover:bg-gray-50">
+                                            <TableCell className="px-4 py-3 text-sm text-gray-500">{index + 1}</TableCell>
+                                            <TableCell className="px-4 py-3">
+                                                <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
+                                                <div className="text-xs text-gray-400">{student.admissionNumber}</div>
+                                            </TableCell>
+                                            {assessmentTypes.map((type) => {
+                                                let field: "ca1" | "ca2" | "ca3" | "exam";
+
+                                                const isExam = type.name.toLowerCase().includes("exam");
+                                                if (isExam) {
+                                                    field = "exam";
+                                                } else {
+                                                    const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam")).sort((a, b) => a.order - b.order);
+                                                    const caIndex = caTypes.indexOf(type);
+
+                                                    if (caIndex === 0) field = "ca1";
+                                                    else if (caIndex === 1) field = "ca2";
+                                                    else field = "ca3";
+                                                }
+
+                                                return (
+                                                    <TableCell key={type.id} className="px-2 py-3">
+                                                        <input
+                                                            type="number"
+                                                            className="w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                                            value={student[field] === 0 ? "" : student[field]}
+                                                            placeholder="0"
+                                                            max={type.maxScore}
+                                                            onChange={(e) => handleScoreChange(student.id, field, e.target.value)}
+                                                        />
+                                                    </TableCell>
+                                                );
+                                            })}
+                                            <TableCell className="px-4 py-3 text-center">
+                                                <div className="font-bold text-gray-900">
+                                                    {displayTotal}
+                                                </div>
+                                                {student.isAdjusted && (
+                                                    <div className="text-xs text-amber-600" title={`Raw: ${student.total}, Adjusted: ${student.adjustedTotal}`}>
+                                                        *adj ({student.total})
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="px-4 py-3 text-center">
+                                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
+                                                    {student.grade}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="px-4 py-3 text-sm text-gray-500">
+                                                {student.remark}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            ) : (
+                selectedArmId && selectedSubjectId ? (
+                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                        <p className="text-gray-500">
+                            {hasEnrollments
+                                ? "No students are currently enrolled in this subject. Click \"Manage Students\" to enroll students."
+                                : "No students found in this class."
+                            }
+                        </p>
+                        {hasEnrollments && (
+                            <button
+                                onClick={openEnrollmentModal}
+                                className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-800 underline"
+                            >
+                                Manage Students
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="card p-12 text-center">
+                        <div className="flex flex-col items-center">
+                            <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Select Class and Subject</h3>
+                            <p className="text-gray-500 max-w-md">
+                                Please select a Class Arm and a Subject to start entering scores.
+                            </p>
+                        </div>
+                    </div>
+                )
+            )}
+
+            {/* Download Template Modal */}
+            {showTemplateModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowTemplateModal(false)} />
+                        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
+                            <div className="p-6 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-lg font-semibold text-gray-900">Download Score Template</h2>
+                                    <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1">Select which assessment columns to include in the CSV template</p>
+                            </div>
+                            <div className="p-6 space-y-3">
+                                {/* All Columns option */}
+                                <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedColumns.length === getColumnOptions().length}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedColumns(getColumnOptions().map(o => o.key));
+                                            } else {
+                                                setSelectedColumns([]);
+                                            }
+                                        }}
+                                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900">All Columns</span>
+                                </label>
+                                {/* Individual column options */}
+                                {getColumnOptions().map(option => (
+                                    <label key={option.key} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedColumns.includes(option.key)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedColumns(prev => [...prev, option.key]);
+                                                } else {
+                                                    setSelectedColumns(prev => prev.filter(k => k !== option.key));
+                                                }
+                                            }}
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowTemplateModal(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDownloadTemplate}
+                                    disabled={selectedColumns.length === 0}
+                                    className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 ${selectedColumns.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                >
+                                    Download CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Upload Scores Modal */}
+            {showUploadModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => !uploading && setShowUploadModal(false)} />
+                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
+                            <div className="p-6 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-lg font-semibold text-gray-900">Upload Scores</h2>
+                                    <button onClick={() => !uploading && setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                {/* Instructions */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex gap-3">
+                                        <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div className="text-sm text-blue-700">
+                                            <p className="font-medium mb-1">Instructions:</p>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                <li>Use the &quot;Download Template&quot; to get a pre-filled CSV</li>
+                                                <li>Fill in the scores and upload the completed file</li>
+                                                <li>Students are matched by Admission Number</li>
+                                                <li>Empty cells will keep existing scores unchanged</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* File Input */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={(e) => { setUploadFile(e.target.files?.[0] || null); setUploadResult(null); }}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    />
+                                </div>
+
+                                {/* Upload Result */}
+                                {uploadResult && (
+                                    <div className={`rounded-lg p-4 border ${uploadResult.status === "saved" ? "bg-green-50 border-green-200" :
+                                            uploadResult.status === "pending_approval" ? "bg-amber-50 border-amber-200" :
+                                                "bg-red-50 border-red-200"
+                                        }`}>
+                                        <p className={`text-sm font-medium ${uploadResult.status === "saved" ? "text-green-700" :
+                                                uploadResult.status === "pending_approval" ? "text-amber-700" :
+                                                    "text-red-700"
+                                            }`}>
+                                            {uploadResult.message}
+                                        </p>
+                                        {uploadResult.status === "saved" && uploadResult.failed > 0 && (
+                                            <p className="text-sm text-green-600 mt-1">{uploadResult.success} saved, {uploadResult.failed} failed</p>
+                                        )}
+                                        {uploadResult.errors && uploadResult.errors.length > 0 && (
+                                            <div className="mt-2 max-h-32 overflow-y-auto">
+                                                {uploadResult.errors.map((err: string, i: number) => (
+                                                    <p key={i} className="text-xs text-red-600">{err}</p>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowUploadModal(false)}
+                                    disabled={uploading}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    {uploadResult?.status === "saved" ? "Close" : "Cancel"}
+                                </button>
+                                {uploadResult?.status !== "saved" && uploadResult?.status !== "pending_approval" && (
+                                    <button
+                                        onClick={() => handleUploadScores(false)}
+                                        disabled={!uploadFile || uploading}
+                                        className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 ${!uploadFile || uploading ? "opacity-50 cursor-not-allowed" : ""
+                                            }`}
+                                    >
+                                        {uploading ? "Uploading..." : "Upload Scores"}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin Override Confirmation Modal */}
+            {showOverrideConfirm && overrideData && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+                        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">Existing Scores Detected</h3>
+                                        <p className="text-sm text-gray-500">{overrideData.conflictCount} student(s) already have scores</p>
+                                    </div>
+                                </div>
+                                <div className="mb-4 max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs font-medium text-gray-500 mb-2">Affected students:</p>
+                                    {overrideData.affectedStudents?.map((s: any, i: number) => (
+                                        <p key={i} className="text-sm text-gray-700">{s.name} ({s.admissionNumber})</p>
+                                    ))}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Uploading will override the existing scores for these students. This action cannot be undone.
+                                </p>
+                            </div>
+                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                                <button
+                                    onClick={() => { setShowOverrideConfirm(false); setOverrideData(null); }}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleForceOverride}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                                >
+                                    Override Scores
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Enrollment Modal */}
+            {showEnrollmentModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex items-center justify-center min-h-screen px-4">
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                            onClick={() => !enrollmentSaving && setShowEnrollmentModal(false)}
+                        />
+
+                        {/* Modal */}
+                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-lg font-semibold text-gray-900">Manage Student Enrollment</h2>
+                                    <button
+                                        onClick={() => !enrollmentSaving && setShowEnrollmentModal(false)}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Select which students are offering this subject. Unenrolled students&apos; scores are preserved.
+                                </p>
+
+                                {/* Search */}
+                                <div className="mt-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Search students..."
+                                        className="input w-full text-sm"
+                                        value={enrollmentSearch}
+                                        onChange={(e) => setEnrollmentSearch(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Quick actions */}
+                                <div className="flex items-center gap-3 mt-3">
+                                    <button
+                                        onClick={enrollAll}
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                                    >
+                                        Enroll All
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                        onClick={unenrollAll}
+                                        className="text-xs font-medium text-red-600 hover:text-red-800"
+                                    >
+                                        Unenroll All
+                                    </button>
+                                    <span className="ml-auto text-xs text-gray-500">
+                                        {enrollmentStudents.filter(s => s.isEnrolled).length} / {enrollmentStudents.length} selected
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Student List */}
+                            <div className="flex-1 overflow-y-auto p-4">
+                                {enrollmentLoading ? (
+                                    <div className="flex justify-center py-8">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {filteredEnrollmentStudents.map(student => (
+                                            <label
+                                                key={student.id}
+                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${student.isEnrolled
+                                                        ? "bg-blue-50 hover:bg-blue-100"
+                                                        : "hover:bg-gray-50"
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={student.isEnrolled}
+                                                    onChange={() => toggleEnrollment(student.id)}
+                                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {student.lastName} {student.firstName}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {student.admissionNumber}
+                                                    </div>
+                                                </div>
+                                                {student.isEnrolled && (
+                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                        Enrolled
+                                                    </span>
+                                                )}
+                                            </label>
+                                        ))}
+                                        {filteredEnrollmentStudents.length === 0 && (
+                                            <p className="text-center text-gray-500 py-4 text-sm">
+                                                No students found
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowEnrollmentModal(false)}
+                                    disabled={enrollmentSaving}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveEnrollment}
+                                    disabled={enrollmentSaving}
+                                    className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 ${enrollmentSaving ? "opacity-75 cursor-not-allowed" : ""
+                                        }`}
+                                >
+                                    {enrollmentSaving ? "Saving..." : "Save Enrollment"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

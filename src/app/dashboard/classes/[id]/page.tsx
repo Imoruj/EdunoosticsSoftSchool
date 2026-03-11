@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
+import { showAppConfirm } from "@/lib/appMessageBox";
 
 interface Teacher {
     id: string;
@@ -191,7 +192,12 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
     };
 
     const handleDeleteArm = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this arm? This cannot be undone.")) return;
+        const confirmed = await showAppConfirm("Are you sure you want to delete this arm? This cannot be undone.", {
+            title: "Delete Arm",
+            variant: "warning",
+            confirmText: "Delete",
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`/api/classes/arms/${id}`, {

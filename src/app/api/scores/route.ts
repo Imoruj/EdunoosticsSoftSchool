@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { createUserNotification } from "@/lib/userNotifications";
+import { checkCsrf } from "@/lib/csrf";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -185,11 +186,15 @@ export async function GET(req: NextRequest) {
             ]));
         }
 
-        // Check if enrollments exist for this subject/classArm/term
-        const enrollmentCount = await prisma.subjectEnrollment.count({
+        // Fetch all enrollments for this subject/classArm/term in ONE query
+        // (replaces 3 separate count + findMany calls)
+        const allEnrollments = await prisma.subjectEnrollment.findMany({
             where: { subjectId: subjectId!, classArmId, termId: termId! },
+            select: { studentId: true, isActive: true },
         });
-        const hasEnrollments = enrollmentCount > 0;
+        const hasEnrollments = allEnrollments.length > 0;
+        const activeEnrollments = allEnrollments.filter(e => e.isActive);
+        const activeEnrollmentCount = activeEnrollments.length;
 
         let studentFilter: any = {
             schoolId: schoolId,
@@ -206,16 +211,7 @@ export async function GET(req: NextRequest) {
 
         // If enrollments exist, only fetch enrolled (active) students
         if (hasEnrollments) {
-            const enrolledStudentIds = await prisma.subjectEnrollment.findMany({
-                where: {
-                    subjectId: subjectId!,
-                    classArmId,
-                    termId: termId!,
-                    isActive: true,
-                },
-                select: { studentId: true },
-            });
-            const enrolledIds = enrolledStudentIds.map(e => e.studentId);
+            const enrolledIds = activeEnrollments.map(e => e.studentId);
 
             if (studentFilter.id) {
                 // Intersect with existing historical filter
@@ -333,7 +329,7 @@ export async function GET(req: NextRequest) {
             students: data,
             termId: termId,
             hasEnrollments,
-            enrolledCount: hasEnrollments ? enrollmentCount : totalClassStudents,
+            enrolledCount: hasEnrollments ? activeEnrollmentCount : totalClassStudents,
             totalClassStudents,
             workflow: {
                 id: scoreWorkflow?.id ?? null,
@@ -384,6 +380,9 @@ function classLevelToCategory(level: string | undefined | null): string | null {
 
 // POST: Save scores (Bulk Upsert)
 export async function POST(req: NextRequest) {
+    const csrfError = checkCsrf(req);
+    if (csrfError) return csrfError;
+
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -397,6 +396,13 @@ export async function POST(req: NextRequest) {
         if (!scores || !Array.isArray(scores) || !subjectId || !termId || !targetClassArmId) {
             return NextResponse.json(
                 { error: "Invalid payload" },
+                { status: 400 }
+            );
+        }
+
+        if (scores.length > 300) {
+            return NextResponse.json(
+                { error: "Too many scores in a single request (max 300)." },
                 { status: 400 }
             );
         }

@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import GlobalSuccessModal from "@/components/ui/GlobalSuccessModal";
+import GlobalAppMessageBox from "@/components/ui/GlobalAppMessageBox";
 import { DynamicFavicon } from "@/components/branding/DynamicFavicon";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -11,6 +12,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <DynamicFavicon />
             {children}
             <GlobalSuccessModal />
+            <GlobalAppMessageBox />
             <Toaster
                 position="top-right"
                 toastOptions={{

@@ -1,5 +1,6 @@
 
 import prisma from "@/lib/prisma";
+import { decryptSecret } from "@/lib/serverEncrypt";
 
 interface SmsConfig {
     apiKey: string;
@@ -18,7 +19,7 @@ export const sendSms = async (schoolId: string, recipients: string[], message: s
         }
 
         const smsConfig: SmsConfig = {
-            apiKey: config.smsApiKey,
+            apiKey: decryptSecret(config.smsApiKey),
             senderId: config.smsSenderId
         };
 

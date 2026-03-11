@@ -12,6 +12,7 @@ import { AdminDashboardAsync } from "@/components/dashboard/overview/AdminDashbo
 import { TeacherDashboardAsync } from "@/components/dashboard/overview/TeacherDashboardAsync";
 import { ParentDashboardAsync } from "@/components/dashboard/overview/ParentDashboardAsync";
 import { StudentInfo } from "@/components/dashboard/overview/StudentInfo";
+import { StudentAssignmentsPanel } from "@/components/assignments/student/StudentAssignmentsPanel";
 import { RecentActivityAsync } from "@/components/dashboard/overview/RecentActivityAsync";
 
 function SkeletonCard({ h = "h-32" }: { h?: string }) {
@@ -25,7 +26,7 @@ export default async function DashboardPage() {
         redirect("/auth/login");
     }
 
-    const { loginType, roles = [], id: userId, schoolId } = session.user as any;
+    const { loginType, roles = [], id: userId, schoolId, loginProfileId } = session.user as any;
 
     const isParent = loginType === "parent";
     const isStudent = loginType === "student";
@@ -43,6 +44,15 @@ export default async function DashboardPage() {
         select: { firstName: true, lastName: true }
     });
     const displayName = dbUser ? `${dbUser.firstName} ${dbUser.lastName}` : session.user.name;
+
+    let studentClassArmId: string | null = null;
+    if (isStudent) {
+        const studentProfile = await prisma.student.findUnique({
+            where: { userId },
+            select: { classArmId: true }
+        });
+        studentClassArmId = studentProfile?.classArmId ?? null;
+    }
 
     // ── Auto-sync current term (fast) ──
     if (schoolId) await syncCurrentTerm(schoolId);
@@ -83,7 +93,30 @@ export default async function DashboardPage() {
             )}
 
             {/* Render Context-Aware Views */}
-            {isStudent && <StudentInfo session={session} />}
+            {isStudent && (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div className="xl:col-span-2 space-y-6">
+                        <StudentInfo session={session} />
+                        {loginProfileId && (
+                            <StudentAssignmentsPanel
+                                studentProfileId={loginProfileId}
+                                studentUserId={userId}
+                                studentClassArmId={studentClassArmId}
+                                limit={5}
+                                showViewAll
+                                title="My Assignments"
+                                description="Upcoming and active tasks assigned to you."
+                            />
+                        )}
+                    </div>
+                    <div className="xl:col-span-1 space-y-6">
+                        {/* Student specific side widgets can go here later, for now just recent activity if needed or leave empty */}
+                        <Suspense fallback={<SkeletonCard h="h-96" />}>
+                            <RecentActivityAsync schoolId={schoolId} userId={userId} isAdmin={false} isTeacher={false} />
+                        </Suspense>
+                    </div>
+                </div>
+            )}
 
             {isParent && (
                 <Suspense fallback={<SkeletonCard h="h-64" />}>

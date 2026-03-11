@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { showAppConfirm } from "@/lib/appMessageBox";
 
 interface Teacher {
     id: string;
@@ -199,7 +200,12 @@ export default function ClassesPage() {
     };
 
     const handleDeleteArm = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this arm? This cannot be undone.")) return;
+        const confirmed = await showAppConfirm("Are you sure you want to delete this arm? This cannot be undone.", {
+            title: "Delete Arm",
+            variant: "warning",
+            confirmText: "Delete",
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`/api/classes/arms/${id}`, {
@@ -218,7 +224,12 @@ export default function ClassesPage() {
     };
 
     const handleDeleteClass = async (classId: string) => {
-        if (!confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
+        const confirmed = await showAppConfirm("Are you sure you want to delete this class? This cannot be undone.", {
+            title: "Delete Class",
+            variant: "warning",
+            confirmText: "Delete",
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`/api/classes?id=${classId}`, {
