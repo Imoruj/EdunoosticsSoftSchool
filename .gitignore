@@ -49,3 +49,17 @@ prisma/*.db-journal
 
 # Windows reserved device-name accident (breaks Git indexing on Windows)
 /nul
+
+# User-uploaded files (served locally; use Cloudinary in production)
+public/uploads/
+
+# Debug / log artifacts
+api_students_log.json
+auth-debug-results.txt
+build_output.txt
+build_output_utf8.txt
+tsc_errors.txt
+tsc_errors_utf8.txt
+tsc_final.txt
+typescript_errors.log
+test-db.ts
