@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 interface Week {
     id: string;
@@ -14,21 +14,75 @@ interface Week {
 }
 
 interface Props {
-    week: Week | null; // null = create mode
+    week: Week | null;
     schemeOfWorkTermId: string;
     nextWeekNumber: number;
     onClose: () => void;
     onSaved: (week: Week) => void;
 }
 
+// Numbered textarea: shows line numbers on the left, synced scroll
+function NumberedTextarea({
+    value,
+    onChange,
+    placeholder,
+}: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+}) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
+
+    const lines = value === "" ? [""] : value.split("\n");
+    const lineCount = lines.length;
+
+    const syncScroll = useCallback(() => {
+        if (textareaRef.current && gutterRef.current) {
+            gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    }, []);
+
+    return (
+        <div className="flex border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 bg-white">
+            {/* Line number gutter */}
+            <div
+                ref={gutterRef}
+                className="select-none overflow-hidden shrink-0 bg-gray-50 border-r border-gray-200 text-right"
+                style={{ width: lineCount >= 100 ? 44 : 36 }}
+                aria-hidden
+            >
+                {Array.from({ length: lineCount }, (_, i) => (
+                    <div
+                        key={i}
+                        className="text-xs text-gray-400 font-mono leading-6 pr-2"
+                        style={{ height: 24 }}
+                    >
+                        {i + 1}
+                    </div>
+                ))}
+            </div>
+
+            {/* Textarea */}
+            <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onScroll={syncScroll}
+                placeholder={placeholder}
+                rows={10}
+                spellCheck
+                className="flex-1 resize-none px-3 py-0 text-sm text-gray-900 leading-6 outline-none bg-transparent placeholder:text-gray-400"
+                style={{ lineHeight: "24px" }}
+            />
+        </div>
+    );
+}
+
 export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClose, onSaved }: Props) {
     const isEdit = !!week;
     const [topic, setTopic] = useState(week?.topic || "");
-    const [objectives, setObjectives] = useState(week?.objectives || "");
     const [content, setContent] = useState(week?.content || "");
-    const [teachingMethods, setTeachingMethods] = useState(week?.teachingMethods || "");
-    const [assessment, setAssessment] = useState(week?.assessment || "");
-    const [resources, setResources] = useState(week?.resources || "");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +91,7 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
         setSaving(true);
         setError(null);
         try {
-            const body = { topic, objectives, content, teachingMethods, assessment, resources };
+            const body = { topic, content };
             let res: Response;
             if (isEdit) {
                 res = await fetch(`/api/scheme-of-work/weeks/${week.id}`, {
@@ -95,58 +149,14 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Learning Objectives</label>
-                        <textarea
-                            value={objectives}
-                            onChange={(e) => setObjectives(e.target.value)}
-                            rows={3}
-                            placeholder="By the end of this week, students will be able to…"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Content / Notes</label>
-                        <textarea
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Content / Notes
+                            <span className="ml-2 font-normal text-gray-400 text-xs">Each line is numbered — paste freely</span>
+                        </label>
+                        <NumberedTextarea
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            rows={5}
-                            placeholder="Detailed content, key points, explanations…"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Teaching Methods</label>
-                            <textarea
-                                value={teachingMethods}
-                                onChange={(e) => setTeachingMethods(e.target.value)}
-                                rows={3}
-                                placeholder="Lecture, group work, demonstration…"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Assessment</label>
-                            <textarea
-                                value={assessment}
-                                onChange={(e) => setAssessment(e.target.value)}
-                                rows={3}
-                                placeholder="Quiz, class exercise, homework…"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Resources</label>
-                        <textarea
-                            value={resources}
-                            onChange={(e) => setResources(e.target.value)}
-                            rows={2}
-                            placeholder="Textbook pages, links, materials…"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                            onChange={setContent}
+                            placeholder="Type or paste content here. Each line will be numbered automatically."
                         />
                     </div>
                 </div>

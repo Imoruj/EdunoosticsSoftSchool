@@ -79,8 +79,7 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                             <tr>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-16">Wk</th>
                                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Topic</th>
-                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Objectives</th>
-                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">Assessment</th>
+                                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Content Preview</th>
                                 <th className="px-4 py-3 w-24"></th>
                             </tr>
                         </thead>
@@ -96,11 +95,10 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                                             {week.weekNumber}
                                         </td>
                                         <td className="px-4 py-3 text-gray-900 font-medium">{week.topic}</td>
-                                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell line-clamp-1">
-                                            {week.objectives || <span className="text-gray-300 italic">—</span>}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500 hidden lg:table-cell line-clamp-1">
-                                            {week.assessment || <span className="text-gray-300 italic">—</span>}
+                                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
+                                            {week.content
+                                                ? <span className="line-clamp-1">{week.content.split("\n")[0]}</span>
+                                                : <span className="text-gray-300 italic">No content yet</span>}
                                         </td>
                                         <td className="px-4 py-3">
                                             {canEdit && (
@@ -128,41 +126,17 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                                             )}
                                         </td>
                                     </tr>
-                                    {expandedId === week.id && (
+                                    {expandedId === week.id && week.content && (
                                         <tr key={`${week.id}-expanded`} className="bg-blue-50/40">
-                                            <td colSpan={5} className="px-6 py-4">
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                                    {week.objectives && (
-                                                        <div>
-                                                            <p className="font-semibold text-gray-700 mb-1">Objectives</p>
-                                                            <p className="text-gray-600 whitespace-pre-line">{week.objectives}</p>
-                                                        </div>
-                                                    )}
-                                                    {week.content && (
-                                                        <div>
-                                                            <p className="font-semibold text-gray-700 mb-1">Content / Notes</p>
-                                                            <p className="text-gray-600 whitespace-pre-line">{week.content}</p>
-                                                        </div>
-                                                    )}
-                                                    {week.teachingMethods && (
-                                                        <div>
-                                                            <p className="font-semibold text-gray-700 mb-1">Teaching Methods</p>
-                                                            <p className="text-gray-600 whitespace-pre-line">{week.teachingMethods}</p>
-                                                        </div>
-                                                    )}
-                                                    {week.assessment && (
-                                                        <div>
-                                                            <p className="font-semibold text-gray-700 mb-1">Assessment</p>
-                                                            <p className="text-gray-600 whitespace-pre-line">{week.assessment}</p>
-                                                        </div>
-                                                    )}
-                                                    {week.resources && (
-                                                        <div className="sm:col-span-2">
-                                                            <p className="font-semibold text-gray-700 mb-1">Resources</p>
-                                                            <p className="text-gray-600 whitespace-pre-line">{week.resources}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                            <td colSpan={5} className="px-6 py-3">
+                                                <ol className="text-sm text-gray-700 space-y-0.5 list-none">
+                                                    {week.content.split("\n").map((line, i) => (
+                                                        <li key={i} className="flex gap-3">
+                                                            <span className="shrink-0 w-6 text-right text-gray-400 font-mono text-xs leading-6">{i + 1}.</span>
+                                                            <span className="leading-6">{line || <span className="text-gray-300">—</span>}</span>
+                                                        </li>
+                                                    ))}
+                                                </ol>
                                             </td>
                                         </tr>
                                     )}
