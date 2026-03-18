@@ -12,6 +12,7 @@ const DEFAULT_FEATURES: FeatureFlags = {
     lessonsEnabled: true,
     quizzesEnabled: true,
     assignmentsEnabled: true,
+    schemesOfWorkEnabled: true,
     classesEnabled: true,
     broadsheetEnabled: true,
     transcriptsEnabled: true,

@@ -19,6 +19,7 @@ const navItemFeatureKey: Partial<Record<string, keyof FeatureFlags>> = {
     "Lessons": "lessonsEnabled",
     "Quizzes": "quizzesEnabled",
     "Assignments": "assignmentsEnabled",
+    "Scheme of Work": "schemesOfWorkEnabled",
     "Classes": "classesEnabled",
     "Broadsheet": "broadsheetEnabled",
     "Transcripts": "transcriptsEnabled",
@@ -194,7 +195,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
             return ["My Wards", "Report Cards", "Fees", "My Profile"].includes(item.name);
         }
         if (loginType === "student") {
-            return ["Dashboard", "My Profile", "Report Cards", "Assignments", "My Progress", "Lessons", "Quizzes"].includes(item.name);
+            return ["Dashboard", "My Profile", "Report Cards", "Assignments", "My Progress", "Lessons", "Quizzes", "Scheme of Work"].includes(item.name);
         }
         if (loginType === "admin" || !loginType) {
             if (isTeacher) {

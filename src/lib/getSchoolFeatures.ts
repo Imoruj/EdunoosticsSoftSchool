@@ -9,6 +9,7 @@ export interface FeatureFlags {
     lessonsEnabled: boolean;
     quizzesEnabled: boolean;
     assignmentsEnabled: boolean;
+    schemesOfWorkEnabled: boolean;
     classesEnabled: boolean;
     broadsheetEnabled: boolean;
     transcriptsEnabled: boolean;
@@ -31,6 +32,7 @@ export const SCHOOL_FEATURE_SELECT = {
     lessonsEnabled: true,
     quizzesEnabled: true,
     assignmentsEnabled: true,
+    schemesOfWorkEnabled: true,
     classesEnabled: true,
     broadsheetEnabled: true,
     transcriptsEnabled: true,
@@ -53,6 +55,7 @@ export const ALL_ENABLED_FEATURES: FeatureFlags = {
     lessonsEnabled: true,
     quizzesEnabled: true,
     assignmentsEnabled: true,
+    schemesOfWorkEnabled: true,
     classesEnabled: true,
     broadsheetEnabled: true,
     transcriptsEnabled: true,
@@ -95,7 +98,7 @@ export async function getSchoolFeatures(schoolId: string): Promise<FeatureFlags>
 export const SCHOOL_FEATURE_FIELDS = [
     "studentsEnabled", "teachersEnabled",
     "scoreEntryEnabled", "scoreReviewsEnabled", "subjectsEnabled",
-    "lessonsEnabled", "quizzesEnabled", "assignmentsEnabled",
+    "lessonsEnabled", "quizzesEnabled", "assignmentsEnabled", "schemesOfWorkEnabled",
     "classesEnabled", "broadsheetEnabled", "transcriptsEnabled",
     "reportCardsEnabled", "legacyRecordsEnabled", "uploadRequestsEnabled",
     "attendanceEnabled", "behaviourEnabled", "communicationEnabled",

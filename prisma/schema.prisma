@@ -49,6 +49,7 @@ model School {
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
   notifications          UserNotification[]
+  schemesOfWork          SchemeOfWork[]
 }
 
 model User {
@@ -96,6 +97,9 @@ model User {
   encryptedBlobs                        EncryptedBlob[]
   signalingMessagesFrom                 SignalingMessage[]      @relation("SignalingFrom")
   signalingMessagesTo                   SignalingMessage[]      @relation("SignalingTo")
+  schemesOfWorkOwned                    SchemeOfWork[]         @relation("SOWOwner")
+  schemesOfWorkApproved                 SchemeOfWork[]         @relation("SOWApprover")
+  schemeOfWorkCollaborators             SchemeOfWorkCollaborator[]
 }
 
 model AcademicSession {
@@ -106,8 +110,9 @@ model AcademicSession {
   isCurrent Boolean  @default(false)
   createdAt DateTime @default(now())
   schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  terms     Term[]
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  terms         Term[]
+  schemesOfWork SchemeOfWork[]
 
   @@unique([schoolId, name])
 }
@@ -132,6 +137,7 @@ model Term {
   scoreSheetWorkflows    ScoreSheetWorkflow[]
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
+  schemeOfWorkTerms      SchemeOfWorkTerm[]
   session                AcademicSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, termNumber])
@@ -170,6 +176,7 @@ model ClassArm {
   scoreSheetWorkflows    ScoreSheetWorkflow[]
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
+  schemesOfWork          SchemeOfWork[]
 
   @@unique([classId, armName])
 }
@@ -189,6 +196,7 @@ model Subject {
   scoreSheetWorkflows ScoreSheetWorkflow[]
   school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   teacherSubjects     TeacherSubject[]
+  schemesOfWork       SchemeOfWork[]
 
   @@unique([schoolId, name])
 }
@@ -825,6 +833,7 @@ model SchoolFeatureControl {
   lessonsEnabled       Boolean  @default(true)
   quizzesEnabled       Boolean  @default(true)
   assignmentsEnabled   Boolean  @default(true)
+  schemesOfWorkEnabled Boolean  @default(true)
   classesEnabled       Boolean  @default(true)
   broadsheetEnabled    Boolean  @default(true)
   transcriptsEnabled   Boolean  @default(true)
@@ -964,4 +973,92 @@ model PlatformSettings {
   id            String   @id @default("platform")
   signupEnabled Boolean  @default(true)
   updatedAt     DateTime @updatedAt
+}
+
+// ─── Scheme of Work ────────────────────────────────────────────────────────────
+
+enum SowStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model SchemeOfWork {
+  id           String                    @id @default(cuid())
+  schoolId     String
+  subjectId    String
+  classArmId   String
+  sessionId    String
+  title        String
+  status       SowStatus                 @default(DRAFT)
+  adminNote    String?
+  submittedAt  DateTime?
+  approvedAt   DateTime?
+  approvedById String?
+  ownerId      String
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  school        School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject       Subject                   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classArm      ClassArm                  @relation(fields: [classArmId], references: [id], onDelete: Cascade)
+  session       AcademicSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  owner         User                      @relation("SOWOwner", fields: [ownerId], references: [id])
+  approvedBy    User?                     @relation("SOWApprover", fields: [approvedById], references: [id])
+  terms         SchemeOfWorkTerm[]
+  collaborators SchemeOfWorkCollaborator[]
+
+  @@unique([subjectId, classArmId, sessionId])
+  @@index([schoolId, status])
+}
+
+model SchemeOfWorkTerm {
+  id             String             @id @default(cuid())
+  schemeOfWorkId String
+  termId         String
+  termNumber     Int
+  objectives     String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  schemeOfWork   SchemeOfWork       @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  term           Term               @relation(fields: [termId], references: [id])
+  weeks          SchemeOfWorkWeek[]
+
+  @@unique([schemeOfWorkId, termNumber])
+  @@index([schemeOfWorkId])
+}
+
+model SchemeOfWorkWeek {
+  id                 String           @id @default(cuid())
+  schemeOfWorkTermId String
+  weekNumber         Int
+  topic              String
+  content            String?
+  objectives         String?
+  resources          String?
+  teachingMethods    String?
+  assessment         String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  schemeOfWorkTerm   SchemeOfWorkTerm @relation(fields: [schemeOfWorkTermId], references: [id], onDelete: Cascade)
+
+  @@unique([schemeOfWorkTermId, weekNumber])
+  @@index([schemeOfWorkTermId])
+}
+
+model SchemeOfWorkCollaborator {
+  id             String       @id @default(cuid())
+  schemeOfWorkId String
+  userId         String
+  invitedById    String
+  createdAt      DateTime     @default(now())
+
+  schemeOfWork   SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([schemeOfWorkId, userId])
+  @@index([schemeOfWorkId])
 }

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "c:\\Users\\Edunostics\\.claude\\projects\\c--Users-Edunostics-Desktop-BEETER-ReportCardManagementSystem\\memory",
+      "c:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\src\\app\\dashboard\\assignments\\[id]"
+    ],
+    "allow": [
+      "Bash(npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script)"
+    ]
+  }
+}

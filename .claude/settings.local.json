@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npx next dev:*)",
+      "Bash(npx prisma studio:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(grep:*)",
+      "Bash(node -e:*)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(ping:*)",
+      "Bash(node check-scores.js:*)",
+      "Bash(npx next build:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(TASKKILL:*)",
+      "Bash(cmd /c \"taskkill /F /PID 17308\")",
+      "Bash(cmd /c \"taskkill /F /PID 25432 & taskkill /F /PID 24928 & taskkill /F /PID 17308\")",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(cmd //c \"taskkill /PID 8280 /F\")",
+      "Bash(npm install:*)",
+      "Bash(cmd //c \"taskkill /PID 26712 /F\")",
+      "Bash(cmd //c \"netstat -ano | findstr :3000 | findstr LISTENING\")",
+      "Bash(cmd //c \"taskkill /PID 25120 /F\")",
+      "Bash(cmd //c \"rmdir /s /q c:\\\\Users\\\\Edunostics\\\\Desktop\\\\BEETER\\\\ReportCardManagementSystem\\\\.next\")",
+      "Bash(cmd //c:*)",
+      "Bash(mkdir -p src/lib/crypto src/lib/db src/lib/sync src/lib/offline)",
+      "Bash(mkdir -p src/components/sync src/components/lessons src/components/quizzes src/components/assignments src/components/chat src/components/offline)",
+      "Bash(vercel --prod)"
+    ]
+  }
+}
