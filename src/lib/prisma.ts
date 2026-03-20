@@ -1,17 +1,38 @@
-import { PrismaClient } from "@prisma/client";
+import { createRequire } from "node:module";
+import type { PrismaClient as PrismaClientType } from "@prisma/client";
+
+const require = createRequire(import.meta.url);
+type PrismaModule = typeof import("@prisma/client");
+type PrismaClientConstructor = PrismaModule["PrismaClient"];
 
 const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
+    prisma: PrismaClientType | undefined;
     prismaSchemaVersion: string | undefined;
 };
 
 // Bump this version when schema changes to force a fresh client in dev
-const SCHEMA_VERSION = "v2-broadsheet";
+const SCHEMA_VERSION = "v4-sow-wizard-phases";
 
-if (globalForPrisma.prismaSchemaVersion !== SCHEMA_VERSION) {
+const schemaChanged = globalForPrisma.prismaSchemaVersion !== SCHEMA_VERSION;
+
+if (schemaChanged) {
     globalForPrisma.prisma = undefined;
     globalForPrisma.prismaSchemaVersion = SCHEMA_VERSION;
 }
+
+function loadPrismaClient(): PrismaClientConstructor {
+    if (process.env.NODE_ENV !== "production" && schemaChanged) {
+        for (const cacheKey of Object.keys(require.cache)) {
+            if (/[\\/]node_modules[\\/](?:\.prisma|@prisma)[\\/]client/.test(cacheKey)) {
+                delete require.cache[cacheKey];
+            }
+        }
+    }
+
+    return (require("@prisma/client") as PrismaModule).PrismaClient;
+}
+
+const PrismaClient = loadPrismaClient();
 
 export const prisma =
     globalForPrisma.prisma ??

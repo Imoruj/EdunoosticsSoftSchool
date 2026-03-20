@@ -95,6 +95,171 @@ function getSchoolAcronym(name: string): string {
     return words.slice(0, 3).map(w => w[0]).join("").toUpperCase();
 }
 
+const existingStudentInclude = {
+    user: true,
+    parent: {
+        include: {
+            user: true,
+        },
+    },
+} as const;
+
+function normalizeOptionalValue(value: string | null | undefined): string | undefined {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+}
+
+function normalizeComparable(value: string | null | undefined): string {
+    return normalizeOptionalValue(value)?.toLowerCase() || "";
+}
+
+function sameCalendarDate(left: Date | null | undefined, right: Date | null | undefined): boolean {
+    if (!left || !right) {
+        return false;
+    }
+
+    return left.toISOString().slice(0, 10) === right.toISOString().slice(0, 10);
+}
+
+async function ensureUniqueUserEmail(client: any, baseEmail: string): Promise<string> {
+    let finalEmail = baseEmail;
+    const existingUser = await client.user.findUnique({
+        where: { email: finalEmail },
+    });
+
+    if (existingUser) {
+        const suffix = Date.now().toString(36);
+        const [localPart, domain = "edunostics.local"] = finalEmail.split("@");
+        finalEmail = `${localPart}-${suffix}@${domain}`;
+    }
+
+    return finalEmail;
+}
+
+async function findExistingParentUser(client: any, phone?: string, email?: string) {
+    if (phone) {
+        const parentByPhone = await client.user.findFirst({
+            where: { phone, roles: { has: UserRole.PARENT } },
+            include: { parent: true },
+        });
+
+        if (parentByPhone) {
+            return parentByPhone;
+        }
+    }
+
+    if (email) {
+        return client.user.findFirst({
+            where: { email, roles: { has: UserRole.PARENT } },
+            include: { parent: true },
+        });
+    }
+
+    return null;
+}
+
+async function findExistingStudentForImport(params: {
+    schoolId: string;
+    classArmId: string;
+    firstName: string;
+    lastName: string;
+    otherNames?: string;
+    admissionNumber?: string;
+    parsedDOB?: Date;
+    parentPhone?: string;
+    parentEmail?: string;
+}): Promise<{ student: any | null; ambiguous: boolean }> {
+    const {
+        schoolId,
+        classArmId,
+        firstName,
+        lastName,
+        otherNames,
+        admissionNumber,
+        parsedDOB,
+        parentPhone,
+        parentEmail,
+    } = params;
+
+    if (admissionNumber) {
+        const student = await prisma.student.findFirst({
+            where: {
+                schoolId,
+                admissionNumber,
+            },
+            include: existingStudentInclude,
+        });
+        return { student, ambiguous: false };
+    }
+
+    const candidates = await prisma.student.findMany({
+        where: {
+            schoolId,
+            classArmId,
+            firstName: { equals: firstName, mode: "insensitive" },
+            lastName: { equals: lastName, mode: "insensitive" },
+        },
+        include: existingStudentInclude,
+        take: 10,
+    });
+
+    if (candidates.length === 0) {
+        return { student: null, ambiguous: false };
+    }
+
+    let filtered = candidates;
+    const normalizedOtherNames = normalizeComparable(otherNames);
+
+    if (normalizedOtherNames) {
+        const matchingOtherNames = filtered.filter((student) =>
+            normalizeComparable(student.otherNames) === normalizedOtherNames
+        );
+        if (matchingOtherNames.length > 0) {
+            filtered = matchingOtherNames;
+        }
+    }
+
+    if (parsedDOB) {
+        const matchingDob = filtered.filter((student) => sameCalendarDate(student.dateOfBirth, parsedDOB));
+        if (matchingDob.length === 1) {
+            return { student: matchingDob[0], ambiguous: false };
+        }
+        if (matchingDob.length > 0) {
+            filtered = matchingDob;
+        }
+    }
+
+    if (parentPhone) {
+        const matchingPhone = filtered.filter((student) => normalizeComparable(student.parentPhone) === normalizeComparable(parentPhone));
+        if (matchingPhone.length === 1) {
+            return { student: matchingPhone[0], ambiguous: false };
+        }
+        if (matchingPhone.length > 0) {
+            filtered = matchingPhone;
+        }
+    }
+
+    if (parentEmail) {
+        const matchingEmail = filtered.filter((student) => normalizeComparable(student.parentEmail) === normalizeComparable(parentEmail));
+        if (matchingEmail.length === 1) {
+            return { student: matchingEmail[0], ambiguous: false };
+        }
+        if (matchingEmail.length > 0) {
+            filtered = matchingEmail;
+        }
+    }
+
+    if (filtered.length === 1) {
+        return { student: filtered[0], ambiguous: false };
+    }
+
+    if (filtered.length > 1) {
+        return { student: null, ambiguous: true };
+    }
+
+    return { student: null, ambiguous: false };
+}
+
 interface ImportResult {
     success: number;
     failed: number;
@@ -335,13 +500,69 @@ export async function POST(req: NextRequest) {
                 continue;
             }
 
-            // Generate or validate admission number
-            let finalAdmissionNumber: string;
+            const trimmedFirstName = firstName.trim();
+            const trimmedLastName = lastName.trim();
+            const trimmedOtherNames = normalizeOptionalValue(otherNames);
+            const trimmedAdmissionNumber = normalizeOptionalValue(admissionNumber);
+            const trimmedStateOfOrigin = normalizeOptionalValue(stateOfOrigin);
+            const trimmedReligion = normalizeOptionalValue(religion);
+            const trimmedBloodGroup = normalizeOptionalValue(bloodGroup);
+            const trimmedParentName = normalizeOptionalValue(parentName);
+            const trimmedParentPhone = normalizeOptionalValue(parentPhone);
+            const trimmedParentEmail = normalizeOptionalValue(parentEmail);
+            const trimmedAddress = normalizeOptionalValue(address);
 
-            if (admissionNumber && admissionNumber.trim()) {
-                finalAdmissionNumber = admissionNumber.trim();
-            } else {
-                // Auto-generate admission number
+            // Parse date of birth if provided
+            let parsedDOB: Date | undefined;
+            if (dateOfBirth && dateOfBirth.trim()) {
+                parsedDOB = new Date(dateOfBirth.trim());
+                if (isNaN(parsedDOB.getTime())) {
+                    result.errors.push(
+                        `Row ${i + 1}: Warning - Invalid date of birth format for "${trimmedFirstName} ${trimmedLastName}". Value ignored.`
+                    );
+                    parsedDOB = undefined;
+                }
+            }
+
+            let parsedAdmissionDate: Date | undefined;
+            if (admissionDate && admissionDate.trim()) {
+                parsedAdmissionDate = new Date(admissionDate.trim());
+                if (isNaN(parsedAdmissionDate.getTime())) {
+                    result.errors.push(
+                        `Row ${i + 1}: Warning - Invalid admission date format for "${trimmedFirstName} ${trimmedLastName}". Value ignored.`
+                    );
+                    parsedAdmissionDate = undefined;
+                }
+            }
+            if (!parsedAdmissionDate && defaultAdmissionDate) {
+                parsedAdmissionDate = defaultAdmissionDate;
+            }
+
+            const existingStudentMatch = await findExistingStudentForImport({
+                schoolId,
+                classArmId,
+                firstName: trimmedFirstName,
+                lastName: trimmedLastName,
+                otherNames: trimmedOtherNames,
+                admissionNumber: trimmedAdmissionNumber,
+                parsedDOB,
+                parentPhone: trimmedParentPhone,
+                parentEmail: trimmedParentEmail,
+            });
+
+            if (existingStudentMatch.ambiguous) {
+                result.failed++;
+                result.errors.push(
+                    `Row ${i + 1}: Multiple existing students match "${trimmedFirstName} ${trimmedLastName}". Include admission number, date of birth, or parent contact to update the correct record.`
+                );
+                continue;
+            }
+
+            const existingStudent = existingStudentMatch.student;
+
+            let finalAdmissionNumber = existingStudent?.admissionNumber || trimmedAdmissionNumber;
+
+            if (!finalAdmissionNumber) {
                 finalAdmissionNumber = await getNextAdmissionNumber();
             }
 
@@ -353,54 +574,15 @@ export async function POST(req: NextRequest) {
                 continue;
             }
 
-            const existingStudent = await prisma.student.findFirst({
-                where: {
-                    admissionNumber: finalAdmissionNumber,
-                    schoolId,
-                },
-            });
-
-            if (existingStudent) {
-                if (legacyMode) {
-                    result.skipped++;
-                    continue;
-                }
-                result.failed++;
-                result.errors.push(
-                    `Row ${i + 1}: Admission number "${finalAdmissionNumber}" already exists for another student`
-                );
+            if (existingStudent && legacyMode) {
+                result.skipped++;
+                stagedAdmissionNumbers.add(finalAdmissionNumber.toLowerCase());
                 continue;
             }
 
             stagedAdmissionNumbers.add(finalAdmissionNumber.toLowerCase());
 
             try {
-                // Parse date of birth if provided
-                let parsedDOB: Date | undefined;
-                if (dateOfBirth && dateOfBirth.trim()) {
-                    parsedDOB = new Date(dateOfBirth.trim());
-                    if (isNaN(parsedDOB.getTime())) {
-                        result.errors.push(
-                            `Row ${i + 1}: Warning - Invalid date of birth format for "${firstName} ${lastName}". Value ignored.`
-                        );
-                        parsedDOB = undefined;
-                    }
-                }
-
-                let parsedAdmissionDate: Date | undefined;
-                if (admissionDate && admissionDate.trim()) {
-                    parsedAdmissionDate = new Date(admissionDate.trim());
-                    if (isNaN(parsedAdmissionDate.getTime())) {
-                        result.errors.push(
-                            `Row ${i + 1}: Warning - Invalid admission date format for "${firstName} ${lastName}". Value ignored.`
-                        );
-                        parsedAdmissionDate = undefined;
-                    }
-                }
-                if (!parsedAdmissionDate && defaultAdmissionDate) {
-                    parsedAdmissionDate = defaultAdmissionDate;
-                }
-
                 const isActive = parseBooleanCell(status, legacyMode ? false : true);
 
                 if (dryRun) {
@@ -408,131 +590,167 @@ export async function POST(req: NextRequest) {
                     continue;
                 }
 
-                // Build parent connection if parent info provided and login account creation is enabled
-                let parentConnect: any = undefined;
-                const trimmedParentPhone = parentPhone?.trim();
-                const trimmedParentEmail = parentEmail?.trim();
-                const trimmedParentName = parentName?.trim();
+                const hasParentContact = Boolean(trimmedParentPhone || trimmedParentEmail);
+                const hasParentData = Boolean(trimmedParentName || trimmedParentPhone || trimmedParentEmail);
 
-                if (!createLoginAccounts && (trimmedParentEmail || trimmedParentPhone)) {
+                if (!createLoginAccounts && hasParentContact && !existingStudent?.parentId) {
                     result.errors.push(
                         `Row ${i + 1}: Note - Parent account creation skipped because login account creation is disabled.`
                     );
                 }
 
-                if (createLoginAccounts && (trimmedParentPhone || trimmedParentEmail)) {
-                    // Check if a parent User already exists by phone or email
-                    let existingParentUser = null;
-                    if (trimmedParentPhone) {
-                        existingParentUser = await prisma.user.findFirst({
-                            where: { phone: trimmedParentPhone, roles: { has: UserRole.PARENT } },
-                            include: { parent: true },
-                        });
-                    }
-                    if (!existingParentUser && trimmedParentEmail) {
-                        existingParentUser = await prisma.user.findFirst({
-                            where: { email: trimmedParentEmail, roles: { has: UserRole.PARENT } },
-                            include: { parent: true },
-                        });
-                    }
+                await prisma.$transaction(async (tx) => {
+                    let parentId = existingStudent?.parentId || null;
 
-                    if (existingParentUser && (existingParentUser as any).parent) {
-                        parentConnect = { connect: { id: (existingParentUser as any).parent.id } };
-                    } else {
-                        // Create a new parent User + Parent record
-                        const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
-                        const parentFirstName = trimmedParentName ? trimmedParentName.split(" ")[0] : firstName.trim();
-                        const parentLastName = trimmedParentName ? trimmedParentName.split(" ").slice(1).join(" ") || lastName.trim() : lastName.trim();
-                        const parentEmailFinal = trimmedParentEmail || `parent-${cleanAdmission}@parent.edunostics.local`;
-                        const parentPasswordHash = await bcrypt.hash("1234", 10);
+                    if (createLoginAccounts && hasParentData && !parentId) {
+                        const existingParentUser = await findExistingParentUser(tx, trimmedParentPhone, trimmedParentEmail);
 
-                        // Ensure parent email is unique
-                        let finalParentEmail = parentEmailFinal;
-                        const existingParentByEmail = await prisma.user.findUnique({ where: { email: finalParentEmail } });
-                        if (existingParentByEmail) {
-                            const suffix = Date.now().toString(36);
-                            finalParentEmail = `parent-${cleanAdmission}-${suffix}@parent.edunostics.local`;
-                        }
+                        if ((existingParentUser as any)?.parent?.id) {
+                            parentId = (existingParentUser as any).parent.id;
+                        } else if (hasParentContact) {
+                            const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
+                            const parentFirstName = trimmedParentName ? trimmedParentName.split(" ")[0] : trimmedFirstName;
+                            const parentLastName = trimmedParentName
+                                ? trimmedParentName.split(" ").slice(1).join(" ") || trimmedLastName
+                                : trimmedLastName;
+                            const parentEmailSeed = trimmedParentEmail || `parent-${cleanAdmission}@parent.edunostics.local`;
+                            const parentEmailFinal = await ensureUniqueUserEmail(tx, parentEmailSeed);
+                            const parentPasswordHash = await bcrypt.hash("1234", 10);
 
-                        parentConnect = {
-                            create: {
-                                occupation: null,
-                                relationship: "guardian",
-                                user: {
-                                    create: {
-                                        email: finalParentEmail,
-                                        passwordHash: parentPasswordHash,
-                                        firstName: parentFirstName,
-                                        lastName: parentLastName,
-                                        phone: trimmedParentPhone || null,
-                                        roles: [UserRole.PARENT],
-                                        school: { connect: { id: schoolId } },
-                                        isActive: true,
+                            const createdParent = await tx.parent.create({
+                                data: {
+                                    occupation: null,
+                                    relationship: "guardian",
+                                    user: {
+                                        create: {
+                                            email: parentEmailFinal,
+                                            passwordHash: parentPasswordHash,
+                                            firstName: parentFirstName,
+                                            lastName: parentLastName,
+                                            phone: trimmedParentPhone || null,
+                                            roles: [UserRole.PARENT],
+                                            schoolId,
+                                            isActive,
+                                        },
                                     },
                                 },
+                                select: { id: true },
+                            });
+
+                            parentId = createdParent.id;
+                        }
+                    }
+
+                    let studentUserId = existingStudent?.userId || null;
+
+                    if (!studentUserId && createLoginAccounts) {
+                        const defaultPin = "1234";
+                        const passwordHash = await bcrypt.hash(defaultPin, 10);
+                        const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
+                        const studentEmailSeed = `${cleanAdmission}@student.edunostics.local`;
+                        const studentEmailFinal = await ensureUniqueUserEmail(tx, studentEmailSeed);
+
+                        const createdStudentUser = await tx.user.create({
+                            data: {
+                                email: studentEmailFinal,
+                                passwordHash,
+                                firstName: trimmedFirstName,
+                                lastName: trimmedLastName,
+                                roles: [UserRole.STUDENT],
+                                schoolId,
+                                isActive,
                             },
-                        };
-                    }
-                }
+                            select: { id: true },
+                        });
 
-                const studentCreateData: any = {
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim(),
-                    otherNames: otherNames?.trim() || undefined,
-                    admissionNumber: finalAdmissionNumber,
-                    gender: upperGender as "MALE" | "FEMALE",
-                    dateOfBirth: parsedDOB,
-                    admissionDate: parsedAdmissionDate,
-                    classArm: { connect: { id: classArmId } },
-                    school: { connect: { id: schoolId } },
-                    stateOfOrigin: stateOfOrigin?.trim() || undefined,
-                    religion: religion?.trim() || undefined,
-                    bloodGroup: bloodGroup?.trim() || undefined,
-                    parentName: trimmedParentName || undefined,
-                    parentPhone: trimmedParentPhone || undefined,
-                    parentEmail: trimmedParentEmail || undefined,
-                    address: address?.trim() || undefined,
-                    isActive,
-                    ...(parentConnect ? { parent: parentConnect } : {}),
-                };
-
-                if (createLoginAccounts) {
-                    // Generate student User account (needed for login)
-                    const defaultPin = "1234";
-                    const passwordHash = await bcrypt.hash(defaultPin, 10);
-                    const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
-                    let studentEmail = `${cleanAdmission}@student.edunostics.local`;
-
-                    const existingUser = await prisma.user.findUnique({
-                        where: { email: studentEmail },
-                    });
-                    if (existingUser) {
-                        const suffix = Date.now().toString(36);
-                        studentEmail = `${cleanAdmission}-${suffix}@student.edunostics.local`;
+                        studentUserId = createdStudentUser.id;
+                    } else if (studentUserId) {
+                        await tx.user.update({
+                            where: { id: studentUserId },
+                            data: {
+                                firstName: trimmedFirstName,
+                                lastName: trimmedLastName,
+                                isActive,
+                            },
+                        });
                     }
 
-                    studentCreateData.user = {
-                        create: {
-                            email: studentEmail,
-                            passwordHash,
-                            firstName: firstName.trim(),
-                            lastName: lastName.trim(),
-                            roles: [UserRole.STUDENT],
-                            school: { connect: { id: schoolId } },
-                            isActive,
-                        },
+                    const studentData: any = {
+                        firstName: trimmedFirstName,
+                        lastName: trimmedLastName,
+                        otherNames: trimmedOtherNames || null,
+                        admissionNumber: finalAdmissionNumber,
+                        gender: upperGender as "MALE" | "FEMALE",
+                        dateOfBirth: parsedDOB || null,
+                        admissionDate: parsedAdmissionDate || null,
+                        classArmId,
+                        stateOfOrigin: trimmedStateOfOrigin || null,
+                        religion: trimmedReligion || null,
+                        bloodGroup: trimmedBloodGroup || null,
+                        parentName: trimmedParentName || null,
+                        parentPhone: trimmedParentPhone || null,
+                        parentEmail: trimmedParentEmail || null,
+                        address: trimmedAddress || null,
+                        isActive,
+                        parentId,
+                        userId: studentUserId,
                     };
-                }
 
-                await prisma.student.create({
-                    data: studentCreateData,
+                    if (existingStudent) {
+                        await tx.student.update({
+                            where: { id: existingStudent.id },
+                            data: studentData,
+                        });
+                    } else {
+                        await tx.student.create({
+                            data: {
+                                ...studentData,
+                                schoolId,
+                            },
+                        });
+                    }
+
+                    if (parentId && hasParentData) {
+                        const parentRecord = await tx.parent.findUnique({
+                            where: { id: parentId },
+                            include: { user: true },
+                        });
+
+                        if (parentRecord?.user) {
+                            await tx.user.update({
+                                where: { id: parentRecord.userId },
+                                data: {
+                                    phone: trimmedParentPhone || undefined,
+                                    email: trimmedParentEmail || undefined,
+                                    firstName: trimmedParentName ? trimmedParentName.split(" ")[0] : undefined,
+                                    lastName: trimmedParentName
+                                        ? trimmedParentName.split(" ").slice(1).join(" ") || trimmedLastName
+                                        : undefined,
+                                },
+                            });
+                        }
+
+                        await tx.student.updateMany({
+                            where: existingStudent
+                                ? {
+                                    parentId,
+                                    id: { not: existingStudent.id },
+                                }
+                                : { parentId },
+                            data: {
+                                parentName: trimmedParentName || null,
+                                parentPhone: trimmedParentPhone || null,
+                                parentEmail: trimmedParentEmail || null,
+                            },
+                        });
+                    }
                 });
 
                 result.success++;
             } catch (error: any) {
                 result.failed++;
                 result.errors.push(
-                    `Row ${i + 1}: Failed to process student "${firstName} ${lastName}" - ${error.message}`
+                    `Row ${i + 1}: Failed to process student "${trimmedFirstName} ${trimmedLastName}" - ${error.message}`
                 );
             }
         }

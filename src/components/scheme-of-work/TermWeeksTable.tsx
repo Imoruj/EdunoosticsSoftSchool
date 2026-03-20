@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { showAppConfirm } from "@/lib/appMessageBox";
 import { WeekEditModal } from "./WeekEditModal";
 
 interface Week {
@@ -12,6 +13,13 @@ interface Week {
     resources: string | null;
     teachingMethods: string | null;
     assessment: string | null;
+    // wizard-phase fields (optional, for compatibility with SchemeOfWorkDetailClient)
+    waecObjectives?: string | null;
+    jambObjectives?: string | null;
+    igcseObjectives?: string | null;
+    objectivesApproved?: boolean;
+    references?: unknown[];
+    sdgMappings?: unknown[];
 }
 
 interface Props {
@@ -46,7 +54,12 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
     };
 
     const handleDelete = async (weekId: string) => {
-        if (!confirm("Delete this week?")) return;
+        const confirmed = await showAppConfirm("Delete this week?", {
+            title: "Delete Week",
+            variant: "warning",
+            confirmText: "Delete",
+        });
+        if (!confirmed) return;
         setDeletingId(weekId);
         try {
             const res = await fetch(`/api/scheme-of-work/weeks/${weekId}`, { method: "DELETE" });
@@ -85,9 +98,8 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {sortedWeeks.map((week) => (
-                                <>
+                                <Fragment key={week.id}>
                                     <tr
-                                        key={week.id}
                                         className="hover:bg-gray-50 cursor-pointer"
                                         onClick={() => setExpandedId(expandedId === week.id ? null : week.id)}
                                     >
@@ -127,7 +139,7 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                                         </td>
                                     </tr>
                                     {expandedId === week.id && week.content && (
-                                        <tr key={`${week.id}-expanded`} className="bg-blue-50/40">
+                                        <tr className="bg-blue-50/40">
                                             <td colSpan={5} className="px-6 py-3">
                                                 <ol className="text-sm text-gray-700 space-y-0.5 list-none">
                                                     {week.content.split("\n").map((line, i) => (
@@ -140,7 +152,7 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                                             </td>
                                         </tr>
                                     )}
-                                </>
+                                </Fragment>
                             ))}
                         </tbody>
                     </table>

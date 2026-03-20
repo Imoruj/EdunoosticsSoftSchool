@@ -10,6 +10,10 @@ export interface TargetAudienceSelectorProps {
     onSubjectChange: (id: string) => void;
     onClassArmsChange: (ids: string[]) => void;
     onAssignedToChange?: (studentIds: string[]) => void;
+    onClassChange?: (classId: string) => void;
+    availableTerms?: { termNumber: number; termName: string }[];
+    selectedTermNumber?: number | null;
+    onTermChange?: (termNumber: number | null) => void;
 }
 
 interface TeacherClasses {
@@ -38,7 +42,11 @@ export function TargetAudienceSelector({
     assignedTo = [],
     onSubjectChange,
     onClassArmsChange,
-    onAssignedToChange
+    onAssignedToChange,
+    onClassChange,
+    availableTerms = [],
+    selectedTermNumber = null,
+    onTermChange,
 }: TargetAudienceSelectorProps) {
     const [loading, setLoading] = useState(true);
     const [studentsLoading, setStudentsLoading] = useState(false);
@@ -214,6 +222,13 @@ export function TargetAudienceSelector({
         }
     }, [activeClassName, classNames, subjectId]);
 
+    // Notify parent whenever the active class resolves
+    useEffect(() => {
+        if (!activeClassName || !onClassChange) return;
+        const classObj = classes.find((c) => c.name === activeClassName);
+        if (classObj) onClassChange(classObj.id);
+    }, [activeClassName]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const visibleArms = activeClassName
         ? (applicableArmsByClass[activeClassName] || [])
         : [];
@@ -270,6 +285,31 @@ export function TargetAudienceSelector({
                 </select>
             </div>
 
+            {availableTerms.length > 0 && onTermChange && (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
+                    <div className="flex flex-wrap gap-2">
+                        {availableTerms.map(({ termNumber, termName }) => {
+                            const isActive = selectedTermNumber === termNumber;
+                            return (
+                                <button
+                                    key={termNumber}
+                                    type="button"
+                                    onClick={() => onTermChange(isActive ? null : termNumber)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                                        isActive
+                                            ? "bg-blue-600 text-white border-blue-600"
+                                            : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"
+                                    }`}
+                                >
+                                    {termName}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {subjectId && classNames.length > 0 && (
                 <div className="pt-2">
                     <label className="block text-sm font-semibold text-gray-800 mb-3">
@@ -284,7 +324,11 @@ export function TargetAudienceSelector({
                                     <button
                                         key={className}
                                         type="button"
-                                        onClick={() => setActiveClassName(className)}
+                                        onClick={() => {
+                                            setActiveClassName(className);
+                                            const classObj = classes.find((c) => c.name === className);
+                                            if (classObj && onClassChange) onClassChange(classObj.id);
+                                        }}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isActive
                                                 ? "bg-blue-600 text-white border-blue-600"
                                                 : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"

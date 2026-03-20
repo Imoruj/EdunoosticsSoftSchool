@@ -20,12 +20,24 @@ export interface Lesson {
   attachments: LessonAttachment[];
   isDownloaded: boolean;
   isPinned: boolean;
+  // SOW-linked fields (auto-populated from Scheme of Work)
+  sowWeekId?: string;
+  sowLessonContent?: string;
+  sowObjectives?: string;
+  sowSdgNumbers?: number[];
+  priorKnowledge?: string;
+  thumbnailUrl?: string;
 }
 
 export interface ContentBlock {
   id: string;
   type: 'text' | 'image' | 'video' | 'quiz' | 'assignment' | 'embed' | 'file';
   order: number;
+  /** Which lesson phase this block belongs to */
+  lessonSection?: 'induction' | 'content' | 'summary' | 'evaluation' | 'assignment';
+  /** Per-objective content tracking (Lesson Contents section) */
+  objectiveIndex?: number;
+  objectiveTab?: string;
   data:
   | TextBlockData
   | ImageBlockData

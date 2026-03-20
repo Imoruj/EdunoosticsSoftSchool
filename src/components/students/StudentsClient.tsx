@@ -22,6 +22,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const userRoles: string[] = (sessionData?.user as any)?.roles || [];
     const isAdmin = userRoles.includes("SUPER_ADMIN") || userRoles.includes("SCHOOL_ADMIN");
     const isClassTeacher = userRoles.includes("CLASS_TEACHER");
+    const canCreateStudents = isAdmin || isClassTeacher;
     const restrictToAssignedScope = !isAdmin && isClassTeacher;
 
     // Data state
@@ -164,12 +165,12 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
         // Handle ?add=true query param to open modal
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get("add") === "true") {
+        if (canCreateStudents && urlParams.get("add") === "true") {
             setShowAddModal(true);
             // Clear the param from URL without refreshing
             router.replace("/dashboard/students", { scroll: false });
         }
-    }, [router, initialSessions, initialClasses, restrictToAssignedScope]);
+    }, [router, initialSessions, initialClasses, restrictToAssignedScope, canCreateStudents]);
 
     // Refresh class list when session filter changes
     useEffect(() => {
@@ -827,15 +828,17 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                         </svg>
                         Export Students
                     </button>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add Student
-                    </button>
+                    {canCreateStudents && (
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Student
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1032,23 +1035,24 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         )}
                                                     </div>
 
-                                                    {/* Upload Overlay */}
-                                                    <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept="image/*"
-                                                            onChange={(e) => {
-                                                                if (e.target.files?.[0]) {
-                                                                    handlePhotoUpload(e.target.files[0], student.id);
-                                                                }
-                                                            }}
-                                                        />
-                                                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        </svg>
-                                                    </label>
+                                                    {isAdmin && (
+                                                        <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept="image/*"
+                                                                onChange={(e) => {
+                                                                    if (e.target.files?.[0]) {
+                                                                        handlePhotoUpload(e.target.files[0], student.id);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            </svg>
+                                                        </label>
+                                                    )}
                                                 </div>
                                                 <div className="ml-4">
                                                     <div className="text-sm font-medium text-gray-900">
@@ -1098,24 +1102,28 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </Link>
-                                                <button
-                                                    onClick={() => handleEdit(student.id)}
-                                                    title="Edit Student"
-                                                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleToggleStatus(student.id)}
-                                                    title={student.isActive ? "Deactivate Student" : "Activate Student"}
-                                                    className="inline-flex items-center justify-center p-2 rounded-md text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                                    </svg>
-                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleEdit(student.id)}
+                                                        title="Edit Student"
+                                                        className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleToggleStatus(student.id)}
+                                                        title={student.isActive ? "Deactivate Student" : "Activate Student"}
+                                                        className="inline-flex items-center justify-center p-2 rounded-md text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 {isAdmin && (
                                                     <button
                                                         onClick={() => setPasswordResetTarget(student)}
@@ -1132,15 +1140,17 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         )}
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => handleDelete(student.id)}
-                                                    title="Delete Student"
-                                                    className="inline-flex items-center justify-center p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleDelete(student.id)}
+                                                        title="Delete Student"
+                                                        className="inline-flex items-center justify-center p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -1227,7 +1237,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
             {/* Add Student Modal */}
             {
-                showAddModal && (
+                canCreateStudents && showAddModal && (
                     <div className="fixed inset-0 z-50 overflow-y-auto">
                         <div className="flex min-h-screen items-center justify-center p-4">
                             <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => { setShowAddModal(false); setSelectedStudent(null); }} />
@@ -1349,7 +1359,12 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     Class *
                                                 </label>
-                                                <select name="classArmId" defaultValue={selectedStudent?.classArm.id} className="input w-full" required>
+                                                <select
+                                                    name="classArmId"
+                                                    defaultValue={selectedStudent?.classArm.id || selectedClassArm || ""}
+                                                    className="input w-full"
+                                                    required
+                                                >
                                                     <option value="">Select Class</option>
                                                     {classArmOptions.map((option) => (
                                                         <option key={option.id} value={option.id}>
@@ -1421,7 +1436,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
             {/* Delete Confirmation Modal */}
             {
-                showDeleteConfirm && (
+                isAdmin && showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
                             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
@@ -1455,7 +1470,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             }
 
             {/* Import CSV Modal */}
-            {showImportModal && (
+            {isAdmin && showImportModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex min-h-screen items-center justify-center p-4">
                         <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => !importing && setShowImportModal(false)} />
@@ -1602,7 +1617,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 </div>
             )}
 
-            {showLegacyImportModal && (
+            {isAdmin && showLegacyImportModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex min-h-screen items-center justify-center p-4">
                         <div

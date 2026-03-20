@@ -100,6 +100,20 @@ export async function POST(req: NextRequest) {
                 throw new Error("Session ID or Name required");
             }
 
+            // Clear isCurrent on terms belonging to all OTHER sessions so that
+            // syncCurrentTerm's early-return guard (exactly 1 current session +
+            // 1 current term in that session) is satisfied after this save.
+            const otherSessions = await tx.academicSession.findMany({
+                where: { schoolId, id: { not: academicSession.id } },
+                select: { id: true }
+            });
+            if (otherSessions.length > 0) {
+                await tx.term.updateMany({
+                    where: { sessionId: { in: otherSessions.map(s => s.id) } },
+                    data: { isCurrent: false }
+                });
+            }
+
             // 2. Handle Terms
             // We expect 'terms' to be an array containing date info for specific terms.
             // terms: [{ name: "First Term", startDate: "...", endDate: "..." }]

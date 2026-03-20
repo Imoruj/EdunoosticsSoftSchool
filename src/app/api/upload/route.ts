@@ -40,7 +40,8 @@ type UploadType =
     | "quiz_image"
     | "quiz_option_image"
     | "assignment_attachment"
-    | "submission_attachment";
+    | "submission_attachment"
+    | "sow_reference";
 
 const EXPLICIT_UPLOAD_TYPES = new Set<UploadType>([
     "student_photo",
@@ -51,6 +52,7 @@ const EXPLICIT_UPLOAD_TYPES = new Set<UploadType>([
     "quiz_option_image",
     "assignment_attachment",
     "submission_attachment",
+    "sow_reference",
 ]);
 
 const IMAGE_UPLOAD_TYPES = new Set<UploadType>([
@@ -71,6 +73,7 @@ const LARGE_IMAGE_UPLOAD_TYPES = new Set<UploadType>([
 const ATTACHMENT_UPLOAD_TYPES = new Set<UploadType>([
     "assignment_attachment",
     "submission_attachment",
+    "sow_reference",
 ]);
 
 function getUploadFolder(uploadType: UploadType) {
@@ -86,6 +89,8 @@ function getUploadFolder(uploadType: UploadType) {
             return "assignments";
         case "submission_attachment":
             return "submissions";
+        case "sow_reference":
+            return "sow-references";
         case "signature":
             return "signatures";
         default:

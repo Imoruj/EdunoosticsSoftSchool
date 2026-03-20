@@ -1,7 +1,7 @@
 /**
  * Lightweight CSRF protection via Origin-header validation.
  *
- * All state-changing JSON API routes should call assertOrigin(req) before
+ * All state-changing JSON API routes should call `checkCsrf(req)` before
  * processing the request body. Requests with a mismatched Origin are rejected
  * with 403 to prevent cross-site request forgery.
  *
@@ -11,21 +11,47 @@
 
 import { NextResponse } from "next/server";
 
+function normalizeHost(value: string | null): string | null {
+    if (!value) return null;
+    return value.split(",")[0]?.trim().toLowerCase() || null;
+}
+
+function getAllowedHosts(req: Request): Set<string> {
+    const hosts = new Set<string>();
+    const requestHost = normalizeHost(
+        req.headers.get("x-forwarded-host") || req.headers.get("host")
+    );
+    const vercelHost = normalizeHost(process.env.VERCEL_URL || null);
+    const appUrl = process.env.NEXTAUTH_URL;
+
+    if (requestHost) hosts.add(requestHost);
+    if (vercelHost) hosts.add(vercelHost);
+
+    if (appUrl) {
+        try {
+            hosts.add(new URL(appUrl).host.toLowerCase());
+        } catch {
+            // Ignore malformed NEXTAUTH_URL and rely on request-host validation.
+        }
+    }
+
+    return hosts;
+}
+
 /**
- * Returns true if the request Origin matches NEXTAUTH_URL (or is absent,
- * meaning same-origin or server-side). Returns false for cross-origin requests.
+ * Returns true if the request Origin host matches the active request host,
+ * Vercel deployment host, or NEXTAUTH_URL host. Returns false for cross-origin
+ * requests and malformed Origin headers.
  */
 export function isOriginAllowed(req: Request): boolean {
     const origin = req.headers.get("origin");
 
-    // No Origin header → same-origin navigation or server-to-server. Allow.
+    // No Origin header means same-origin navigation or server-to-server. Allow.
     if (!origin) return true;
 
-    const appUrl = process.env.NEXTAUTH_URL;
-    if (!appUrl) return true; // Can't validate without configured URL
-
     try {
-        return new URL(origin).origin === new URL(appUrl).origin;
+        const originHost = new URL(origin).host.toLowerCase();
+        return getAllowedHosts(req).has(originHost);
     } catch {
         return false;
     }

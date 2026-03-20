@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { showAppConfirm } from "@/lib/appMessageBox";
 
 type SowStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
 
@@ -15,9 +16,11 @@ interface SchemeOfWork {
     approvedAt: string | null;
     updatedAt: string;
     subject: { id: string; name: string; code: string | null };
-    classArm: { id: string; armName: string; class: { name: string } };
+    class: { id: string; name: string };
+    classArms: { classArm: { id: string; armName: string } }[];
     session: { id: string; name: string };
     owner: { id: string; firstName: string; lastName: string };
+    collaborators: { userId: string }[];
     _count: { collaborators: number; terms: number };
 }
 
@@ -39,10 +42,12 @@ export function SchemeOfWorkListClient() {
     const [schemesOfWork, setSchemesOfWork] = useState<SchemeOfWork[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<SowStatus | "">("");
     const [sessionFilter, setSessionFilter] = useState("");
     const [sessions, setSessions] = useState<{ id: string; name: string }[]>([]);
     const [pendingCount, setPendingCount] = useState(0);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const fetchSessions = useCallback(async () => {
         try {
@@ -51,20 +56,25 @@ export function SchemeOfWorkListClient() {
                 const data = await res.json();
                 setSessions(data.sessions || []);
             }
-        } catch { /* ignore */ }
+        } catch {
+            // Ignore session filter failures and keep the page usable.
+        }
     }, []);
 
     const fetchSOWs = useCallback(async () => {
         setLoading(true);
         setError(null);
+        setActionError(null);
         try {
             const params = new URLSearchParams({ limit: "50" });
             if (statusFilter) params.set("status", statusFilter);
             if (sessionFilter) params.set("sessionId", sessionFilter);
 
             const res = await fetch(`/api/scheme-of-work?${params}`);
-            if (!res.ok) throw new Error("Failed to load");
-            const data = await res.json();
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(data?.detail || data?.error || "Failed to load schemes of work");
+            }
             setSchemesOfWork(data.schemesOfWork || []);
 
             if (isAdmin) {
@@ -79,7 +89,7 @@ export function SchemeOfWorkListClient() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter, sessionFilter, isAdmin]);
+    }, [isAdmin, sessionFilter, statusFilter]);
 
     useEffect(() => {
         fetchSessions();
@@ -89,9 +99,41 @@ export function SchemeOfWorkListClient() {
         fetchSOWs();
     }, [fetchSOWs]);
 
+    const openDetail = (id: string) => {
+        router.push(`/dashboard/scheme-of-work/${id}`);
+    };
+
+    const openEditor = (id: string) => {
+        router.push(`/dashboard/scheme-of-work/${id}?step=2`);
+    };
+
+    const handleDelete = async (sow: SchemeOfWork) => {
+        const confirmed = await showAppConfirm(`Delete "${sow.title}"? This cannot be undone.`, {
+            title: "Delete Scheme of Work",
+            variant: "warning",
+            confirmText: "Delete",
+        });
+        if (!confirmed) return;
+
+        setDeletingId(sow.id);
+        setActionError(null);
+        try {
+            const res = await fetch(`/api/scheme-of-work/${sow.id}`, { method: "DELETE" });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(data?.detail || data?.error || "Failed to delete scheme of work");
+            }
+
+            setSchemesOfWork((current) => current.filter((item) => item.id !== sow.id));
+        } catch (e: any) {
+            setActionError(e.message || "Failed to delete scheme of work");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Scheme of Work</h1>
@@ -127,7 +169,6 @@ export function SchemeOfWorkListClient() {
                 </div>
             </div>
 
-            {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-6">
                 <select
                     value={sessionFilter}
@@ -135,8 +176,8 @@ export function SchemeOfWorkListClient() {
                     className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                 >
                     <option value="">All Sessions</option>
-                    {sessions.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
+                    {sessions.map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
                     ))}
                 </select>
 
@@ -155,11 +196,10 @@ export function SchemeOfWorkListClient() {
                 )}
             </div>
 
-            {/* Content */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-44" />
+                    {[...Array(6)].map((_, index) => (
+                        <div key={index} className="animate-pulse bg-gray-100 rounded-xl h-56" />
                     ))}
                 </div>
             ) : error ? (
@@ -183,34 +223,108 @@ export function SchemeOfWorkListClient() {
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {schemesOfWork.map((sow) => (
-                        <button
-                            key={sow.id}
-                            onClick={() => router.push(`/dashboard/scheme-of-work/${sow.id}`)}
-                            className="text-left bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-primary-300 transition-all group"
-                        >
-                            <div className="flex items-start justify-between mb-3">
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[sow.status]}`}>
-                                    {sow.status}
-                                </span>
-                                <svg className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                            <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1 line-clamp-2">{sow.title}</h3>
-                            <p className="text-xs text-gray-500 mb-3">{sow.session.name}</p>
-                            <div className="flex items-center gap-3 text-xs text-gray-400">
-                                <span>{sow.subject.name}</span>
-                                <span>·</span>
-                                <span>{sow.classArm.class.name} {sow.classArm.armName}</span>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-                                <span>{sow.owner.firstName} {sow.owner.lastName}</span>
-                                <span>{sow._count.collaborators > 0 ? `+${sow._count.collaborators} collaborator${sow._count.collaborators > 1 ? "s" : ""}` : ""}</span>
-                            </div>
-                        </button>
-                    ))}
+                <div className="space-y-4">
+                    {actionError && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {actionError}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {schemesOfWork.map((sow) => {
+                            const isOwner = sow.owner.id === user?.id;
+                            const isCollaborator = sow.collaborators.some((collaborator) => collaborator.userId === user?.id);
+                            const canEdit = !isStudent && (isAdmin || isOwner || isCollaborator) &&
+                                (sow.status === "DRAFT" || sow.status === "REJECTED");
+                            const canDelete = !isStudent && (isAdmin || isOwner) && sow.status === "DRAFT";
+
+                            return (
+                                <article
+                                    key={sow.id}
+                                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-primary-300 transition-all"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => openDetail(sow.id)}
+                                        className="w-full text-left group"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[sow.status]}`}>
+                                                {sow.status}
+                                            </span>
+                                            <svg className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1 line-clamp-2">{sow.title}</h3>
+                                        <p className="text-xs text-gray-500 mb-3">{sow.session.name}</p>
+                                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                                            <span>{sow.subject.name}</span>
+                                            <span>&middot;</span>
+                                            <span>
+                                                {sow.class.name}
+                                                {sow.classArms.length > 0 && (
+                                                    <span className="ml-1 text-gray-300">
+                                                        ({sow.classArms.map((item) => item.classArm.armName).join(", ")})
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    </button>
+
+                                    <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+                                        <div className="flex items-center justify-between gap-3 text-xs text-gray-400">
+                                            <span className="truncate">{sow.owner.firstName} {sow.owner.lastName}</span>
+                                            <span className="shrink-0">
+                                                {sow._count.collaborators > 0 ? `+${sow._count.collaborators} collaborator${sow._count.collaborators > 1 ? "s" : ""}` : ""}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => openDetail(sow.id)}
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                            >
+                                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S3.732 16.057 2.458 12z" />
+                                                </svg>
+                                                View
+                                            </button>
+
+                                            {canEdit && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEditor(sow.id)}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100"
+                                                >
+                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    Edit
+                                                </button>
+                                            )}
+
+                                            {canDelete && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(sow)}
+                                                    disabled={deletingId === sow.id}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    {deletingId === sow.id ? "Deleting..." : "Delete"}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

@@ -22,13 +22,16 @@ export function SchemeOfWorkCreateClient() {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [allClassArms, setAllClassArms] = useState<ClassArm[]>([]);
-    const [classArms, setClassArms] = useState<ClassArm[]>([]);
+
+    // Derived from subject selection
+    const [availableClasses, setAvailableClasses] = useState<{ id: string; name: string }[]>([]);
+    const [availableArms, setAvailableArms] = useState<ClassArm[]>([]);
 
     const [selectedSession, setSelectedSession] = useState("");
     const [selectedSubject, setSelectedSubject] = useState("");
-    const [selectedClassArm, setSelectedClassArm] = useState("");
+    const [selectedClass, setSelectedClass] = useState("");
+    const [selectedArmIds, setSelectedArmIds] = useState<string[]>([]);
     const [title, setTitle] = useState("");
-    const [autoTitle, setAutoTitle] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -40,12 +43,10 @@ export function SchemeOfWorkCreateClient() {
 
     useEffect(() => {
         fetch("/api/sessions").then((r) => r.json()).then((d) => setSessions(d.sessions || []));
-        // Fetch teacher's assignments (subjects + class arms they teach)
         fetch("/api/teacher/assignments")
             .then((r) => r.json())
             .then((d: AssignmentData) => {
                 setSubjects(d.subjects || []);
-                // Flatten all arms with class name for lookup
                 const arms: ClassArm[] = [];
                 for (const cls of d.classes || []) {
                     for (const arm of cls.arms) {
@@ -57,31 +58,60 @@ export function SchemeOfWorkCreateClient() {
             .catch(() => {});
     }, []);
 
-    // Filter class arms by selected subject
+    // When subject changes, derive the available classes from teacher's assigned arms for that subject
     useEffect(() => {
-        if (!selectedSubject) { setClassArms([]); setSelectedClassArm(""); return; }
+        if (!selectedSubject) {
+            setAvailableClasses([]);
+            setSelectedClass("");
+            setAvailableArms([]);
+            setSelectedArmIds([]);
+            return;
+        }
         const subject = subjects.find((s) => s.id === selectedSubject);
         const armIds = new Set(subject?.classArmIds || []);
-        setClassArms(allClassArms.filter((a) => armIds.has(a.id)));
-        setSelectedClassArm("");
+        const assignedArms = allClassArms.filter((a) => armIds.has(a.id));
+
+        // Unique classes from those arms
+        const classMap = new Map<string, string>();
+        for (const arm of assignedArms) {
+            if (!classMap.has(arm.classId)) classMap.set(arm.classId, arm.className);
+        }
+        setAvailableClasses(Array.from(classMap.entries()).map(([id, name]) => ({ id, name })));
+        setSelectedClass("");
+        setAvailableArms([]);
+        setSelectedArmIds([]);
     }, [selectedSubject, subjects, allClassArms]);
 
-    // Auto-generate title
+    // When class changes, filter arms to just that class (within subject's assigned arms)
     useEffect(() => {
-        const subject = subjects.find((s) => s.id === selectedSubject);
-        const classArm = classArms.find((c) => c.id === selectedClassArm);
-        const session = sessions.find((s) => s.id === selectedSession);
-        if (subject && classArm && session) {
-            setAutoTitle(`${subject.name} — ${classArm.className} ${classArm.armName} — ${session.name}`);
-        } else {
-            setAutoTitle("");
+        if (!selectedClass || !selectedSubject) {
+            setAvailableArms([]);
+            setSelectedArmIds([]);
+            return;
         }
-    }, [selectedSubject, selectedClassArm, selectedSession, subjects, classArms, sessions]);
+        const subject = subjects.find((s) => s.id === selectedSubject);
+        const armIds = new Set(subject?.classArmIds || []);
+        setAvailableArms(allClassArms.filter((a) => armIds.has(a.id) && a.classId === selectedClass));
+        setSelectedArmIds([]);
+    }, [selectedClass, selectedSubject, subjects, allClassArms]);
+
+    const toggleArm = (armId: string) => {
+        setSelectedArmIds((prev) =>
+            prev.includes(armId) ? prev.filter((id) => id !== armId) : [...prev, armId]
+        );
+    };
+
+    const selectedClassName = availableClasses.find((c) => c.id === selectedClass)?.name || "";
+    const selectedSessionName = sessions.find((s) => s.id === selectedSession)?.name || "";
+    const selectedSubjectName = subjects.find((s) => s.id === selectedSubject)?.name || "";
+    const autoTitle = selectedSubjectName && selectedClassName && selectedSessionName
+        ? `${selectedSubjectName} — ${selectedClassName} — ${selectedSessionName}`
+        : "";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedSession || !selectedSubject || !selectedClassArm) {
-            setError("Please select a session, subject, and class arm");
+        if (!selectedSession || !selectedSubject || !selectedClass) {
+            setError("Please select a session, subject, and class");
             return;
         }
         setLoading(true);
@@ -93,13 +123,14 @@ export function SchemeOfWorkCreateClient() {
                 body: JSON.stringify({
                     sessionId: selectedSession,
                     subjectId: selectedSubject,
-                    classArmId: selectedClassArm,
+                    classId: selectedClass,
+                    classArmIds: selectedArmIds,
                     title: title.trim() || autoTitle || undefined,
                 }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to create");
-            router.push(`/dashboard/scheme-of-work/${data.schemeOfWork.id}`);
+            if (!res.ok) throw new Error(data.detail || data.error || "Failed to create");
+            router.push(`/dashboard/scheme-of-work/${data.schemeOfWork.id}?step=2`);
         } catch (e: any) {
             setError(e.message);
             setLoading(false);
@@ -116,7 +147,7 @@ export function SchemeOfWorkCreateClient() {
                     Back
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900">New Scheme of Work</h1>
-                <p className="text-sm text-gray-500 mt-1">Create a curriculum plan for a subject and session</p>
+                <p className="text-sm text-gray-500 mt-1">Create a curriculum plan for a subject and class</p>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
@@ -157,18 +188,54 @@ export function SchemeOfWorkCreateClient() {
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
                     <select
-                        value={selectedClassArm}
-                        onChange={(e) => setSelectedClassArm(e.target.value)}
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
                         required
-                        disabled={!selectedSubject}
+                        disabled={!selectedSubject || availableClasses.length === 0}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
                     >
-                        <option value="">{selectedSubject ? "Select class…" : "Select a subject first"}</option>
-                        {classArms.map((c) => (
-                            <option key={c.id} value={c.id}>{c.className} {c.armName}</option>
+                        <option value="">
+                            {!selectedSubject ? "Select a subject first" : availableClasses.length === 0 ? "No classes available" : "Select class…"}
+                        </option>
+                        {availableClasses.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>
+                    <p className="text-xs text-gray-400 mt-1">A scheme of work applies to the entire class (e.g., SS1)</p>
                 </div>
+
+                {selectedClass && availableArms.length > 0 && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Class Arms
+                            <span className="ml-2 font-normal text-gray-400 text-xs">Select arms this scheme covers (optional)</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {availableArms.map((arm) => {
+                                const checked = selectedArmIds.includes(arm.id);
+                                return (
+                                    <button
+                                        key={arm.id}
+                                        type="button"
+                                        onClick={() => toggleArm(arm.id)}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                                            checked
+                                                ? "bg-primary-600 text-white border-primary-600"
+                                                : "bg-white text-gray-700 border-gray-300 hover:border-primary-400"
+                                        }`}
+                                    >
+                                        {selectedClassName} {arm.armName}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {selectedArmIds.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-1.5">
+                                {selectedArmIds.length} arm{selectedArmIds.length > 1 ? "s" : ""} selected
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title (optional)</label>
@@ -194,7 +261,7 @@ export function SchemeOfWorkCreateClient() {
                     </button>
                     <button
                         type="submit"
-                        disabled={loading || !selectedSession || !selectedSubject || !selectedClassArm}
+                        disabled={loading || !selectedSession || !selectedSubject || !selectedClass}
                         className="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {loading ? "Creating…" : "Create Scheme of Work"}

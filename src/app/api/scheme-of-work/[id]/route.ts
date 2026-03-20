@@ -10,11 +10,21 @@ const SOW_FULL_INCLUDE = {
         orderBy: { termNumber: "asc" as const },
         include: {
             term: { select: { id: true, name: true, termNumber: true, startDate: true, endDate: true } },
-            weeks: { orderBy: { weekNumber: "asc" as const } },
+            weeks: {
+                    orderBy: { weekNumber: "asc" as const },
+                    include: {
+                        references: { orderBy: { sortOrder: "asc" as const } },
+                        sdgMappings: { orderBy: { sdgNumber: "asc" as const } },
+                    },
+                },
         },
     },
     subject: { select: { id: true, name: true, code: true } },
-    classArm: { select: { id: true, armName: true, class: { select: { name: true } } } },
+    class: { select: { id: true, name: true } },
+    classArms: {
+        include: { classArm: { select: { id: true, armName: true } } },
+        orderBy: { createdAt: "asc" as const },
+    },
     session: { select: { id: true, name: true, startDate: true, endDate: true } },
     owner: { select: { id: true, firstName: true, lastName: true, email: true } },
     approvedBy: { select: { id: true, firstName: true, lastName: true } },

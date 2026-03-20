@@ -153,6 +153,7 @@ model Class {
   school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   arms          ClassArm[]
   feeStructures FeeStructure[]
+  schemesOfWork SchemeOfWork[]
 
   @@unique([schoolId, name])
 }
@@ -176,7 +177,7 @@ model ClassArm {
   scoreSheetWorkflows    ScoreSheetWorkflow[]
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
-  schemesOfWork          SchemeOfWork[]
+  schemeOfWorkClassArms  SchemeOfWorkClassArm[]
 
   @@unique([classId, armName])
 }
@@ -988,7 +989,7 @@ model SchemeOfWork {
   id           String                    @id @default(cuid())
   schoolId     String
   subjectId    String
-  classArmId   String
+  classId      String
   sessionId    String
   title        String
   status       SowStatus                 @default(DRAFT)
@@ -1002,15 +1003,29 @@ model SchemeOfWork {
 
   school        School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   subject       Subject                   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  classArm      ClassArm                  @relation(fields: [classArmId], references: [id], onDelete: Cascade)
+  class         Class                     @relation(fields: [classId], references: [id], onDelete: Cascade)
   session       AcademicSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   owner         User                      @relation("SOWOwner", fields: [ownerId], references: [id])
   approvedBy    User?                     @relation("SOWApprover", fields: [approvedById], references: [id])
   terms         SchemeOfWorkTerm[]
   collaborators SchemeOfWorkCollaborator[]
+  classArms     SchemeOfWorkClassArm[]
 
-  @@unique([subjectId, classArmId, sessionId])
+  @@unique([subjectId, classId, sessionId])
   @@index([schoolId, status])
+}
+
+model SchemeOfWorkClassArm {
+  id             String       @id @default(cuid())
+  schemeOfWorkId String
+  classArmId     String
+  createdAt      DateTime     @default(now())
+
+  schemeOfWork   SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  classArm       ClassArm     @relation(fields: [classArmId], references: [id], onDelete: Cascade)
+
+  @@unique([schemeOfWorkId, classArmId])
+  @@index([schemeOfWorkId])
 }
 
 model SchemeOfWorkTerm {
@@ -1040,13 +1055,50 @@ model SchemeOfWorkWeek {
   resources          String?
   teachingMethods    String?
   assessment         String?
+  waecObjectives     String?
+  jambObjectives     String?
+  igcseObjectives    String?
+  objectiveSegments  Json?
+  objectivesApproved Boolean          @default(false)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   schemeOfWorkTerm   SchemeOfWorkTerm @relation(fields: [schemeOfWorkTermId], references: [id], onDelete: Cascade)
+  references         SchemeOfWorkWeekReference[]
+  sdgMappings        SchemeOfWorkWeekSdg[]
 
   @@unique([schemeOfWorkTermId, weekNumber])
   @@index([schemeOfWorkTermId])
+}
+
+model SchemeOfWorkWeekReference {
+  id          String           @id @default(cuid())
+  weekId      String
+  type        String
+  title       String
+  url         String?
+  fileKey     String?
+  description String?
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  week        SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  @@index([weekId])
+}
+
+model SchemeOfWorkWeekSdg {
+  id          String           @id @default(cuid())
+  weekId      String
+  sdgNumber   Int
+  aiSuggested Boolean          @default(false)
+  approved    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  week        SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  @@unique([weekId, sdgNumber])
+  @@index([weekId])
 }
 
 model SchemeOfWorkCollaborator {

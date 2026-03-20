@@ -391,10 +391,24 @@ export async function POST(req: NextRequest) {
     if (csrfError) return csrfError;
 
     try {
-        const session = await requireSchoolAdmin(req);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = session.user as any;
+        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
+        const isAdmin =
+            roles.includes(UserRole.SUPER_ADMIN) ||
+            roles.includes(UserRole.SCHOOL_ADMIN);
+        const isClassTeacher = roles.includes(UserRole.CLASS_TEACHER);
+
+        if (!isAdmin && !isClassTeacher) {
+            return NextResponse.json(
+                { error: "Unauthorized: Only admin and class teachers can add students." },
+                { status: 403 }
+            );
         }
 
         const body = await req.json();
@@ -426,7 +440,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = user.schoolId;
 
         if (!schoolId) {
             return NextResponse.json(
@@ -468,7 +482,7 @@ export async function POST(req: NextRequest) {
 
         // Auto-generate admission number if not provided or flag is set
         if (!admissionNumber || autoGenerate) {
-            const schoolName = (session.user as any).schoolName;
+            const schoolName = user.schoolName;
             const defaultPrefix = getSchoolAcronym(schoolName);
             const usePrefix = prefix || defaultPrefix;
 
@@ -486,7 +500,7 @@ export async function POST(req: NextRequest) {
         if (existingStudent) {
             // If auto-generated number exists (race condition), try again
             if (!admissionNumber || autoGenerate) {
-                const schoolName = (session.user as any).schoolName;
+                const schoolName = user.schoolName;
                 const defaultPrefix = getSchoolAcronym(schoolName);
                 const usePrefix = prefix || defaultPrefix;
 
@@ -503,6 +517,7 @@ export async function POST(req: NextRequest) {
         const classArm = await prisma.classArm.findFirst({
             where: {
                 id: classArmId,
+                ...(!isAdmin && isClassTeacher ? { classTeacherId: user.id } : {}),
                 class: { schoolId },
             },
             include: { class: true },
@@ -510,8 +525,12 @@ export async function POST(req: NextRequest) {
 
         if (!classArm) {
             return NextResponse.json(
-                { error: "Invalid class/arm selected. Please select a valid class." },
-                { status: 400 }
+                {
+                    error: !isAdmin && isClassTeacher
+                        ? "Unauthorized: You can only add students to your assigned class."
+                        : "Invalid class/arm selected. Please select a valid class."
+                },
+                { status: !isAdmin && isClassTeacher ? 403 : 400 }
             );
         }
 
