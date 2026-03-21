@@ -17,7 +17,7 @@ const securityHeaders = [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob: https://res.cloudinary.com",
+            "img-src 'self' data: blob: https://res.cloudinary.com https://img.youtube.com",
             isDev ? "font-src 'self' data: https:" : "font-src 'self'",
             isDev ? "connect-src 'self' https://res.cloudinary.com https://generativelanguage.googleapis.com https:" : "connect-src 'self' https://res.cloudinary.com https://generativelanguage.googleapis.com",
             "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://docs.google.com",
