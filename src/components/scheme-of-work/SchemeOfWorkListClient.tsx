@@ -234,9 +234,10 @@ export function SchemeOfWorkListClient() {
                         {schemesOfWork.map((sow) => {
                             const isOwner = sow.owner.id === user?.id;
                             const isCollaborator = sow.collaborators.some((collaborator) => collaborator.userId === user?.id);
-                            const canEdit = !isStudent && (isAdmin || isOwner || isCollaborator) &&
-                                (sow.status === "DRAFT" || sow.status === "REJECTED");
-                            const canDelete = !isStudent && (isAdmin || isOwner) && sow.status === "DRAFT";
+                            // Edit is always available to owner/collaborator/admin (live edits are separate from the approved snapshot)
+                            const canEdit = !isStudent && (isAdmin || isOwner || isCollaborator);
+                            // Admin can delete anything; teacher (owner) can delete unless the SOW is approved
+                            const canDelete = !isStudent && (isAdmin || (isOwner && sow.status !== "APPROVED"));
 
                             return (
                                 <article
