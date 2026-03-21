@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { UserRole, SowStatus } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
 const VALID_TYPES = ["TEXT", "IMAGE", "AUDIO", "YOUTUBE", "FILE", "GOOGLE_DRIVE"];
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-        if (!isAdmin && !isOwner && !isCollaborator && sow.status !== SowStatus.APPROVED) {
+        if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -76,10 +76,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const body = await req.json();
         const { type, title, url, fileKey, description, sortOrder } = body;
 

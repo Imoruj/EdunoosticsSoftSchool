@@ -10,6 +10,11 @@ import { Student, ClassOption, SessionOption, SubjectOption, Pagination } from "
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
+import {
+    downloadLoginCredentialsCsv,
+    printLoginCredentials,
+    type LoginCredentialExportPayload,
+} from "@/lib/loginCredentialExport";
 
 interface StudentsClientProps {
     initialSessions: SessionOption[];
@@ -61,6 +66,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [passwordResetTarget, setPasswordResetTarget] = useState<Student | null>(null);
     const [importDryRun, setImportDryRun] = useState(false);
     const [createLoginAccounts, setCreateLoginAccounts] = useState(true);
+    const [credentialAction, setCredentialAction] = useState<"download" | "print" | null>(null);
     const [importResults, setImportResults] = useState<{
         success: number;
         failed: number;
@@ -565,6 +571,35 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         document.body.removeChild(link);
     };
 
+    const handleStudentCredentialAction = async (action: "download" | "print") => {
+        setCredentialAction(action);
+        setError(null);
+
+        try {
+            const response = await fetch("/api/students/login-credentials");
+            const payload = await response.json() as LoginCredentialExportPayload & { error?: string };
+
+            if (!response.ok) {
+                throw new Error(payload.error || "Failed to fetch student login credentials");
+            }
+
+            if (action === "download") {
+                const timestamp = new Date().toISOString().split("T")[0];
+                downloadLoginCredentialsCsv(payload, `student_login_credentials_${timestamp}.csv`);
+                toast.success("Student login credentials downloaded.");
+                return;
+            }
+
+            printLoginCredentials(payload);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to fetch student login credentials";
+            setError(message);
+            toast.error(message);
+        } finally {
+            setCredentialAction(null);
+        }
+    };
+
     const handleAddStudent = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setSubmitting(true);
@@ -814,6 +849,28 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m-7 4h8a2 2 0 002-2V6a2 2 0 00-2-2h-3.5a1 1 0 01-.8-.4L12 2 10.3 3.6a1 1 0 01-.8.4H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
                                 Legacy Records
+                            </button>
+                            <button
+                                onClick={() => handleStudentCredentialAction("download")}
+                                className="btn-secondary flex items-center gap-2"
+                                title="Download login identifiers for all student accounts"
+                                disabled={credentialAction !== null}
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                {credentialAction === "download" ? "Preparing..." : "Download Student Logins"}
+                            </button>
+                            <button
+                                onClick={() => handleStudentCredentialAction("print")}
+                                className="btn-secondary flex items-center gap-2"
+                                title="Print login identifiers for all student accounts"
+                                disabled={credentialAction !== null}
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V4h12v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v6H6v-6z" />
+                                </svg>
+                                {credentialAction === "print" ? "Preparing..." : "Print Student Logins"}
                             </button>
                         </>
                     )}

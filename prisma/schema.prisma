@@ -99,6 +99,7 @@ model User {
   signalingMessagesTo                   SignalingMessage[]      @relation("SignalingTo")
   schemesOfWorkOwned                    SchemeOfWork[]         @relation("SOWOwner")
   schemesOfWorkApproved                 SchemeOfWork[]         @relation("SOWApprover")
+  schemeOfWorkTermsApproved             SchemeOfWorkTerm[]     @relation("SOWTermApprover")
   schemeOfWorkCollaborators             SchemeOfWorkCollaborator[]
 }
 
@@ -1029,20 +1030,30 @@ model SchemeOfWorkClassArm {
 }
 
 model SchemeOfWorkTerm {
-  id             String             @id @default(cuid())
-  schemeOfWorkId String
-  termId         String
-  termNumber     Int
-  objectives     String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id               String             @id @default(cuid())
+  schemeOfWorkId   String
+  termId           String
+  termNumber       Int
+  objectives       String?
+  // Per-term approval workflow
+  status           SowStatus          @default(DRAFT)
+  adminNote        String?
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  approvedById     String?
+  // Frozen snapshot of week data taken at approval time (used by lesson builder)
+  approvedSnapshot Json?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  schemeOfWork   SchemeOfWork       @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
-  term           Term               @relation(fields: [termId], references: [id])
-  weeks          SchemeOfWorkWeek[]
+  schemeOfWork     SchemeOfWork       @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  term             Term               @relation(fields: [termId], references: [id])
+  approvedBy       User?              @relation("SOWTermApprover", fields: [approvedById], references: [id])
+  weeks            SchemeOfWorkWeek[]
 
   @@unique([schemeOfWorkId, termNumber])
   @@index([schemeOfWorkId])
+  @@index([schemeOfWorkId, status])
 }
 
 model SchemeOfWorkWeek {

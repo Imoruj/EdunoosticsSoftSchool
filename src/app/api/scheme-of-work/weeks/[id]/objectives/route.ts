@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { Prisma, UserRole, SowStatus } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { normalizeObjectivePayload } from "@/lib/sowObjectiveSegments";
 
@@ -48,10 +48,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const body = await req.json();
         const { objectives, waecObjectives, jambObjectives, igcseObjectives, objectivesApproved } = body;
         const normalized = normalizeObjectivePayload({

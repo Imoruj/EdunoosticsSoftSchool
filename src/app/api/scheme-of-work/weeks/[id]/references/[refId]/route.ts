@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { UserRole, SowStatus } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
 async function resolveWeekAccess(weekId: string, userId: string, schoolId: string) {
@@ -48,10 +48,6 @@ export async function DELETE(
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const ref = await prisma.schemeOfWorkWeekReference.findFirst({
             where: { id: params.refId, weekId: params.id },
         });

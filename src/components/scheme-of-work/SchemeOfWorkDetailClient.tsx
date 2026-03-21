@@ -38,6 +38,11 @@ interface SOWTerm {
     termId: string;
     termNumber: number;
     objectives: string | null;
+    // Per-term approval fields
+    status: SowStatus;
+    adminNote: string | null;
+    submittedAt: string | null;
+    approvedAt: string | null;
     term: { id: string; name: string; termNumber: number };
     weeks: Week[];
 }
@@ -679,8 +684,8 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
 
     const isOwner = sow?.ownerId === user?.id;
     const isCollaborator = sow?.collaborators.some((c) => c.userId === user?.id) ?? false;
-    const canEdit = (isAdmin || isOwner || isCollaborator) &&
-        (sow?.status === "DRAFT" || sow?.status === "REJECTED");
+    // Teachers can always edit live SOW data — approved snapshot is separate
+    const canEdit = isAdmin || isOwner || isCollaborator;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleWeeksChange = (termId: string, weeks: any[]) => {
@@ -703,9 +708,16 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
         });
     };
 
-    const handleStatusChange = (status: string, adminNote: string | null) => {
+    const handleTermStatusChange = (termId: string, status: SowStatus, adminNote: string | null) => {
         if (!sow) return;
-        setSow({ ...sow, status: status as SowStatus, adminNote });
+        setSow({
+            ...sow,
+            // Bump SOW-level status when any term is approved (for display badge)
+            status: status === "APPROVED" ? "APPROVED" : sow.status,
+            terms: sow.terms.map((t) =>
+                t.id === termId ? { ...t, status, adminNote } : t
+            ),
+        });
     };
 
     const handleSaveTitle = async () => {
@@ -953,8 +965,8 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
 
             {headerSection}
 
-            {/* Wizard banner for DRAFT SOWs */}
-            {canEdit && sow.status === "DRAFT" && (
+            {/* Wizard banner when SOW has no weeks yet */}
+            {canEdit && totalWeeks === 0 && (
                 <div className="mb-6 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
                     <div>
                         <p className="text-sm font-medium text-primary-800">
@@ -1100,11 +1112,19 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
                 <div className="space-y-4">
                     <ApprovalPanel
                         sowId={sow.id}
-                        status={sow.status}
-                        adminNote={sow.adminNote}
+                        terms={sow.terms.map((t) => ({
+                            termId: t.id,
+                            termNumber: t.termNumber,
+                            termName: t.term.name || `Term ${t.termNumber}`,
+                            status: (t.status ?? "DRAFT") as SowStatus,
+                            adminNote: t.adminNote ?? null,
+                            submittedAt: t.submittedAt ?? null,
+                            approvedAt: t.approvedAt ?? null,
+                            weekCount: t.weeks.length,
+                        }))}
                         isAdmin={isAdmin}
                         isOwner={isOwner}
-                        onStatusChange={handleStatusChange}
+                        onTermStatusChange={handleTermStatusChange}
                     />
 
                     {showCollaborators && (

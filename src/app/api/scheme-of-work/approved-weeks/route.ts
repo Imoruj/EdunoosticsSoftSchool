@@ -4,9 +4,28 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
 
-// GET /api/scheme-of-work/approved-weeks?subjectId=xxx
-// Returns all weeks from APPROVED SOWs for a given subject in the teacher's school.
-// Used to populate the week picker in the Lesson editor.
+interface SnapshotWeek {
+    weekId: string;
+    weekNumber: number;
+    topic: string;
+    content: string | null;
+    objectives: string | null;
+    waecObjectives: string | null;
+    jambObjectives: string | null;
+    igcseObjectives: string | null;
+    objectiveSegments: unknown;
+    references: Array<{
+        id: string; type: string; title: string;
+        url: string | null; fileKey: string | null;
+        description: string | null; sortOrder: number;
+    }>;
+    sdgNumbers: number[];
+}
+
+// GET /api/scheme-of-work/approved-weeks?subjectId=xxx[&classId=xxx]
+// Returns the APPROVED snapshot of weeks for lesson building.
+// Per-term approval: reads from approvedSnapshot (frozen at approval time).
+// Backward-compat: terms approved before snapshots existed fall back to live data.
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -19,62 +38,95 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const subjectId = searchParams.get("subjectId");
         if (!subjectId) return NextResponse.json({ error: "subjectId is required" }, { status: 400 });
-
         const classId = searchParams.get("classId") || undefined;
 
-        const weeks = await prisma.schemeOfWorkWeek.findMany({
+        // Fetch all APPROVED terms for this subject/school
+        const approvedTerms = await prisma.schemeOfWorkTerm.findMany({
             where: {
-                schemeOfWorkTerm: {
-                    schemeOfWork: {
-                        schoolId,
-                        subjectId,
-                        ...(classId ? { classId } : {}),
-                        status: SowStatus.APPROVED,
-                    },
+                status: SowStatus.APPROVED,
+                schemeOfWork: {
+                    schoolId,
+                    subjectId,
+                    ...(classId ? { classId } : {}),
                 },
             },
             include: {
-                schemeOfWorkTerm: {
-                    include: {
-                        term: { select: { name: true, termNumber: true } },
-                        schemeOfWork: {
-                            select: {
-                                id: true,
-                                title: true,
-                                class: { select: { id: true, name: true } },
-                                session: { select: { id: true, name: true } },
-                            },
-                        },
+                term: { select: { name: true, termNumber: true } },
+                schemeOfWork: {
+                    select: {
+                        id: true,
+                        title: true,
+                        class: { select: { id: true, name: true } },
+                        session: { select: { id: true, name: true, startDate: true } },
                     },
                 },
-                sdgMappings: {
-                    where: { approved: true },
-                    select: { sdgNumber: true },
+                // Live weeks — used only when no snapshot exists (backward compat)
+                weeks: {
+                    orderBy: { weekNumber: "asc" },
+                    include: {
+                        references: { orderBy: { sortOrder: "asc" } },
+                        sdgMappings: { where: { approved: true }, select: { sdgNumber: true } },
+                    },
                 },
             },
-            orderBy: [
-                { schemeOfWorkTerm: { termNumber: "asc" } },
-                { weekNumber: "asc" },
-            ],
+            orderBy: [{ termNumber: "asc" }],
         });
 
-        const result = weeks.map((w) => ({
-            weekId: w.id,
-            weekNumber: w.weekNumber,
-            topic: w.topic,
-            content: w.content,
-            objectives: w.objectives,
-            waecObjectives: w.waecObjectives,
-            jambObjectives: w.jambObjectives,
-            igcseObjectives: w.igcseObjectives,
-            sdgNumbers: w.sdgMappings.map((s) => s.sdgNumber),
-            sowId: w.schemeOfWorkTerm.schemeOfWork.id,
-            sowTitle: w.schemeOfWorkTerm.schemeOfWork.title,
-            termName: w.schemeOfWorkTerm.term.name || `Term ${w.schemeOfWorkTerm.termNumber}`,
-            termNumber: w.schemeOfWorkTerm.termNumber,
-            className: w.schemeOfWorkTerm.schemeOfWork.class.name,
-            sessionName: w.schemeOfWorkTerm.schemeOfWork.session.name,
-        }));
+        const result: object[] = [];
+
+        for (const term of approvedTerms) {
+            const sowMeta = {
+                sowId: term.schemeOfWork.id,
+                sowTitle: term.schemeOfWork.title,
+                termName: term.term.name || `Term ${term.termNumber}`,
+                termNumber: term.termNumber,
+                termId: term.id,
+                className: term.schemeOfWork.class.name,
+                sessionName: term.schemeOfWork.session.name,
+                approvedAt: term.approvedAt?.toISOString() ?? null,
+            };
+
+            if (term.approvedSnapshot) {
+                // New flow: use the frozen snapshot taken at approval time
+                const snapshot = term.approvedSnapshot as unknown as { weeks: SnapshotWeek[] };
+                for (const w of snapshot.weeks) {
+                    result.push({
+                        weekId: w.weekId,
+                        weekNumber: w.weekNumber,
+                        topic: w.topic,
+                        content: w.content,
+                        objectives: w.objectives,
+                        waecObjectives: w.waecObjectives,
+                        jambObjectives: w.jambObjectives,
+                        igcseObjectives: w.igcseObjectives,
+                        objectiveSegments: w.objectiveSegments ?? null,
+                        sdgNumbers: w.sdgNumbers,
+                        references: w.references,
+                        isFromSnapshot: true,
+                        ...sowMeta,
+                    });
+                }
+            } else {
+                // Backward-compat: no snapshot — read live week data
+                for (const w of term.weeks) {
+                    result.push({
+                        weekId: w.id,
+                        weekNumber: w.weekNumber,
+                        topic: w.topic,
+                        content: w.content,
+                        objectives: w.objectives,
+                        waecObjectives: w.waecObjectives,
+                        jambObjectives: w.jambObjectives,
+                        igcseObjectives: w.igcseObjectives,
+                        objectiveSegments: w.objectiveSegments ?? null,
+                        sdgNumbers: w.sdgMappings.map((s) => s.sdgNumber),
+                        references: w.references,
+                        isFromSnapshot: false,
+                        ...sowMeta,
+                    });
+                }
+            }
+        }
 
         return NextResponse.json({ weeks: result });
     } catch (error) {

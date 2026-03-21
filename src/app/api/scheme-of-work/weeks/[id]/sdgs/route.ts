@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { UserRole, SowStatus } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
 async function resolveWeekAccess(weekId: string, userId: string, schoolId: string) {
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-        if (!isAdmin && !isOwner && !isCollaborator && sow.status !== SowStatus.APPROVED) {
+        if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -74,10 +74,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const body = await req.json();
         const { sdgNumber, aiSuggested, approved } = body;
 
@@ -125,10 +121,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const sdgNumber = parseInt(new URL(req.url).searchParams.get("sdgNumber") ?? "0");
         if (!sdgNumber || sdgNumber < 1 || sdgNumber > 17) {
             return NextResponse.json({ error: "Invalid SDG number" }, { status: 400 });

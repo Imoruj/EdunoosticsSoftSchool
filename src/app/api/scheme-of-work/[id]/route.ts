@@ -103,11 +103,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Non-admins can only edit DRAFT or REJECTED SOWs
-        if (!isAdmin && sow.status !== SowStatus.DRAFT && sow.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Cannot edit a submitted or approved scheme of work" }, { status: 409 });
-        }
-
         const body = await req.json();
         const { title, adminNote } = body;
 
