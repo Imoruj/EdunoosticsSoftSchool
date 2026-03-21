@@ -34,6 +34,8 @@ interface SowWeek {
   igcseObjectives: string | null; sdgNumbers: number[];
   sowId: string; sowTitle: string; termName: string;
   termNumber: number; className: string; sessionName: string;
+  references?: SowReference[]; // Populated from approved snapshot
+  isFromSnapshot?: boolean;
 }
 
 interface NavSection { id: string; label: string; Icon: React.ElementType; color: string; }
@@ -105,11 +107,24 @@ function extractYouTubeId(url: string): string | null {
   return m?.[1] ?? null;
 }
 
-function ReferenceCard({ reference: r }: { reference: SowReference }) {
+function ReferenceCard({ reference: r, onAdd }: { reference: SowReference; onAdd?: () => void }) {
   const badge = (
     <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${REFERENCE_TYPE_STYLE[r.type]}`}>
       {REFERENCE_TYPE_LABEL[r.type]}
     </span>
+  );
+
+  const addBtn = onAdd && (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg transition-colors"
+    >
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      </svg>
+      Add to Lesson
+    </button>
   );
 
   if (r.type === 'YOUTUBE' && r.url) {
@@ -125,6 +140,7 @@ function ReferenceCard({ reference: r }: { reference: SowReference }) {
             className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
             <ExternalLink className="w-3 h-3" /> Watch on YouTube
           </a>
+          {addBtn}
         </div>
       </div>
     );
@@ -138,24 +154,28 @@ function ReferenceCard({ reference: r }: { reference: SowReference }) {
           {badge}
           <p className="text-sm font-semibold text-gray-900 leading-tight">{r.title}</p>
           {r.description && <p className="text-xs text-gray-500">{r.description}</p>}
+          {addBtn}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-3 flex items-start gap-2.5">
-      {badge}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 leading-tight">{r.title}</p>
-        {r.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{r.description}</p>}
-        {r.url && (
-          <a href={r.url} target="_blank" rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-            <ExternalLink className="w-3 h-3" /> Open link
-          </a>
-        )}
+    <div className="border border-gray-200 rounded-lg p-3 flex flex-col gap-1.5">
+      <div className="flex items-start gap-2.5">
+        {badge}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 leading-tight">{r.title}</p>
+          {r.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{r.description}</p>}
+          {r.url && (
+            <a href={r.url} target="_blank" rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+              <ExternalLink className="w-3 h-3" /> Open link
+            </a>
+          )}
+        </div>
       </div>
+      {addBtn}
     </div>
   );
 }
@@ -500,7 +520,49 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
     setSowObjectivesParsed(parsed);
     setOpenObjectives(new Set(['general']));
     setOpenObjectiveSubs(new Set([0]));
+    // Pre-load references from the approved snapshot if available
+    if (week.references && week.references.length > 0) {
+      setSowReferences(week.references);
+    }
   }, [sowWeeks, clearSowState]);
+
+  // ── Add SOW reference as a content block ────────────────────────────────────
+  const addBlockFromReference = useCallback((ref: SowReference) => {
+    const section = activeNavSection as LessonSection;
+    let newBlock: ContentBlock;
+    if (ref.type === 'YOUTUBE' && ref.url) {
+      newBlock = {
+        id: `block_${Date.now()}`,
+        type: 'video',
+        order: 0,
+        lessonSection: section,
+        data: { url: normalizeVideoEmbedUrl(ref.url) || ref.url, caption: ref.title } as VideoBlockData,
+      };
+    } else if (ref.type === 'IMAGE' && (ref.url || ref.fileKey)) {
+      newBlock = {
+        id: `block_${Date.now()}`,
+        type: 'image',
+        order: 0,
+        lessonSection: section,
+        data: { url: ref.url || ref.fileKey || '', alt: ref.title, caption: ref.description || '' } as ImageBlockData,
+      };
+    } else {
+      // TEXT, AUDIO, FILE, GOOGLE_DRIVE → text block with a link
+      const href = ref.url || ref.fileKey || '';
+      const linkHtml = href
+        ? `<p><a href="${href}" target="_blank" rel="noopener noreferrer">${ref.title}</a></p>${ref.description ? `<p>${ref.description}</p>` : ''}`
+        : `<p>${ref.title}</p>${ref.description ? `<p>${ref.description}</p>` : ''}`;
+      newBlock = {
+        id: `block_${Date.now()}`,
+        type: 'text',
+        order: 0,
+        lessonSection: section,
+        data: { content: linkHtml, format: 'html' } as TextBlockData,
+      };
+    }
+    setBlocks((prev) => [...prev, newBlock]);
+    setShowResourcesPanel(false);
+  }, [activeNavSection]);
 
   // ── Thumbnail ───────────────────────────────────────────────────────────────
   const handleThumbnailUpload = useCallback(async (file: File) => {
@@ -603,13 +665,17 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
 
   useEffect(() => {
     if (!selectedWeekId) { setSowReferences([]); return; }
+    // Check if we already have snapshot references from the week selection
+    const week = sowWeeks.find((w) => w.weekId === selectedWeekId);
+    if (week?.references && week.references.length > 0) return; // already populated
+    // Fallback: fetch live references (non-snapshot weeks or backward-compat)
     setResourcesLoading(true);
     fetch(`/api/scheme-of-work/weeks/${selectedWeekId}/references`)
       .then((r) => r.json())
       .then((data) => setSowReferences(data.references || []))
       .catch(() => setSowReferences([]))
       .finally(() => setResourcesLoading(false));
-  }, [selectedWeekId]);
+  }, [selectedWeekId, sowWeeks]);
 
   // ── Preview mode ─────────────────────────────────────────────────────────────
   if (isPreview) {
@@ -1152,7 +1218,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
               ) : (
                 <div className="space-y-3">
                   {sowReferences.map((ref) => (
-                    <ReferenceCard key={ref.id} reference={ref} />
+                    <ReferenceCard key={ref.id} reference={ref} onAdd={() => addBlockFromReference(ref)} />
                   ))}
                 </div>
               )}
