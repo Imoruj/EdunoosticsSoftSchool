@@ -1,12 +1,11 @@
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { v2 as cloudinary } from "cloudinary";
 import { validateMagicBytes } from "@/lib/magicBytes";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for student/user photos
@@ -14,6 +13,8 @@ const MAX_RICH_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for lesson and quiz 
 const MAX_ATTACHMENT_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB for assignment/submission files
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
     "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/pjpeg": ".jpg",
     "image/png": ".png",
     "image/webp": ".webp",
     "image/gif": ".gif",
@@ -28,6 +29,12 @@ const ALLOWED_ATTACHMENT_TYPES: Record<string, string> = {
     "application/vnd.ms-excel": ".xls",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
     "text/plain": ".txt",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/ogg": ".ogg",
+    "audio/mp4": ".m4a",
+    "audio/x-m4a": ".m4a",
+    "audio/aac": ".aac",
 };
 const STUDENT_PHOTO_UPLOAD_ROLES = new Set(["SUPER_ADMIN", "SCHOOL_ADMIN", "CLASS_TEACHER"]);
 const STAFF_SIGNATURE_ROLES = new Set(["SUPER_ADMIN", "SCHOOL_ADMIN", "CLASS_TEACHER", "SUBJECT_TEACHER"]);
@@ -37,6 +44,7 @@ type UploadType =
     | "avatar"
     | "signature"
     | "lesson_image"
+    | "lesson_audio"
     | "quiz_image"
     | "quiz_option_image"
     | "assignment_attachment"
@@ -48,20 +56,12 @@ const EXPLICIT_UPLOAD_TYPES = new Set<UploadType>([
     "avatar",
     "signature",
     "lesson_image",
+    "lesson_audio",
     "quiz_image",
     "quiz_option_image",
     "assignment_attachment",
     "submission_attachment",
     "sow_reference",
-]);
-
-const IMAGE_UPLOAD_TYPES = new Set<UploadType>([
-    "student_photo",
-    "avatar",
-    "signature",
-    "lesson_image",
-    "quiz_image",
-    "quiz_option_image",
 ]);
 
 const LARGE_IMAGE_UPLOAD_TYPES = new Set<UploadType>([
@@ -74,29 +74,8 @@ const ATTACHMENT_UPLOAD_TYPES = new Set<UploadType>([
     "assignment_attachment",
     "submission_attachment",
     "sow_reference",
+    "lesson_audio",
 ]);
-
-function getUploadFolder(uploadType: UploadType) {
-    switch (uploadType) {
-        case "student_photo":
-            return "students";
-        case "lesson_image":
-            return "lessons";
-        case "quiz_image":
-        case "quiz_option_image":
-            return "quizzes";
-        case "assignment_attachment":
-            return "assignments";
-        case "submission_attachment":
-            return "submissions";
-        case "sow_reference":
-            return "sow-references";
-        case "signature":
-            return "signatures";
-        default:
-            return "avatars";
-    }
-}
 
 function getAllowedTypes(uploadType: UploadType) {
     return ATTACHMENT_UPLOAD_TYPES.has(uploadType) ? ALLOWED_ATTACHMENT_TYPES : ALLOWED_IMAGE_TYPES;
@@ -104,7 +83,7 @@ function getAllowedTypes(uploadType: UploadType) {
 
 function getAllowedTypesLabel(uploadType: UploadType) {
     return ATTACHMENT_UPLOAD_TYPES.has(uploadType)
-        ? "PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, JPG, PNG, GIF, or WEBP"
+        ? "PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, MP3, WAV, OGG, M4A, AAC, JPG, PNG, GIF, or WEBP"
         : "JPG, PNG, GIF, or WEBP";
 }
 
@@ -120,42 +99,38 @@ function getMaxUploadSize(uploadType: UploadType) {
     return MAX_FILE_SIZE_BYTES;
 }
 
-// Check if Cloudinary is configured
-const isCloudinaryConfigured = Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
-    process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
-);
-
-// Configure Cloudinary if credentials are available
-if (isCloudinaryConfigured) {
-    cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
+function buildStoredFileName(uploadType: UploadType, userId: string, ext: string, studentId?: string) {
+    switch (uploadType) {
+        case "student_photo":
+            return `student-${studentId}-${randomUUID()}${ext}`;
+        case "lesson_image":
+            return `lesson-${userId}-${randomUUID()}${ext}`;
+        case "lesson_audio":
+            return `lesson-audio-${userId}-${randomUUID()}${ext}`;
+        case "quiz_image":
+        case "quiz_option_image":
+            return `quiz-${userId}-${randomUUID()}${ext}`;
+        case "assignment_attachment":
+            return `assignment-${userId}-${randomUUID()}${ext}`;
+        case "submission_attachment":
+            return `submission-${userId}-${randomUUID()}${ext}`;
+        case "sow_reference":
+            return `sow-reference-${userId}-${randomUUID()}${ext}`;
+        case "signature":
+            return `user-${userId}-signature-${randomUUID()}${ext}`;
+        default:
+            return `user-${userId}-${uploadType}-${randomUUID()}${ext}`;
+    }
 }
 
-// Upload to Cloudinary
-async function uploadToCloudinary(buffer: Buffer, uploadType: UploadType, userId: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const upload_stream = cloudinary.uploader.upload_stream(
-            {
-                folder: `educare/${getUploadFolder(uploadType)}`,
-                resource_type: IMAGE_UPLOAD_TYPES.has(uploadType) ? "image" : "auto",
-                public_id: `${uploadType}-${userId}-${randomUUID()}`,
-            },
-            (error, result) => {
-                if (error) return reject(error);
-                resolve(result!.secure_url);
-            }
-        );
-
-        upload_stream.end(buffer);
-    });
+function getUploadErrorMessage(error: unknown) {
+    return error instanceof Error && error.message ? error.message : "Upload failed";
 }
 
 export async function POST(req: NextRequest) {
+    let uploadType: UploadType | null = null;
+    let uploadContext: Record<string, string | number | null> = {};
+
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -176,7 +151,6 @@ export async function POST(req: NextRequest) {
         const studentId = typeof studentIdRaw === "string" ? studentIdRaw.trim() : "";
         const requestedType = typeof requestedTypeRaw === "string" ? requestedTypeRaw.trim().toLowerCase() : "";
 
-        let uploadType: UploadType;
         if (EXPLICIT_UPLOAD_TYPES.has(requestedType as UploadType)) {
             uploadType = requestedType as UploadType;
         } else if (studentId && studentId !== "user-avatar") {
@@ -184,6 +158,14 @@ export async function POST(req: NextRequest) {
         } else {
             uploadType = "avatar";
         }
+
+        uploadContext = {
+            userId: user.id,
+            schoolId: user.schoolId ?? null,
+            fileName: file.name || null,
+            fileType: file.type || null,
+            fileSize: file.size,
+        };
 
         const allowedTypes = getAllowedTypes(uploadType);
         const ext = allowedTypes[file.type];
@@ -243,53 +225,35 @@ export async function POST(req: NextRequest) {
         // Convert file to buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
+        const storedName = buildStoredFileName(uploadType, user.id, ext, studentId || undefined);
 
-        // Upload to Cloudinary if configured (production), otherwise use local filesystem
-        let fileUrl: string;
-        if (isCloudinaryConfigured) {
-            fileUrl = await uploadToCloudinary(buffer, uploadType, user.id);
-        } else {
-            // Local filesystem upload (development)
-            let uploadDir = "";
-            let fileUrlPrefix = "";
-            let filename = "";
+        const uploadedFile = await prisma.uploadedFile.create({
+            data: {
+                schoolId: user.schoolId ?? null,
+                uploadedById: user.id,
+                uploadType,
+                originalName: file.name || storedName,
+                storedName,
+                mimeType: file.type,
+                extension: ext,
+                size: file.size,
+                data: buffer,
+            },
+            select: { id: true },
+        });
 
-            if (uploadType === "student_photo") {
-                filename = `student-${studentId}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), "public/uploads/students");
-                fileUrlPrefix = "/uploads/students";
-            } else if (uploadType === "lesson_image") {
-                filename = `lesson-${user.id}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), "public/uploads/lessons");
-                fileUrlPrefix = "/uploads/lessons";
-            } else if (uploadType === "quiz_image" || uploadType === "quiz_option_image") {
-                filename = `quiz-${user.id}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), "public/uploads/quizzes");
-                fileUrlPrefix = "/uploads/quizzes";
-            } else if (uploadType === "assignment_attachment") {
-                filename = `assignment-${user.id}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), "public/uploads/assignments");
-                fileUrlPrefix = "/uploads/assignments";
-            } else if (uploadType === "submission_attachment") {
-                filename = `submission-${user.id}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), "public/uploads/submissions");
-                fileUrlPrefix = "/uploads/submissions";
-            } else {
-                const subDir = uploadType === "signature" ? "signatures" : "avatars";
-                filename = `user-${user.id}-${uploadType}-${randomUUID()}${ext}`;
-                uploadDir = path.join(process.cwd(), `public/uploads/users/${subDir}`);
-                fileUrlPrefix = `/uploads/users/${subDir}`;
-            }
-
-            await mkdir(uploadDir, { recursive: true });
-            const filepath = path.join(uploadDir, filename);
-            await writeFile(filepath, buffer);
-            fileUrl = `${fileUrlPrefix}/${filename}`;
-        }
-
-        return NextResponse.json({ url: fileUrl });
+        return NextResponse.json({ id: uploadedFile.id, url: `/api/uploads/${uploadedFile.id}` });
     } catch (error) {
-        console.error("Error uploading file:", error);
-        return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+        const message = getUploadErrorMessage(error);
+        console.error("Error uploading file:", {
+            message,
+            uploadType,
+            ...uploadContext,
+            error,
+        });
+        return NextResponse.json(
+            { error: process.env.NODE_ENV === "development" ? message : "Upload failed" },
+            { status: 500 }
+        );
     }
 }

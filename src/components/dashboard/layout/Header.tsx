@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 
 interface HeaderNotification {
     id: string;
@@ -28,6 +29,8 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const [notificationItems, setNotificationItems] = useState<HeaderNotification[]>([]);
     const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
     const [currentTermInfo, setCurrentTermInfo] = useState<{ session: string, term: string } | null>(null);
+    const notificationItemsRef = useRef<HeaderNotification[]>([]);
+    const hasLoadedNotificationsRef = useRef(false);
 
     const userId = (session?.user as any)?.id || "anonymous";
     const notificationStorageKey = `dashboard-read-notifications:${userId}`;
@@ -61,7 +64,11 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
         window.dispatchEvent(new CustomEvent<number>("dashboard-pending-upload-count", { detail: count }));
     }, []);
 
-    const fetchNotifications = useCallback(async () => {
+    useEffect(() => {
+        notificationItemsRef.current = notificationItems;
+    }, [notificationItems]);
+
+    const fetchNotifications = useCallback(async (options?: { announceNew?: boolean }) => {
         if (!session?.user) {
             publishPendingUploadCount(0);
             return;
@@ -71,8 +78,23 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
             const response = await fetch("/api/notifications?limit=8", { cache: "no-store" });
             if (!response.ok) throw new Error("Failed to fetch notifications");
             const data = await response.json();
+            const nextNotifications = data?.notifications || [];
+
+            if (options?.announceNew && hasLoadedNotificationsRef.current) {
+                const knownIds = new Set(notificationItemsRef.current.map((item) => item.id));
+                const newestNotification = nextNotifications.find((item: HeaderNotification) => !knownIds.has(item.id));
+
+                if (newestNotification) {
+                    toast.success(newestNotification.title, {
+                        id: `notification:${newestNotification.id}`,
+                    });
+                }
+            }
+
             publishPendingUploadCount(data?.pendingUploadCount || 0);
-            setNotificationItems(data?.notifications || []);
+            setNotificationItems(nextNotifications);
+            hasLoadedNotificationsRef.current = true;
+            window.dispatchEvent(new CustomEvent("dashboard-notifications-updated"));
         } catch {
             publishPendingUploadCount(0);
             setNotificationItems([]);
@@ -99,6 +121,25 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
         const intervalId = setInterval(fetchNotifications, 60000);
         return () => clearInterval(intervalId);
     }, [fetchNotifications]);
+
+    useEffect(() => {
+        if (!session?.user || typeof window === "undefined") return;
+
+        const stream = new EventSource("/api/notifications/stream");
+        const handleNotification = () => {
+            fetchNotifications({ announceNew: true });
+        };
+
+        stream.addEventListener("notification", handleNotification);
+        stream.onerror = () => {
+            // Keep the existing poll fallback if the realtime stream disconnects.
+        };
+
+        return () => {
+            stream.removeEventListener("notification", handleNotification);
+            stream.close();
+        };
+    }, [session, fetchNotifications]);
 
     useEffect(() => {
         fetchTermInfo();

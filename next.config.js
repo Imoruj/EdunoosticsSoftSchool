@@ -3,7 +3,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 const securityHeaders = [
     { key: "X-Content-Type-Options", value: "nosniff" },
-    { key: "X-Frame-Options", value: "DENY" },
+    { key: "X-Frame-Options", value: "SAMEORIGIN" },
     { key: "X-XSS-Protection", value: "1; mode=block" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
@@ -21,6 +21,7 @@ const securityHeaders = [
             isDev ? "font-src 'self' data: https:" : "font-src 'self'",
             isDev ? "connect-src 'self' https://res.cloudinary.com https://generativelanguage.googleapis.com https:" : "connect-src 'self' https://res.cloudinary.com https://generativelanguage.googleapis.com",
             "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://docs.google.com",
+            "frame-ancestors 'self'",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",

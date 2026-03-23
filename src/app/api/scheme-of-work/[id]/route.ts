@@ -34,7 +34,44 @@ const SOW_FULL_INCLUDE = {
     },
 };
 
+type SchemeOfWorkTermForResponse = {
+    status: SowStatus;
+    submittedAt: Date | null;
+    approvedAt: Date | null;
+    approvedById: string | null;
+    approvedSnapshot: unknown;
+    adminNote: string | null;
+    weeks: unknown[];
+};
+
+function normalizeTermApprovalState<T extends SchemeOfWorkTermForResponse>(term: T): T {
+    const isLegacyEmptyApprovedTerm =
+        term.status === SowStatus.APPROVED &&
+        term.weeks.length === 0 &&
+        !term.submittedAt &&
+        !term.approvedSnapshot;
+
+    if (!isLegacyEmptyApprovedTerm) return term;
+
+    return {
+        ...term,
+        status: SowStatus.DRAFT,
+        approvedAt: null,
+        approvedById: null,
+        adminNote: null,
+    };
+}
+
+function normalizeSchemeOfWorkForResponse<T extends { terms: SchemeOfWorkTermForResponse[] }>(schemeOfWork: T): T {
+    return {
+        ...schemeOfWork,
+        terms: schemeOfWork.terms.map(normalizeTermApprovalState),
+    };
+}
+
 async function resolveAccess(sowId: string, userId: string, schoolId: string) {
+    if (!schoolId) return { sow: null, isOwner: false, isCollaborator: false };
+
     const sow = await prisma.schemeOfWork.findFirst({
         where: { id: sowId, schoolId },
         include: { collaborators: { select: { userId: true } } },
@@ -56,12 +93,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
         const isStudent = roles.includes(UserRole.STUDENT);
+        if (!schoolId) return NextResponse.json({ error: "No school associated" }, { status: 400 });
 
-        const { sow, isOwner, isCollaborator } = await resolveAccess(params.id, user.id, schoolId);
-        if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        const sowId = params.id?.trim();
+        if (!sowId) {
+            return NextResponse.json({ error: "Scheme of work id is required" }, { status: 400 });
+        }
+
+        const full = await prisma.schemeOfWork.findFirst({
+            where: { id: sowId, schoolId },
+            include: SOW_FULL_INCLUDE,
+        });
+        if (!full) return NextResponse.json({ error: "Scheme of work not found" }, { status: 404 });
+
+        const isOwner = full.ownerId === user.id;
+        const isCollaborator = full.collaborators.some((c) => c.userId === user.id);
 
         // Students can only see APPROVED SOWs
-        if (isStudent && sow.status !== SowStatus.APPROVED) {
+        if (isStudent && full.status !== SowStatus.APPROVED) {
             return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
 
@@ -70,15 +119,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const full = await prisma.schemeOfWork.findUniqueOrThrow({
-            where: { id: params.id },
-            include: SOW_FULL_INCLUDE,
-        });
-
-        return NextResponse.json({ schemeOfWork: full });
-    } catch (error) {
+        return NextResponse.json({ schemeOfWork: normalizeSchemeOfWorkForResponse(full) });
+    } catch (error: any) {
         console.error("[SOW] GET/:id error:", error);
-        return NextResponse.json({ error: "Failed to fetch scheme of work" }, { status: 500 });
+        return NextResponse.json({
+            error: "Failed to fetch scheme of work",
+            detail: process.env.NODE_ENV === "development" ? String(error?.message || error) : undefined,
+        }, { status: 500 });
     }
 }
 
@@ -117,7 +164,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             include: SOW_FULL_INCLUDE,
         });
 
-        return NextResponse.json({ schemeOfWork: updated });
+        return NextResponse.json({ schemeOfWork: normalizeSchemeOfWorkForResponse(updated) });
     } catch (error) {
         console.error("[SOW] PUT error:", error);
         return NextResponse.json({ error: "Failed to update scheme of work" }, { status: 500 });

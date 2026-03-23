@@ -130,7 +130,7 @@ function TermRow({ term, isAdmin, isOwner, onStatusChange }: {
                     </div>
                 )}
 
-                {/* Owner: submit button */}
+                {/* Owner: submit button (DRAFT / REJECTED) */}
                 {isOwner && (term.status === "DRAFT" || term.status === "REJECTED") && (
                     <button
                         onClick={handleSubmit}
@@ -139,6 +139,18 @@ function TermRow({ term, isAdmin, isOwner, onStatusChange }: {
                         className="w-full px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
                         {loading ? "Submitting…" : "Submit Term for Review"}
+                    </button>
+                )}
+
+                {/* Owner: re-submit after edits (APPROVED) */}
+                {isOwner && term.status === "APPROVED" && (
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading || term.weekCount === 0}
+                        title="Request admin re-review of updated week content"
+                        className="w-full px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                    >
+                        {loading ? "Submitting…" : "Request Re-review"}
                     </button>
                 )}
 

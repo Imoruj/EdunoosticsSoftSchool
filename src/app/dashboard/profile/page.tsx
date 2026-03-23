@@ -178,7 +178,10 @@ export default function ProfilePage() {
             }
         } catch (err) {
             console.error("Upload failed", err);
-            setMessage({ type: "error", text: "Failed to upload profile photo" });
+            setMessage({
+                type: "error",
+                text: err instanceof Error ? err.message : "Failed to upload profile photo"
+            });
         }
     };
 
@@ -442,7 +445,10 @@ export default function ProfilePage() {
                                                     setMessage({ type: "success", text: "Signature updated" });
                                                 } catch (err) {
                                                     console.error("Signature upload failed", err);
-                                                    setMessage({ type: "error", text: "Failed to upload signature" });
+                                                    setMessage({
+                                                        type: "error",
+                                                        text: err instanceof Error ? err.message : "Failed to upload signature"
+                                                    });
                                                 }
                                             }}
                                         />

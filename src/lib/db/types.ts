@@ -4,10 +4,110 @@
 
 // ============ LESSON TYPES ============
 
+// ============ STUDIO TYPES (Slide-based Lesson Builder) ============
+
+export type LessonSection =
+  | 'pre-lesson'
+  | 'induction'
+  | 'introduction'
+  | 'content'
+  | 'summary'
+  | 'evaluation'
+  | 'assignment'
+  | 'thumbnail';
+
+export type SlideAnimation =
+  | 'none'
+  | 'fade'
+  | 'slide-left'
+  | 'slide-right'
+  | 'slide-up'
+  | 'slide-down'
+  | 'zoom'
+  | 'bounce';
+
+export type ContentBlockType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'quiz'
+  | 'assignment'
+  | 'embed'
+  | 'file';
+
+export interface SlideElement {
+  id: string;
+  type: ContentBlockType;
+  data:
+    | TextBlockData
+    | ImageBlockData
+    | VideoBlockData
+    | AudioBlockData
+    | QuizBlockData
+    | AssignmentBlockData
+    | EmbedBlockData
+    | FileBlockData;
+
+  // Canvas position (% of slide width/height, 0–100)
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  rotation?: number; // degrees
+
+  // Timeline timing (seconds from slide start)
+  startTime: number; // default 0
+  endTime: number;   // default = slide.duration
+
+  // Animation
+  animateIn?: SlideAnimation;
+  animateInDuration?: number;  // ms, default 300
+  animateOut?: SlideAnimation;
+  animateOutDuration?: number; // ms, default 300
+
+  // Style overrides
+  opacity?: number;       // 0–1
+  borderRadius?: number;  // px
+  shadow?: boolean;
+  background?: string;    // CSS color
+  locked?: boolean;       // prevents accidental moves
+}
+
+export interface SlideBackground {
+  type: 'color' | 'image' | 'gradient';
+  color?: string;
+  imageUrl?: string;
+  gradient?: string; // CSS gradient string
+}
+
+export interface LessonSlide {
+  id: string;
+  sceneType: LessonSection;
+  title?: string;
+  order: number;
+
+  // Playback
+  duration: number;       // seconds; 0 = manual advance
+  autoAdvance?: boolean;
+
+  // Visual
+  background?: SlideBackground;
+  transition?: 'none' | 'fade' | 'slide-left' | 'slide-right';
+  transitionDuration?: number; // ms
+
+  elements: SlideElement[];
+  notes?: string; // speaker/teacher notes
+}
+
 export interface Lesson {
   id: string;
   title: string;
   description?: string;
+  // New slide-based model
+  slides?: LessonSlide[];
+  // Legacy block model (kept for backward-compat migration)
   content: ContentBlock[];
   subjectId: string;
   classArmIds: string[];
@@ -27,21 +127,42 @@ export interface Lesson {
   sowSdgNumbers?: number[];
   priorKnowledge?: string;
   thumbnailUrl?: string;
+  referenceMaterials?: LessonReferenceMaterial[];
+}
+
+export interface LessonReferenceMaterial {
+  id: string;
+  type: 'TEXT' | 'IMAGE' | 'AUDIO' | 'YOUTUBE' | 'FILE' | 'GOOGLE_DRIVE';
+  title: string;
+  url?: string;
+  fileKey?: string;
+  description?: string;
+  sortOrder?: number;
+  source: 'scheme_of_work';
+  addedAt: number;
 }
 
 export interface ContentBlock {
   id: string;
-  type: 'text' | 'image' | 'video' | 'quiz' | 'assignment' | 'embed' | 'file';
+  type: ContentBlockType;
   order: number;
   /** Which lesson phase this block belongs to */
-  lessonSection?: 'induction' | 'content' | 'summary' | 'evaluation' | 'assignment';
+  lessonSection?: 'induction' | 'introduction' | 'content' | 'summary' | 'evaluation' | 'assignment';
   /** Per-objective content tracking (Lesson Contents section) */
   objectiveIndex?: number;
   objectiveTab?: string;
+  aiTag?: string;
+  /** Layout / column grouping */
+  layoutGroup?: string;           // UUID shared by all blocks in the same row
+  layoutColumn?: number;          // 0-based column index within the group
+  layoutTotalColumns?: number;    // total columns in this layout group (2 or 3)
+  layoutColumnWidth?: number;     // percentage width of this column (e.g. 50, 35, 65)
+  layoutRole?: 'audio-avatar';    // marks an image block as a circular speaker avatar
   data:
   | TextBlockData
   | ImageBlockData
   | VideoBlockData
+  | AudioBlockData
   | QuizBlockData
   | AssignmentBlockData
   | EmbedBlockData
@@ -68,11 +189,28 @@ export interface VideoBlockData {
   caption?: string;
 }
 
+export interface AudioBlockData {
+  mode: 'generated' | 'upload';
+  title?: string;
+  caption?: string;
+  script?: string;
+  voiceName?: string;
+  rate?: number;
+  pitch?: number;
+  url?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+}
+
 export interface QuizBlockData {
   quizId?: string; // Optional: for linking to external quiz
   quizTitle?: string;
   instructions?: string;
   required?: boolean;
+  aiSettings?: {
+    selectedQuestionTypes?: Array<'multiple_choice' | 'true_false' | 'drag_drop' | 'short_answer'>;
+  };
   // Embedded quiz data (for inline quizzes)
   embeddedQuiz?: {
     questions: QuizQuestion[];

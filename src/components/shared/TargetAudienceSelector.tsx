@@ -8,6 +8,7 @@ export interface TargetAudienceSelectorProps {
     classArmIds: string[];
     assignedTo?: string[];
     onSubjectChange: (id: string) => void;
+    onSubjectNameChange?: (name: string) => void;
     onClassArmsChange: (ids: string[]) => void;
     onAssignedToChange?: (studentIds: string[]) => void;
     onClassChange?: (classId: string) => void;
@@ -41,6 +42,7 @@ export function TargetAudienceSelector({
     classArmIds,
     assignedTo = [],
     onSubjectChange,
+    onSubjectNameChange,
     onClassArmsChange,
     onAssignedToChange,
     onClassChange,
@@ -271,7 +273,12 @@ export function TargetAudienceSelector({
                 <select
                     value={subjectId}
                     onChange={(e) => {
-                        onSubjectChange(e.target.value);
+                        const id = e.target.value;
+                        onSubjectChange(id);
+                        if (onSubjectNameChange) {
+                            const s = subjects.find((sub) => sub.id === id);
+                            onSubjectNameChange(s ? s.name : '');
+                        }
                         onClassArmsChange([]); // Reset arms when subject changes
                         if (onAssignedToChange) onAssignedToChange([]);
                     }}

@@ -4,9 +4,11 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
 
 // POST /api/scheme-of-work/terms/[termId]/submit
-// Owner submits a specific term for admin review (independent of other terms).
+// Owner submits a term for admin review. Works for DRAFT, REJECTED, and APPROVED terms
+// (APPROVED → re-submission lets admin review any post-approval edits).
 export async function POST(req: NextRequest, { params }: { params: { termId: string } }) {
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
@@ -17,11 +19,13 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
 
         const user = session.user as any;
         const schoolId = user.schoolId as string | undefined;
+        const actorName = (user.name as string) || "A teacher";
 
         const term = await prisma.schemeOfWorkTerm.findFirst({
             where: { id: params.termId },
             include: {
-                schemeOfWork: { select: { id: true, schoolId: true, ownerId: true } },
+                schemeOfWork: { select: { id: true, schoolId: true, ownerId: true, title: true } },
+                term: { select: { name: true } },
                 weeks: { select: { id: true } },
             },
         });
@@ -34,8 +38,8 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
             return NextResponse.json({ error: "Only the SOW owner can submit terms for review" }, { status: 403 });
         }
 
-        if (term.status !== SowStatus.DRAFT && term.status !== SowStatus.REJECTED) {
-            return NextResponse.json({ error: "Only draft or rejected terms can be submitted" }, { status: 409 });
+        if (term.status === SowStatus.SUBMITTED) {
+            return NextResponse.json({ error: "Term is already under review" }, { status: 409 });
         }
 
         if (term.weeks.length === 0) {
@@ -45,6 +49,20 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         const updated = await prisma.schemeOfWorkTerm.update({
             where: { id: params.termId },
             data: { status: SowStatus.SUBMITTED, submittedAt: new Date(), adminNote: null },
+        });
+
+        const adminIds = await getSchoolAdminUserIds(schoolId, user.id);
+        await createUserNotifications(adminIds, {
+            schoolId,
+            type: "APPROVAL_REQUESTED",
+            title: "Scheme Of Work Needs Review",
+            message: `${actorName} requested review for ${term.schemeOfWork.title} (${term.term?.name || `Term ${term.termNumber}`}).`,
+            href: `/dashboard/scheme-of-work/${term.schemeOfWork.id}?term=${term.termNumber}`,
+            metadata: {
+                schemeOfWorkId: term.schemeOfWork.id,
+                termId: term.id,
+                termNumber: term.termNumber,
+            },
         });
 
         return NextResponse.json({ term: updated });

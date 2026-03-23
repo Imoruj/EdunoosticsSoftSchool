@@ -11,7 +11,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Bump this version when schema changes to force a fresh client in dev
-const SCHEMA_VERSION = "v4-sow-wizard-phases";
+const SCHEMA_VERSION = "v5-database-backed-uploads";
 
 const schemaChanged = globalForPrisma.prismaSchemaVersion !== SCHEMA_VERSION;
 

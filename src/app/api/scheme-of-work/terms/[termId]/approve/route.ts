@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { createUserNotification } from "@/lib/userNotifications";
 
 // POST /api/scheme-of-work/terms/[termId]/approve
 // Admin approves a term. Takes a frozen snapshot of all week data for lesson building.
@@ -27,7 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         const term = await prisma.schemeOfWorkTerm.findFirst({
             where: { id: params.termId },
             include: {
-                schemeOfWork: { select: { id: true, schoolId: true } },
+                schemeOfWork: { select: { id: true, schoolId: true, ownerId: true, title: true } },
+                term: { select: { name: true } },
                 weeks: {
                     orderBy: { weekNumber: "asc" },
                     include: {
@@ -91,6 +93,22 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
             where: { id: term.schemeOfWork.id },
             data: { status: SowStatus.APPROVED, approvedAt: new Date(), approvedById: user.id },
         });
+
+        if (term.schemeOfWork.ownerId && term.schemeOfWork.ownerId !== user.id) {
+            await createUserNotification({
+                userId: term.schemeOfWork.ownerId,
+                schoolId,
+                type: "APPROVAL_APPROVED",
+                title: "Scheme Of Work Approved",
+                message: `${term.schemeOfWork.title} (${term.term?.name || `Term ${term.termNumber}`}) was approved.`,
+                href: `/dashboard/scheme-of-work/${term.schemeOfWork.id}?term=${term.termNumber}`,
+                metadata: {
+                    schemeOfWorkId: term.schemeOfWork.id,
+                    termId: term.id,
+                    termNumber: term.termNumber,
+                },
+            });
+        }
 
         return NextResponse.json({ term: updated });
     } catch (error) {

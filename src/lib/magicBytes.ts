@@ -15,6 +15,8 @@ interface Signature {
 // Map from MIME type → accepted byte signatures
 const SIGNATURES: Record<MimeType, Signature[]> = {
     "image/jpeg":  [{ bytes: [0xff, 0xd8, 0xff] }],
+    "image/jpg":   [{ bytes: [0xff, 0xd8, 0xff] }],
+    "image/pjpeg": [{ bytes: [0xff, 0xd8, 0xff] }],
     "image/png":   [{ bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] }],
     "image/gif":   [{ bytes: [0x47, 0x49, 0x46, 0x38] }],
     "image/webp":  [{ bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 }, { bytes: [0x57, 0x45, 0x42, 0x50], offset: 8 }],
@@ -29,6 +31,12 @@ const SIGNATURES: Record<MimeType, Signature[]> = {
     "application/vnd.ms-powerpoint": [{ bytes: [0xd0, 0xcf, 0x11, 0xe0] }],
     // Plain text: no magic bytes — skip check (allow any)
     "text/plain": [],
+    "audio/mpeg": [{ bytes: [0x49, 0x44, 0x33] }, { bytes: [0xff, 0xfb] }, { bytes: [0xff, 0xf3] }, { bytes: [0xff, 0xf2] }],
+    "audio/wav": [{ bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 }, { bytes: [0x57, 0x41, 0x56, 0x45], offset: 8 }],
+    "audio/ogg": [{ bytes: [0x4f, 0x67, 0x67, 0x53] }],
+    "audio/mp4": [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],
+    "audio/x-m4a": [{ bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }],
+    "audio/aac": [],
 };
 
 function matchesSignature(buf: Uint8Array, sig: Signature): boolean {

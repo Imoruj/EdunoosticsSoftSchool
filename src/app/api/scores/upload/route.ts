@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { createUserNotification } from "@/lib/userNotifications";
+import { createUserNotification, createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
 
 // CSV line parser that handles quoted values
 function parseCSVLine(line: string): string[] {
@@ -304,6 +304,40 @@ export async function POST(req: NextRequest) {
                         fileName: file.name,
                         studentCount: parsedScores.length,
                         conflictCount: conflictScores.length,
+                    },
+                });
+
+                const [adminIds, classArmInfo, subjectInfo, termInfo] = await Promise.all([
+                    getSchoolAdminUserIds(schoolId, userId || undefined),
+                    prisma.classArm.findUnique({
+                        where: { id: classArmId },
+                        select: {
+                            armName: true,
+                            class: { select: { name: true } },
+                        },
+                    }),
+                    prisma.subject.findUnique({
+                        where: { id: subjectId },
+                        select: { name: true },
+                    }),
+                    prisma.term.findUnique({
+                        where: { id: termId },
+                        select: { name: true },
+                    }),
+                ]);
+
+                const className = classArmInfo ? `${classArmInfo.class.name} ${classArmInfo.armName}` : "this class";
+                await createUserNotifications(adminIds, {
+                    schoolId,
+                    type: "APPROVAL_REQUESTED",
+                    title: "Score Upload Needs Approval",
+                    message: `${(user as any).name || "A teacher"} submitted ${subjectInfo?.name || "subject"} scores for ${className}${termInfo?.name ? ` (${termInfo.name})` : ""}.`,
+                    href: "/dashboard/scores/upload-requests",
+                    metadata: {
+                        requestId: request.id,
+                        termId,
+                        classArmId,
+                        subjectId,
                     },
                 });
 

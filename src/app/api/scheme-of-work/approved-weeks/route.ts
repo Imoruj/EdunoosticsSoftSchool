@@ -22,10 +22,28 @@ interface SnapshotWeek {
     sdgNumbers: number[];
 }
 
+const TERM_INCLUDE = {
+    term: { select: { name: true, termNumber: true } },
+    schemeOfWork: {
+        select: {
+            id: true, title: true,
+            class: { select: { id: true, name: true } },
+            session: { select: { id: true, name: true } },
+        },
+    },
+    weeks: {
+        orderBy: { weekNumber: "asc" as const },
+        include: {
+            references: { orderBy: { sortOrder: "asc" as const } },
+            sdgMappings: { where: { approved: true }, select: { sdgNumber: true } },
+        },
+    },
+} as const;
+
 // GET /api/scheme-of-work/approved-weeks?subjectId=xxx[&classId=xxx]
 // Returns the APPROVED snapshot of weeks for lesson building.
 // Per-term approval: reads from approvedSnapshot (frozen at approval time).
-// Backward-compat: terms approved before snapshots existed fall back to live data.
+// Fallback: if per-term status column unavailable, falls back to SOW-level status.
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -40,37 +58,25 @@ export async function GET(req: NextRequest) {
         if (!subjectId) return NextResponse.json({ error: "subjectId is required" }, { status: 400 });
         const classId = searchParams.get("classId") || undefined;
 
-        // Fetch all APPROVED terms for this subject/school
-        const approvedTerms = await prisma.schemeOfWorkTerm.findMany({
-            where: {
-                status: SowStatus.APPROVED,
-                schemeOfWork: {
-                    schoolId,
-                    subjectId,
-                    ...(classId ? { classId } : {}),
-                },
-            },
-            include: {
-                term: { select: { name: true, termNumber: true } },
-                schemeOfWork: {
-                    select: {
-                        id: true,
-                        title: true,
-                        class: { select: { id: true, name: true } },
-                        session: { select: { id: true, name: true, startDate: true } },
-                    },
-                },
-                // Live weeks — used only when no snapshot exists (backward compat)
-                weeks: {
-                    orderBy: { weekNumber: "asc" },
-                    include: {
-                        references: { orderBy: { sortOrder: "asc" } },
-                        sdgMappings: { where: { approved: true }, select: { sdgNumber: true } },
-                    },
-                },
-            },
-            orderBy: [{ termNumber: "asc" }],
-        });
+        const sowWhere = { schoolId, subjectId, ...(classId ? { classId } : {}) };
+
+        // Try per-term status first; fall back to SOW-level status if column doesn't exist yet
+        let approvedTerms: any[];
+        try {
+            approvedTerms = await prisma.schemeOfWorkTerm.findMany({
+                where: { status: SowStatus.APPROVED, schemeOfWork: sowWhere },
+                include: TERM_INCLUDE,
+                orderBy: [{ termNumber: "asc" }],
+            });
+        } catch {
+            // Fallback for dev servers where the migration hasn't been applied locally yet
+            console.warn("[SOW approved-weeks] Per-term status unavailable, falling back to SOW-level status");
+            approvedTerms = await prisma.schemeOfWorkTerm.findMany({
+                where: { schemeOfWork: { ...sowWhere, status: SowStatus.APPROVED } },
+                include: TERM_INCLUDE,
+                orderBy: [{ termNumber: "asc" }],
+            });
+        }
 
         const result: object[] = [];
 
@@ -78,16 +84,16 @@ export async function GET(req: NextRequest) {
             const sowMeta = {
                 sowId: term.schemeOfWork.id,
                 sowTitle: term.schemeOfWork.title,
-                termName: term.term.name || `Term ${term.termNumber}`,
+                termName: term.term?.name || `Term ${term.termNumber}`,
                 termNumber: term.termNumber,
                 termId: term.id,
                 className: term.schemeOfWork.class.name,
                 sessionName: term.schemeOfWork.session.name,
-                approvedAt: term.approvedAt?.toISOString() ?? null,
+                approvedAt: term.approvedAt ? new Date(term.approvedAt).toISOString() : null,
             };
 
             if (term.approvedSnapshot) {
-                // New flow: use the frozen snapshot taken at approval time
+                // New flow: use frozen snapshot taken at approval time
                 const snapshot = term.approvedSnapshot as unknown as { weeks: SnapshotWeek[] };
                 for (const w of snapshot.weeks) {
                     result.push({
@@ -107,7 +113,7 @@ export async function GET(req: NextRequest) {
                     });
                 }
             } else {
-                // Backward-compat: no snapshot — read live week data
+                // Backward-compat: no snapshot yet — read live week data
                 for (const w of term.weeks) {
                     result.push({
                         weekId: w.id,
@@ -119,7 +125,7 @@ export async function GET(req: NextRequest) {
                         jambObjectives: w.jambObjectives,
                         igcseObjectives: w.igcseObjectives,
                         objectiveSegments: w.objectiveSegments ?? null,
-                        sdgNumbers: w.sdgMappings.map((s) => s.sdgNumber),
+                        sdgNumbers: w.sdgMappings.map((s: any) => s.sdgNumber),
                         references: w.references,
                         isFromSnapshot: false,
                         ...sowMeta,

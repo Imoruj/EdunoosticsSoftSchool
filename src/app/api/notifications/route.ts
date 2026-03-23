@@ -178,7 +178,18 @@ export async function GET(req: NextRequest) {
             isRead: entry.isRead,
         }));
 
-        const systemNotifications = pendingUploadRequests.map((request) => {
+        const requestIdsWithDbNotifications = new Set(
+            dbNotifications
+                .map((entry) => {
+                    const metadata = entry.metadata as { requestId?: unknown } | null;
+                    return typeof metadata?.requestId === "string" ? metadata.requestId : null;
+                })
+                .filter((requestId): requestId is string => Boolean(requestId))
+        );
+
+        const systemNotifications = pendingUploadRequests
+            .filter((request) => !requestIdsWithDbNotifications.has(request.id))
+            .map((request) => {
             const uploaderName = `${request.uploader.firstName} ${request.uploader.lastName}`.trim();
             const className = `${request.classArm.class.name} ${request.classArm.armName}`.trim();
 
@@ -191,7 +202,7 @@ export async function GET(req: NextRequest) {
                 createdAt: request.createdAt.toISOString(),
                 isRead: false,
             };
-        });
+            });
 
         const notifications = [...workflowNotifications, ...systemNotifications]
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

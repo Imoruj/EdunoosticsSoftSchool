@@ -49,6 +49,7 @@ model School {
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
   notifications          UserNotification[]
+  uploadedFiles          UploadedFile[]
   schemesOfWork          SchemeOfWork[]
 }
 
@@ -95,6 +96,7 @@ model User {
   deviceKeys                            DeviceKey[]
   syncMetadata                          SyncMetadata[]
   encryptedBlobs                        EncryptedBlob[]
+  uploadedFiles                         UploadedFile[]          @relation("UploadedFileOwner")
   signalingMessagesFrom                 SignalingMessage[]      @relation("SignalingFrom")
   signalingMessagesTo                   SignalingMessage[]      @relation("SignalingTo")
   schemesOfWorkOwned                    SchemeOfWork[]         @relation("SOWOwner")
@@ -620,6 +622,9 @@ enum NotificationType {
   SCORE_APPROVED
   SCORE_REJECTED
   SCORE_BROADCASTED
+  APPROVAL_REQUESTED
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
   RESULT_BROADCASTED
   COMMENTS_GENERATED
   STUDENT_REPORT_CLASS_APPROVED
@@ -954,6 +959,26 @@ model EncryptedBlob {
   @@unique([userId, blobType, entityId])
   @@index([userId, blobType])
   @@index([expiresAt])
+}
+
+model UploadedFile {
+  id           String    @id @default(cuid())
+  schoolId     String?
+  uploadedById String
+  uploadType   String
+  originalName String
+  storedName   String
+  mimeType     String
+  extension    String
+  size         Int
+  data         Bytes
+  createdAt    DateTime  @default(now())
+
+  school       School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  uploadedBy   User      @relation("UploadedFileOwner", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, uploadType])
+  @@index([uploadedById, createdAt])
 }
 
 // WebRTC signaling data (temporary)

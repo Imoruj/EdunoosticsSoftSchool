@@ -1,5 +1,6 @@
-import { NotificationType } from "@prisma/client";
+import { NotificationType, UserRole } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
 
 export async function createUserNotification(params: {
     userId: string;
@@ -11,7 +12,7 @@ export async function createUserNotification(params: {
     metadata?: any;
 }) {
     try {
-        await prisma.userNotification.create({
+        const notification = await prisma.userNotification.create({
             data: {
                 userId: params.userId,
                 schoolId: params.schoolId,
@@ -21,7 +22,9 @@ export async function createUserNotification(params: {
                 href: params.href,
                 metadata: params.metadata,
             },
+            select: { id: true },
         });
+        publishNotificationRefresh(params.userId, notification.id);
     } catch (error) {
         // Notification failures are non-blocking.
         console.error("Failed to create notification:", error);
@@ -54,7 +57,22 @@ export async function createUserNotifications(
                 metadata: params.metadata,
             })),
         });
+        publishNotificationRefresh(uniqueUserIds);
     } catch (error) {
         console.error("Failed to create notifications:", error);
     }
+}
+
+export async function getSchoolAdminUserIds(schoolId: string, excludeUserId?: string) {
+    const admins = await prisma.user.findMany({
+        where: {
+            schoolId,
+            isActive: true,
+            roles: { hasSome: [UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN] },
+            ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+        },
+        select: { id: true },
+    });
+
+    return admins.map((admin) => admin.id);
 }

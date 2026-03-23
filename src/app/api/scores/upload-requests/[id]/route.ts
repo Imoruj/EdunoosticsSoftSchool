@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { createUserNotification } from "@/lib/userNotifications";
+import { createUserNotification, getSchoolAdminUserIds } from "@/lib/userNotifications";
+import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
 
 // Grade calculation helper
 function normalizeScoreForRuleScale(total: number, rules: any[]) {
@@ -73,6 +74,7 @@ export async function PATCH(
         }
 
         if (action === "reject") {
+            const adminIds = await getSchoolAdminUserIds(request.schoolId);
             const updated = await prisma.scoreUploadRequest.update({
                 where: { id: params.id },
                 data: {
@@ -100,6 +102,8 @@ export async function PATCH(
                     },
                 });
             }
+
+            publishNotificationRefresh(adminIds);
             return NextResponse.json({ request: updated, message: "Request rejected" });
         }
 
@@ -242,6 +246,8 @@ export async function PATCH(
             }),
         ]);
 
+        const adminIds = await getSchoolAdminUserIds(schoolId);
+
         const classArmInfo = await prisma.classArm.findUnique({
             where: { id: request.classArmId },
             select: {
@@ -315,6 +321,8 @@ export async function PATCH(
                 },
             });
         }
+
+        publishNotificationRefresh(adminIds);
 
         // Pre-compute Subject Positions
         const allScoresForSubject = await prisma.score.findMany({
