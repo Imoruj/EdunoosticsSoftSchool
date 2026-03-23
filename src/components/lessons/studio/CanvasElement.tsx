@@ -66,9 +66,9 @@ export function CanvasElement({
     borderRadius: element.borderRadius ?? 0,
     boxShadow: element.shadow ? '0 4px 16px rgba(0,0,0,0.25)' : undefined,
     background: element.background ?? 'transparent',
-    cursor: element.locked ? 'not-allowed' : isSelected ? 'move' : 'pointer',
+    cursor: isEditing ? 'text' : element.locked ? 'not-allowed' : isSelected ? 'move' : 'pointer',
     transition: isPlaying ? `opacity 0.3s ease` : 'none',
-    userSelect: 'none',
+    userSelect: isEditing ? 'text' : 'none',
     overflow: 'visible',
   };
 
@@ -81,6 +81,7 @@ export function CanvasElement({
 
   function onPointerDown(e: React.PointerEvent, mode: 'move' | ResizeHandle = 'move') {
     if (element.locked) return;
+    if (isEditing) return; // don't drag while editing text
     e.stopPropagation();
     dispatch({ type: 'SELECT_ELEMENT', elementId: element.id });
 
@@ -137,9 +138,15 @@ export function CanvasElement({
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 
+  // Exit edit mode when deselected
+  useEffect(() => {
+    if (!isSelected) setIsEditing(false);
+  }, [isSelected]);
+
   useEffect(() => {
     if (!isSelected) return;
     function onKey(e: KeyboardEvent) {
+      if (isEditing) return; // don't intercept shortcuts while typing
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -153,17 +160,27 @@ export function CanvasElement({
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isSelected, element.x, element.y, element.width, element.height, slideId, element.id, dispatch]);
+  }, [isSelected, isEditing, element.x, element.y, element.width, element.height, slideId, element.id, dispatch]);
 
   // ── Double-click to edit ──────────────────────────────────────────────────
 
   function onDoubleClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (element.type === 'text') {
-      dispatch({ type: 'OPEN_MODAL', modal: { type: 'text-editor', elementId: element.id } });
+      setIsEditing(true); // inline contenteditable editing
     } else if (element.type === 'quiz') {
       dispatch({ type: 'OPEN_MODAL', modal: { type: 'quiz-builder', elementId: element.id } });
     }
+  }
+
+  function handleTextEditEnd(html: string) {
+    setIsEditing(false);
+    dispatch({
+      type: 'UPDATE_ELEMENT',
+      slideId,
+      elementId: element.id,
+      patch: { data: { ...(element.data as object), content: html } },
+    });
   }
 
   // ── Context menu ─────────────────────────────────────────────────────────
@@ -184,13 +201,19 @@ export function CanvasElement({
       onPointerDown={(e) => onPointerDown(e, 'move')}
       onClick={(e) => {
         e.stopPropagation();
-        dispatch({ type: 'SELECT_ELEMENT', elementId: element.id });
+        if (!isEditing) dispatch({ type: 'SELECT_ELEMENT', elementId: element.id });
       }}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
     >
       {/* Element content */}
-      <ElementContent element={element} slideId={slideId} dispatch={dispatch} />
+      <ElementContent
+        element={element}
+        slideId={slideId}
+        dispatch={dispatch}
+        isEditing={isEditing}
+        onTextEditEnd={handleTextEditEnd}
+      />
 
       {/* Selection ring */}
       {isSelected && !isPlaying && (
@@ -298,16 +321,20 @@ function ElementContent({
   element,
   slideId,
   dispatch,
+  isEditing,
+  onTextEditEnd,
 }: {
   element: SlideElement;
   slideId: string;
   dispatch: React.Dispatch<StudioAction>;
+  isEditing?: boolean;
+  onTextEditEnd?: (html: string) => void;
 }) {
   const data = element.data as any;
 
   switch (element.type) {
     case 'text':
-      return <TextElementView data={data} />;
+      return <TextElementView data={data} editing={isEditing} onEditEnd={onTextEditEnd} />;
     case 'image':
       return <ImageElementView data={data} />;
     case 'video':

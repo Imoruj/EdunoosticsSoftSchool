@@ -3,7 +3,7 @@
 import React from 'react';
 import { Layers, Users } from 'lucide-react';
 import type { StudioAction, StudioState } from './useStudioState';
-import type { LessonSlide, SlideElement } from '@/lib/db/types';
+import type { Lesson, LessonSlide, SlideElement } from '@/lib/db/types';
 import { SlideProperties } from './panels/SlideProperties';
 import { ElementProperties } from './panels/ElementProperties';
 import { TargetAudienceSelector } from '@/components/shared/TargetAudienceSelector';
@@ -42,15 +42,16 @@ export function PropertiesPanel({
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
         {panel === 'slide' ? (
           selectedElement && activeSlide ? (
-            <ElementProperties element={selectedElement} slideId={activeSlide.id} slideDuration={activeSlide.duration ?? 10} dispatch={dispatch} />
+            <ElementProperties element={selectedElement} slideId={activeSlide.id} slideDuration={activeSlide.duration ?? 10} dispatch={dispatch} lesson={state.lesson} />
           ) : activeSlide ? (
-            <SlideProperties slide={activeSlide} dispatch={dispatch} />
+            <SlideProperties slide={activeSlide} dispatch={dispatch} lesson={state.lesson} />
           ) : (
             <div className="flex items-center justify-center h-32 text-slate-400 text-xs">No slide selected</div>
           )
         ) : (
           <div className="p-3">
             <TargetAudienceSelector
+              compact
               subjectId={state.lesson.subjectId}
               classArmIds={state.lesson.classArmIds}
               assignedTo={state.lesson.assignedTo}

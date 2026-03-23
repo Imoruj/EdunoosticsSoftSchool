@@ -98,7 +98,8 @@ export interface LessonSlide {
   transitionDuration?: number; // ms
 
   elements: SlideElement[];
-  notes?: string; // speaker/teacher notes
+  notes?: string;        // speaker/teacher notes
+  narrationUrl?: string; // auto-play audio narration for this slide
 }
 
 export interface Lesson {
@@ -172,6 +173,10 @@ export interface ContentBlock {
 export interface TextBlockData {
   content: string; // Rich text HTML or markdown
   format?: 'html' | 'markdown' | 'plain';
+  fontFamily?: string;
+  textColor?: string;
+  fontSize?: number;   // px override (applied as wrapper style)
+  textAlign?: 'left' | 'center' | 'right';
 }
 
 export interface ImageBlockData {

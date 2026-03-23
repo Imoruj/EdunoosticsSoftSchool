@@ -183,8 +183,9 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
 
         const body = await req.json().catch(() => ({}));
-        const { field, subjectId, lessonTitle, weekContent, generalObjectives, className, referenceMaterials } = body as {
+        const { field, outputFormat, subjectId, lessonTitle, weekContent, generalObjectives, className, referenceMaterials } = body as {
             field: string;
+            outputFormat?: 'prose' | 'outline';
             subjectId?: string;
             lessonTitle?: string;
             weekContent?: string;
@@ -221,14 +222,25 @@ export async function POST(req: NextRequest) {
         let userMsg: string;
 
         if (field === "description") {
-            systemMsg =
-                "You are an experienced Nigerian secondary school teacher. Write clear, professional lesson plan content in plain prose. No bullet points, no markdown, no headings — just well-structured sentences.";
-            userMsg =
-                `Write a concise lesson description (2–3 sentences) for a ${subjectName} lesson${classBlock}.
+            if (outputFormat === 'outline') {
+                systemMsg =
+                    "You are an experienced Nigerian secondary school teacher. Write concise lesson overview bullet points. Return exactly 4–6 short bullet points (one per line), each starting with a dash (-). No prose, no headings, no numbering.";
+                userMsg =
+                    `Write 4–6 short bullet points summarising what students will learn in this ${subjectName} lesson${classBlock}.
+Topic: ${topic}${contentBlock}${objectivesBlock}
+
+Each bullet should be a single short phrase (8–15 words). Start each line with a dash (-). Output only the bullet lines.`;
+            } else {
+                systemMsg =
+                    "You are an experienced Nigerian secondary school teacher. Write clear, professional lesson plan content in plain prose. No bullet points, no markdown, no headings — just well-structured sentences.";
+                userMsg =
+                    `Write a concise lesson description (2–3 sentences) for a ${subjectName} lesson${classBlock}.
 Topic: ${topic}${contentBlock}${objectivesBlock}
 
 The description should briefly state what the lesson is about, what students will learn, and why it matters. Write in plain sentences suitable for a lesson plan. Output only the description text — no labels, no bullet points.`;
+            }
         } else {
+            // priorKnowledge field
             systemMsg =
                 "You are an experienced Nigerian secondary school teacher. Write clear, professional lesson plan content in plain prose. No bullet points, no markdown, no headings — just well-structured sentences.";
             userMsg =

@@ -26,8 +26,6 @@ export default function LoginPage() {
                 ? (admission || "")
                 : (email || "");
 
-        console.log(`[LOGIN_FORM] Submitting ${loginType}:`, { identifier, loginType });
-
         try {
             const result = await signIn("credentials", {
                 email: identifier,
@@ -156,7 +154,7 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        <form onSubmit={handleSubmit} method="post" className="space-y-5">
                             {loginType === "admin" && (
                                 <>
                                     <div>

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 
-import { Student, ClassOption, SessionOption, SubjectOption, Pagination } from "./types";
+import { Student, StudentChangeRequest, ClassOption, SessionOption, SubjectOption, Pagination } from "./types";
+import { StudentViewModal } from "./StudentViewModal";
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
@@ -28,6 +29,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const isAdmin = userRoles.includes("SUPER_ADMIN") || userRoles.includes("SCHOOL_ADMIN");
     const isClassTeacher = userRoles.includes("CLASS_TEACHER");
     const canCreateStudents = isAdmin || isClassTeacher;
+    const canManageStudentPhotos = isAdmin || isClassTeacher;
+    const canRequestStudentChanges = isAdmin || isClassTeacher;
     const restrictToAssignedScope = !isAdmin && isClassTeacher;
 
     // Data state
@@ -52,6 +55,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const router = useRouter();
 
     // UI state
+    const [viewStudent, setViewStudent] = useState<Student | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [nextAdmissionNumber, setNextAdmissionNumber] = useState("");
     const [loadingAdmissionNumber, setLoadingAdmissionNumber] = useState(false);
@@ -95,6 +99,9 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         forceOverwrite?: boolean;
         atomic?: boolean;
     } | null>(null);
+    const [studentChangeRequests, setStudentChangeRequests] = useState<StudentChangeRequest[]>([]);
+    const [loadingStudentChangeRequests, setLoadingStudentChangeRequests] = useState(false);
+    const [reviewingStudentChangeRequestId, setReviewingStudentChangeRequestId] = useState<string | null>(null);
 
     const getFirstClassArmId = (classList: ClassOption[]) => {
         for (const cls of classList) {
@@ -146,6 +153,29 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         sessions,
         classes
     ]);
+
+    const fetchStudentChangeRequests = useCallback(async () => {
+        if (!isAdmin) {
+            setStudentChangeRequests([]);
+            return;
+        }
+
+        setLoadingStudentChangeRequests(true);
+        try {
+            const response = await fetch("/api/students/change-requests?status=PENDING&limit=20");
+            if (!response.ok) {
+                throw new Error("Failed to load student approval requests");
+            }
+
+            const data = await response.json();
+            setStudentChangeRequests(data.requests || []);
+        } catch (err) {
+            console.error(err);
+            toast.error(err instanceof Error ? err.message : "Failed to load student approval requests");
+        } finally {
+            setLoadingStudentChangeRequests(false);
+        }
+    }, [isAdmin]);
 
     // Initial data load setup
     useEffect(() => {
@@ -224,6 +254,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
         return () => clearTimeout(timer);
     }, [fetchStudents, searchQuery]);
+
+    useEffect(() => {
+        fetchStudentChangeRequests();
+    }, [fetchStudentChangeRequests]);
 
     // Get all class arms as flat list for dropdown
     const classArmOptions = classes.flatMap(cls =>
@@ -638,14 +672,28 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 body: JSON.stringify(data),
             });
 
+            const result = await response.json().catch(() => ({}));
+
             if (!response.ok) {
-                const result = await response.json();
                 throw new Error(result.error || `Failed to ${selectedStudent ? 'update' : 'add'} student`);
             }
 
             setShowAddModal(false);
             setSelectedStudent(null);
-            fetchStudents(); // Refresh list
+            toast.success(
+                result.message ||
+                (selectedStudent
+                    ? (isAdmin ? "Student updated successfully." : "Student update submitted for approval.")
+                    : "Student added successfully.")
+            );
+
+            if (!selectedStudent || response.status !== 202) {
+                fetchStudents();
+            }
+
+            if (isAdmin) {
+                fetchStudentChangeRequests();
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -661,11 +709,24 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 method: "DELETE",
             });
 
+            const result = await response.json().catch(() => ({}));
+
             if (response.ok) {
                 setShowDeleteConfirm(null);
-                fetchStudents();
+                toast.success(
+                    result.message ||
+                    (isAdmin ? "Student deleted successfully." : "Student deletion submitted for approval.")
+                );
+
+                if (response.status !== 202) {
+                    fetchStudents();
+                }
+
+                if (isAdmin) {
+                    fetchStudentChangeRequests();
+                }
             } else {
-                toast.error("Failed to delete student");
+                toast.error(result.error || "Failed to delete student");
             }
         } catch (err) {
             console.error("Error deleting student:", err);
@@ -771,10 +832,53 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             }
 
             // 3. Refresh list
+            toast.success("Student photo updated successfully.");
             fetchStudents();
         } catch (err) {
             console.error("Photo upload error:", err);
             toast.error(err instanceof Error ? err.message : "Failed to upload photo");
+        }
+    };
+
+    const handleStudentChangeRequestReview = async (
+        requestId: string,
+        action: "approve" | "reject"
+    ) => {
+        if (!requestId) return;
+
+        const confirmed = window.confirm(
+            action === "approve"
+                ? "Approve this student request?"
+                : "Reject this student request?"
+        );
+
+        if (!confirmed) return;
+
+        const reviewNote = action === "reject"
+            ? window.prompt("Optional rejection reason:", "") ?? ""
+            : "";
+
+        setReviewingStudentChangeRequestId(requestId);
+        try {
+            const response = await fetch(`/api/students/change-requests/${requestId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action, reviewNote }),
+            });
+
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || `Failed to ${action} request`);
+            }
+
+            toast.success(result.message || `Request ${action}d successfully.`);
+            fetchStudentChangeRequests();
+            fetchStudents();
+        } catch (err) {
+            console.error(`Failed to ${action} student request:`, err);
+            toast.error(err instanceof Error ? err.message : `Failed to ${action} request`);
+        } finally {
+            setReviewingStudentChangeRequestId(null);
         }
     };
 
@@ -961,6 +1065,118 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 </div>
             </div>
 
+            {isAdmin && (
+                <Card className="overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900">Pending Student Requests</h2>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Review edit and delete requests submitted by class teachers.
+                            </p>
+                        </div>
+                        <button
+                            onClick={fetchStudentChangeRequests}
+                            className="btn-secondary text-sm"
+                            disabled={loadingStudentChangeRequests}
+                        >
+                            {loadingStudentChangeRequests ? "Refreshing..." : "Refresh"}
+                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Student
+                                    </TableHead>
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Request
+                                    </TableHead>
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Submitted By
+                                    </TableHead>
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Requested At
+                                    </TableHead>
+                                    <TableHead className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loadingStudentChangeRequests ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                            Loading approval requests...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : studentChangeRequests.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                            No pending student requests.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    studentChangeRequests.map((request) => (
+                                        <TableRow key={request.id}>
+                                            <TableCell className="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">{request.studentName}</div>
+                                                    <div className="text-xs text-gray-500 font-mono">{request.admissionNumber}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="px-6 py-4">
+                                                <div className="space-y-1">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        request.action === "DELETE"
+                                                            ? "bg-red-100 text-red-700"
+                                                            : "bg-amber-100 text-amber-700"
+                                                    }`}>
+                                                        {request.action === "DELETE" ? "Delete" : "Edit"}
+                                                    </span>
+                                                    <p className="text-sm text-gray-600">{request.summary || "Pending review"}</p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {request.requester.lastName} {request.requester.firstName}
+                                            </TableCell>
+                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {new Date(request.createdAt).toLocaleString("en-GB", {
+                                                    day: "2-digit",
+                                                    month: "short",
+                                                    year: "numeric",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                            </TableCell>
+                                            <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleStudentChangeRequestReview(request.id, "approve")}
+                                                        disabled={reviewingStudentChangeRequestId === request.id}
+                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleStudentChangeRequestReview(request.id, "reject")}
+                                                        disabled={reviewingStudentChangeRequestId === request.id}
+                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </Card>
+            )}
+
             {/* Filters */}
             <div className="card p-4">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -1092,7 +1308,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         )}
                                                     </div>
 
-                                                    {isAdmin && (
+                                                    {canManageStudentPhotos && (
                                                         <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                                                             <input
                                                                 type="file"
@@ -1149,8 +1365,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         </TableCell>
                                         <TableCell className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-1">
-                                                <Link
-                                                    href={`/dashboard/students/${student.id}`}
+                                                <button
+                                                    onClick={() => setViewStudent(student)}
                                                     title="View Student"
                                                     className="inline-flex items-center justify-center p-2 rounded-md text-primary-600 hover:text-primary-800 hover:bg-primary-50"
                                                 >
@@ -1158,11 +1374,11 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
-                                                </Link>
-                                                {isAdmin && (
+                                                </button>
+                                                {canRequestStudentChanges && (
                                                     <button
                                                         onClick={() => handleEdit(student.id)}
-                                                        title="Edit Student"
+                                                        title={isAdmin ? "Edit Student" : "Request Student Update"}
                                                         className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1197,10 +1413,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         )}
                                                     </button>
                                                 )}
-                                                {isAdmin && (
+                                                {canRequestStudentChanges && (
                                                     <button
                                                         onClick={() => handleDelete(student.id)}
-                                                        title="Delete Student"
+                                                        title={isAdmin ? "Delete Student" : "Request Student Deletion"}
                                                         className="inline-flex items-center justify-center p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1301,7 +1517,18 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                             <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                                    <h3 className="text-lg font-semibold text-gray-900">{selectedStudent ? "Edit Student" : "Add New Student"}</h3>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {selectedStudent
+                                                ? (isAdmin ? "Edit Student" : "Request Student Update")
+                                                : "Add New Student"}
+                                        </h3>
+                                        {selectedStudent && !isAdmin && (
+                                            <p className="text-sm text-amber-600 mt-1">
+                                                Your changes will be sent to the admin user for approval.
+                                            </p>
+                                        )}
+                                    </div>
                                     <button
                                         onClick={() => { setShowAddModal(false); setSelectedStudent(null); }}
                                         className="text-gray-400 hover:text-gray-500"
@@ -1313,6 +1540,12 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </div>
 
                                 <form key={selectedStudent?.id || "new"} onSubmit={handleAddStudent} className="p-6 space-y-6">
+                                    {selectedStudent && !isAdmin && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                            The student record will stay unchanged until an admin approves this request.
+                                        </div>
+                                    )}
+
                                     {/* Basic Info */}
                                     <div>
                                         <h4 className="text-sm font-medium text-gray-900 mb-4">Basic Information</h4>
@@ -1481,7 +1714,11 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             Cancel
                                         </button>
                                         <button type="submit" className="btn-primary" disabled={submitting}>
-                                            {submitting ? "Saving..." : (selectedStudent ? "Update Student" : "Add Student")}
+                                            {submitting
+                                                ? "Saving..."
+                                                : selectedStudent
+                                                    ? (isAdmin ? "Update Student" : "Submit for Approval")
+                                                    : "Add Student"}
                                         </button>
                                     </div>
                                 </form>
@@ -1493,7 +1730,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
             {/* Delete Confirmation Modal */}
             {
-                isAdmin && showDeleteConfirm && (
+                showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
                             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
@@ -1502,10 +1739,12 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </svg>
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-                                Delete Student?
+                                {isAdmin ? "Delete Student?" : "Request Student Deletion?"}
                             </h3>
                             <p className="text-gray-500 text-center mb-6">
-                                This action cannot be undone. All data associated with this student including scores, attendance, and report cards will be permanently deleted.
+                                {isAdmin
+                                    ? "This action cannot be undone. All data associated with this student including scores, attendance, and report cards will be permanently deleted."
+                                    : "This sends a deletion request to the admin user. The student record will remain unchanged until approval."}
                             </p>
                             <div className="flex gap-3">
                                 <button
@@ -1518,7 +1757,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     onClick={() => confirmDelete(showDeleteConfirm)}
                                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                                 >
-                                    Delete Student
+                                    {isAdmin ? "Delete Student" : "Submit Request"}
                                 </button>
                             </div>
                         </div>
@@ -1967,6 +2206,13 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Student View Modal */}
+            {viewStudent && (
+                <StudentViewModal
+                    student={viewStudent}
+                    onClose={() => setViewStudent(null)}
+                />
             )}
         </div >
     );

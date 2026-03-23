@@ -26,6 +26,32 @@ export interface Student {
     isActive: boolean;
 }
 
+export interface StudentChangeRequest {
+    id: string;
+    action: "EDIT" | "DELETE";
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    studentId?: string | null;
+    studentName: string;
+    admissionNumber: string;
+    classLabel?: string | null;
+    currentData?: Record<string, unknown> | null;
+    requestedData?: Record<string, unknown> | null;
+    summary?: string | null;
+    reviewNote?: string | null;
+    createdAt: string;
+    reviewedAt?: string | null;
+    requester: {
+        id: string;
+        firstName: string;
+        lastName: string;
+    };
+    reviewer?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+    } | null;
+}
+
 export interface ClassOption {
     id: string;
     name: string;

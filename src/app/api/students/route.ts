@@ -4,9 +4,18 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
-import { requireSchoolAdmin } from "@/lib/rbac";
 import { clampLimit } from "@/lib/apiError";
 import { checkCsrf } from "@/lib/csrf";
+import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
+import {
+    applyStudentUpdateTransaction,
+    buildStudentChangeSummary,
+    createStudentSnapshot,
+    getChangedStudentData,
+    getStudentClassLabel,
+    isPhotoOnlyUpdate,
+    normalizeStudentUpdatePayload,
+} from "@/lib/students/changeRequests";
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -99,6 +108,44 @@ function getSchoolAcronym(name: string): string {
 
     // Take first letter of first 3 words
     return words.slice(0, 3).map(w => w[0]).join("").toUpperCase();
+}
+
+async function getAssignedClassArmIds(userId: string, schoolId: string) {
+    if (!userId || !schoolId) return [];
+
+    const classArms = await prisma.classArm.findMany({
+        where: {
+            classTeacherId: userId,
+            class: { schoolId },
+        },
+        select: { id: true },
+    });
+
+    return classArms.map((arm) => arm.id);
+}
+
+async function findStudentForManagement(params: {
+    studentId: string;
+    schoolId: string;
+    isAdmin: boolean;
+    assignedClassArmIds?: string[];
+}) {
+    const { studentId, schoolId, isAdmin, assignedClassArmIds = [] } = params;
+
+    return prisma.student.findFirst({
+        where: {
+            id: studentId,
+            schoolId,
+            ...(!isAdmin ? { classArmId: { in: assignedClassArmIds } } : {}),
+        },
+        include: {
+            classArm: {
+                include: {
+                    class: true,
+                },
+            },
+        },
+    });
 }
 
 // GET /api/students - List students with pagination and filters
@@ -628,160 +675,189 @@ export async function PUT(req: NextRequest) {
     if (csrfError) return csrfError;
 
     try {
-        const session = await requireSchoolAdmin(req);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = session.user as any;
+        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
+        const isAdmin =
+            roles.includes(UserRole.SUPER_ADMIN) ||
+            roles.includes(UserRole.SCHOOL_ADMIN);
+        const isClassTeacher = roles.includes(UserRole.CLASS_TEACHER);
+
+        if (!isAdmin && !isClassTeacher) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         const body = await req.json();
-        const {
-            id,
-            firstName,
-            lastName,
-            otherNames,
-            gender,
-            dateOfBirth,
-            classArmId,
-            stateOfOrigin,
-            address,
-            parentName,
-            parentPhone,
-            parentEmail,
-            photoUrl,
-            isActive // Allow toggling status
-        } = body;
+        const id = typeof body?.id === "string" ? body.id : "";
 
         if (!id) {
-            return NextResponse.json(
-                { error: "Student ID is required" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "Student ID is required" }, { status: 400 });
         }
 
-        // Validate required fields if they are being updated
-        if (firstName === "" || lastName === "" || gender === "" || classArmId === "") {
-            return NextResponse.json(
-                { error: "Required fields cannot be empty" },
-                { status: 400 }
-            );
+        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        if (!schoolId) {
+            return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const assignedClassArmIds = !isAdmin
+            ? await getAssignedClassArmIds(user.id, schoolId)
+            : [];
 
-        if (classArmId !== undefined) {
-            const classArm = await prisma.classArm.findFirst({
-                where: {
-                    id: classArmId,
-                    class: { schoolId },
-                },
-                select: { id: true },
-            });
+        if (!isAdmin && assignedClassArmIds.length === 0) {
+            return NextResponse.json({ error: "You are not assigned to any class." }, { status: 403 });
+        }
 
-            if (!classArm) {
+        const existingStudent = await findStudentForManagement({
+            studentId: id,
+            schoolId,
+            isAdmin,
+            assignedClassArmIds,
+        });
+
+        if (!existingStudent) {
+            return NextResponse.json({ error: "Student not found" }, { status: 404 });
+        }
+
+        const normalizedData = normalizeStudentUpdatePayload(body);
+
+        if (body.firstName === "" || body.lastName === "" || body.gender === "" || body.classArmId === "") {
+            return NextResponse.json({ error: "Required fields cannot be empty" }, { status: 400 });
+        }
+
+        if (normalizedData.dateOfBirth) {
+            const parsedDate = new Date(normalizedData.dateOfBirth);
+            if (isNaN(parsedDate.getTime())) {
+                return NextResponse.json({ error: "Invalid date of birth." }, { status: 400 });
+            }
+        }
+
+        let requestedClassLabel: string | null = null;
+        if (normalizedData.classArmId !== undefined) {
+            if (!normalizedData.classArmId) {
                 return NextResponse.json(
                     { error: "Invalid class/arm selected. Please select a valid class." },
                     { status: 400 }
                 );
             }
-        }
 
-        // Verify student belongs to school
-        const existingStudent = await prisma.student.findFirst({
-            where: {
-                id,
-                schoolId,
-            },
-        });
-
-        if (!existingStudent) {
-            return NextResponse.json(
-                { error: "Student not found" },
-                { status: 404 }
-            );
-        }
-
-        // Use a transaction to ensure all related records stay in sync
-        const student = await prisma.$transaction(async (tx) => {
-            // 1. Update the Student record
-            const updatedStudent = await tx.student.update({
-                where: { id },
-                data: {
-                    firstName,
-                    lastName,
-                    otherNames,
-                    gender,
-                    dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-                    classArmId,
-                    stateOfOrigin,
-                    address,
-                    parentName,
-                    parentPhone,
-                    parentEmail,
-                    photoUrl,
-                    isActive
+            const classArm = await prisma.classArm.findFirst({
+                where: {
+                    id: normalizedData.classArmId,
+                    class: { schoolId },
+                    ...(!isAdmin ? { id: { in: assignedClassArmIds } } : {}),
                 },
                 include: {
-                    classArm: {
-                        include: { class: true },
+                    class: {
+                        select: { name: true },
                     },
                 },
             });
 
-            // 2. Update Student's User account if it exists
-            if (updatedStudent.userId) {
-                await tx.user.update({
-                    where: { id: updatedStudent.userId },
-                    data: {
-                        firstName: firstName || undefined,
-                        lastName: lastName || undefined,
-                        isActive: isActive !== undefined ? isActive : undefined,
-                    }
+            if (!classArm) {
+                return NextResponse.json(
+                    {
+                        error: !isAdmin
+                            ? "You can only assign students within your class scope."
+                            : "Invalid class/arm selected. Please select a valid class."
+                    },
+                    { status: !isAdmin ? 403 : 400 }
+                );
+            }
+
+            requestedClassLabel = `${classArm.class.name} ${classArm.armName}`.trim();
+        }
+
+        const changedData = getChangedStudentData(existingStudent, normalizedData);
+
+        if (Object.keys(changedData).length === 0) {
+            return NextResponse.json({ error: "No changes were detected." }, { status: 400 });
+        }
+
+        if (!isAdmin) {
+            if (isPhotoOnlyUpdate(changedData)) {
+                const student = await prisma.$transaction((tx) =>
+                    applyStudentUpdateTransaction(tx, id, changedData)
+                );
+
+                return NextResponse.json({
+                    student,
+                    message: "Student photo updated successfully.",
                 });
             }
 
-            // 3. If student is linked to a Parent account, sync parent details
-            if (updatedStudent.parentId) {
-                const parent = await tx.parent.findUnique({
-                    where: { id: updatedStudent.parentId },
-                    include: { user: true }
-                });
+            const pendingRequest = await prisma.studentChangeRequest.findFirst({
+                where: {
+                    schoolId,
+                    studentId: id,
+                    status: "PENDING",
+                },
+                select: { id: true },
+            });
 
-                if (parent) {
-                    // Update the Parent's User record
-                    await tx.user.update({
-                        where: { id: parent.userId },
-                        data: {
-                            // Only update if provided in body to avoid overwriting with nulls if form was partial
-                            // But usually the form sends everything.
-                            phone: parentPhone || undefined,
-                            email: parentEmail || undefined,
-                            // If parentName was edited, we try to split it into first/last
-                            // This is a bit risky but keeps the names in sync
-                            firstName: parentName ? parentName.split(' ')[0] : undefined,
-                            lastName: parentName ? parentName.split(' ').slice(1).join(' ') : undefined,
-                        }
-                    });
-
-                    // Also sync this new parent info to ALL other siblings
-                    await tx.student.updateMany({
-                        where: {
-                            parentId: parent.id,
-                            id: { not: updatedStudent.id } // Don't update the one we just did
-                        },
-                        data: {
-                            parentName,
-                            parentPhone,
-                            parentEmail
-                        }
-                    });
-                }
+            if (pendingRequest) {
+                return NextResponse.json(
+                    { error: "There is already a pending approval request for this student." },
+                    { status: 409 }
+                );
             }
 
-            return updatedStudent;
-        });
+            const actorName = typeof user.name === "string" && user.name.trim().length > 0
+                ? user.name
+                : "Class teacher";
+            const studentName = `${existingStudent.firstName} ${existingStudent.lastName}`.trim();
+            const request = await prisma.studentChangeRequest.create({
+                data: {
+                    schoolId,
+                    studentId: existingStudent.id,
+                    requesterId: user.id,
+                    action: "EDIT",
+                    studentName,
+                    admissionNumber: existingStudent.admissionNumber,
+                    classLabel: requestedClassLabel || getStudentClassLabel(existingStudent),
+                    currentData: createStudentSnapshot(existingStudent),
+                    requestedData: {
+                        ...changedData,
+                        ...(requestedClassLabel ? { classLabel: requestedClassLabel } : {}),
+                    },
+                    summary: buildStudentChangeSummary({
+                        action: "EDIT",
+                        changedData,
+                        requestedClassLabel,
+                    }),
+                },
+                select: { id: true },
+            });
 
-        return NextResponse.json({ student });
+            const adminIds = await getSchoolAdminUserIds(schoolId, user.id);
+            await createUserNotifications(adminIds, {
+                schoolId,
+                type: "APPROVAL_REQUESTED",
+                title: "Student Update Needs Approval",
+                message: `${actorName} requested changes for ${studentName} (${existingStudent.admissionNumber}).`,
+                href: "/dashboard/students?requests=true",
+                metadata: {
+                    requestId: request.id,
+                    studentId: existingStudent.id,
+                    action: "EDIT",
+                },
+            });
+
+            return NextResponse.json(
+                { message: "Student update submitted for admin approval." },
+                { status: 202 }
+            );
+        }
+
+        const student = await prisma.$transaction((tx) =>
+            applyStudentUpdateTransaction(tx, id, changedData)
+        );
+
+        return NextResponse.json({ student, message: "Student updated successfully." });
     } catch (error: any) {
         console.error("Error updating student:", error);
         return NextResponse.json(
@@ -797,10 +873,21 @@ export async function DELETE(req: NextRequest) {
     if (csrfError) return csrfError;
 
     try {
-        const session = await requireSchoolAdmin(req);
+        const session = await getServerSession(authOptions);
 
         if (!session?.user) {
-            return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = session.user as any;
+        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
+        const isAdmin =
+            roles.includes(UserRole.SUPER_ADMIN) ||
+            roles.includes(UserRole.SCHOOL_ADMIN);
+        const isClassTeacher = roles.includes(UserRole.CLASS_TEACHER);
+
+        if (!isAdmin && !isClassTeacher) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);
@@ -813,20 +900,87 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        if (!schoolId) {
+            return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
+        }
 
-        // Verify student belongs to school
-        const existingStudent = await prisma.student.findFirst({
-            where: {
-                id,
-                schoolId,
-            },
+        const assignedClassArmIds = !isAdmin
+            ? await getAssignedClassArmIds(user.id, schoolId)
+            : [];
+
+        if (!isAdmin && assignedClassArmIds.length === 0) {
+            return NextResponse.json({ error: "You are not assigned to any class." }, { status: 403 });
+        }
+
+        const existingStudent = await findStudentForManagement({
+            studentId: id,
+            schoolId,
+            isAdmin,
+            assignedClassArmIds,
         });
 
         if (!existingStudent) {
             return NextResponse.json(
                 { error: "Student not found" },
                 { status: 404 }
+            );
+        }
+
+        if (!isAdmin) {
+            const pendingRequest = await prisma.studentChangeRequest.findFirst({
+                where: {
+                    schoolId,
+                    studentId: id,
+                    status: "PENDING",
+                },
+                select: { id: true },
+            });
+
+            if (pendingRequest) {
+                return NextResponse.json(
+                    { error: "There is already a pending approval request for this student." },
+                    { status: 409 }
+                );
+            }
+
+            const studentName = `${existingStudent.firstName} ${existingStudent.lastName}`.trim();
+            const actorName = typeof user.name === "string" && user.name.trim().length > 0
+                ? user.name
+                : "Class teacher";
+
+            const request = await prisma.studentChangeRequest.create({
+                data: {
+                    schoolId,
+                    studentId: existingStudent.id,
+                    requesterId: user.id,
+                    action: "DELETE",
+                    studentName,
+                    admissionNumber: existingStudent.admissionNumber,
+                    classLabel: getStudentClassLabel(existingStudent),
+                    currentData: createStudentSnapshot(existingStudent),
+                    summary: buildStudentChangeSummary({ action: "DELETE" }),
+                },
+                select: { id: true },
+            });
+
+            const adminIds = await getSchoolAdminUserIds(schoolId, user.id);
+            await createUserNotifications(adminIds, {
+                schoolId,
+                type: "APPROVAL_REQUESTED",
+                title: "Student Deletion Needs Approval",
+                message: `${actorName} requested deletion of ${studentName} (${existingStudent.admissionNumber}).`,
+                href: "/dashboard/students?requests=true",
+                metadata: {
+                    requestId: request.id,
+                    studentId: existingStudent.id,
+                    action: "DELETE",
+                },
+            });
+
+            return NextResponse.json(
+                { message: "Student deletion submitted for admin approval." },
+                { status: 202 }
             );
         }
 

@@ -50,6 +50,7 @@ model School {
   studentReportWorkflows StudentReportWorkflow[]
   notifications          UserNotification[]
   uploadedFiles          UploadedFile[]
+  studentChangeRequests  StudentChangeRequest[]
   schemesOfWork          SchemeOfWork[]
 }
 
@@ -103,6 +104,8 @@ model User {
   schemesOfWorkApproved                 SchemeOfWork[]         @relation("SOWApprover")
   schemeOfWorkTermsApproved             SchemeOfWorkTerm[]     @relation("SOWTermApprover")
   schemeOfWorkCollaborators             SchemeOfWorkCollaborator[]
+  studentChangeRequestsRequested        StudentChangeRequest[] @relation("StudentChangeRequester")
+  studentChangeRequestsReviewed         StudentChangeRequest[] @relation("StudentChangeReviewer")
 }
 
 model AcademicSession {
@@ -276,6 +279,7 @@ model Student {
   parent                 Parent?                 @relation(fields: [parentId], references: [id])
   school                 School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user                   User?                   @relation("StudentUser", fields: [userId], references: [id])
+  changeRequests         StudentChangeRequest[]
 
   @@unique([schoolId, admissionNumber])
 }
@@ -979,6 +983,46 @@ model UploadedFile {
 
   @@index([schoolId, uploadType])
   @@index([uploadedById, createdAt])
+}
+
+enum StudentChangeRequestAction {
+  EDIT
+  DELETE
+}
+
+enum StudentChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model StudentChangeRequest {
+  id               String                     @id @default(cuid())
+  schoolId         String
+  studentId        String?
+  requesterId      String
+  reviewerId       String?
+  action           StudentChangeRequestAction
+  status           StudentChangeRequestStatus @default(PENDING)
+  studentName      String
+  admissionNumber  String
+  classLabel       String?
+  currentData      Json?
+  requestedData    Json?
+  summary          String?
+  reviewNote       String?
+  reviewedAt       DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  school           School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student          Student?                   @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  requester        User                       @relation("StudentChangeRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewer         User?                      @relation("StudentChangeReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, status, createdAt])
+  @@index([requesterId, createdAt])
+  @@index([studentId, status])
 }
 
 // WebRTC signaling data (temporary)

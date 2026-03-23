@@ -144,7 +144,12 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
       };
 
     case 'SELECT_ELEMENT':
-      return { ...state, selectedElementId: action.elementId };
+      return {
+        ...state,
+        selectedElementId: action.elementId,
+        // Auto-switch to Slide tab so element properties are immediately visible
+        rightPanel: action.elementId ? 'slide' : state.rightPanel,
+      };
 
     // ── Slides ──────────────────────────────────────────────────────────────
     case 'ADD_SLIDE': {

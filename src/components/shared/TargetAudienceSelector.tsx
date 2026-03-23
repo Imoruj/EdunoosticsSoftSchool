@@ -15,6 +15,8 @@ export interface TargetAudienceSelectorProps {
     availableTerms?: { termNumber: number; termName: string }[];
     selectedTermNumber?: number | null;
     onTermChange?: (termNumber: number | null) => void;
+    /** Render in compact mode for narrow panels (e.g. studio sidebar) */
+    compact?: boolean;
 }
 
 interface TeacherClasses {
@@ -49,7 +51,35 @@ export function TargetAudienceSelector({
     availableTerms = [],
     selectedTermNumber = null,
     onTermChange,
+    compact = false,
 }: TargetAudienceSelectorProps) {
+  const c = compact ? {
+    root:        'space-y-3',
+    label:       'block text-[10px] font-medium text-gray-700 mb-1',
+    sectionLbl:  'block text-[10px] font-semibold text-gray-800 mb-1.5',
+    select:      'w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-[11px] focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none bg-white',
+    innerCard:   'space-y-2 bg-slate-50/80 rounded-lg p-2.5 border border-slate-200/60',
+    chip:        'px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors',
+    armCard:     (sel: boolean) => `group relative flex items-center justify-between p-2 rounded-lg border transition-all duration-200 ${sel ? 'bg-white border-blue-300 shadow-sm ring-1 ring-blue-500/10' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'}`,
+    armName:     (sel: boolean) => `text-[11px] font-bold transition-colors ${sel ? 'text-blue-900' : 'text-slate-700'}`,
+    armSubText:  'text-[10px] text-blue-500 flex items-center gap-1 mt-0.5',
+    studentsBtn: 'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors',
+    noStudents:  'text-[10px] text-slate-400 italic px-1',
+    ptSection:   'pt-1',
+  } : {
+    root:        'space-y-6',
+    label:       'block text-sm font-medium text-gray-700 mb-1',
+    sectionLbl:  'block text-sm font-semibold text-gray-800 mb-3',
+    select:      'w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all bg-white',
+    innerCard:   'space-y-4 bg-slate-50/80 rounded-2xl p-5 border border-slate-200/60 shadow-inner',
+    chip:        'px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors',
+    armCard:     (sel: boolean) => `group relative flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${sel ? 'bg-white border-blue-300 shadow-sm ring-1 ring-blue-500/10' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'}`,
+    armName:     (sel: boolean) => `text-sm font-bold transition-colors ${sel ? 'text-blue-900' : 'text-slate-700'}`,
+    armSubText:  'text-xs text-blue-500 flex items-center gap-1 mt-0.5',
+    studentsBtn: 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors',
+    noStudents:  'text-xs text-slate-400 italic px-2',
+    ptSection:   'pt-2',
+  };
     const [loading, setLoading] = useState(true);
     const [studentsLoading, setStudentsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -265,9 +295,9 @@ export function TargetAudienceSelector({
     const isAllModalStudentsSelected = modalStudentsRaw.length > 0 && modalStudentsRaw.every(s => assignedTo.includes(s.id));
 
     return (
-        <div className="space-y-6">
+        <div className={c.root}>
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={c.label}>
                     Subject <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -279,10 +309,10 @@ export function TargetAudienceSelector({
                             const s = subjects.find((sub) => sub.id === id);
                             onSubjectNameChange(s ? s.name : '');
                         }
-                        onClassArmsChange([]); // Reset arms when subject changes
+                        onClassArmsChange([]);
                         if (onAssignedToChange) onAssignedToChange([]);
                     }}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all bg-white"
+                    className={c.select}
                 >
                     <option value="" disabled>-- Select Subject --</option>
                     {subjects.map(s => (
@@ -294,8 +324,8 @@ export function TargetAudienceSelector({
 
             {availableTerms.length > 0 && onTermChange && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
-                    <div className="flex flex-wrap gap-2">
+                    <label className={c.label}>Term</label>
+                    <div className="flex flex-wrap gap-1.5">
                         {availableTerms.map(({ termNumber, termName }) => {
                             const isActive = selectedTermNumber === termNumber;
                             return (
@@ -303,11 +333,7 @@ export function TargetAudienceSelector({
                                     key={termNumber}
                                     type="button"
                                     onClick={() => onTermChange(isActive ? null : termNumber)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                                        isActive
-                                            ? "bg-blue-600 text-white border-blue-600"
-                                            : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"
-                                    }`}
+                                    className={`${c.chip} ${isActive ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"}`}
                                 >
                                     {termName}
                                 </button>
@@ -318,13 +344,13 @@ export function TargetAudienceSelector({
             )}
 
             {subjectId && classNames.length > 0 && (
-                <div className="pt-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                <div className={c.ptSection}>
+                    <label className={c.sectionLbl}>
                         Assign to Class Arms & Students <span className="text-red-500">*</span>
                     </label>
 
-                    <div className="space-y-4 bg-slate-50/80 rounded-2xl p-5 border border-slate-200/60 shadow-inner">
-                        <div className="flex flex-wrap gap-2">
+                    <div className={c.innerCard}>
+                        <div className="flex flex-wrap gap-1.5">
                             {classNames.map((className) => {
                                 const isActive = activeClassName === className;
                                 return (
@@ -333,13 +359,10 @@ export function TargetAudienceSelector({
                                         type="button"
                                         onClick={() => {
                                             setActiveClassName(className);
-                                            const classObj = classes.find((c) => c.name === className);
+                                            const classObj = classes.find((cl) => cl.name === className);
                                             if (classObj && onClassChange) onClassChange(classObj.id);
                                         }}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${isActive
-                                                ? "bg-blue-600 text-white border-blue-600"
-                                                : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"
-                                            }`}
+                                        className={`${c.chip} ${isActive ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:border-blue-300 hover:text-blue-700"}`}
                                     >
                                         {className}
                                     </button>
@@ -348,60 +371,50 @@ export function TargetAudienceSelector({
                         </div>
 
                         {activeClassName && (
-                            <div className="space-y-3">
-                                <div className="grid gap-3">
-                                    {visibleArms.map(arm => {
-                                        const isSelected = classArmIds.includes(arm.id);
-                                        const armStudents = students.filter(s => s.classArmId === arm.id);
-                                        const studentCountLabel = armStudents.length === 1 ? "Student" : "Students";
+                            <div className="grid gap-2">
+                                {visibleArms.map(arm => {
+                                    const isSelected = classArmIds.includes(arm.id);
+                                    const armStudents = students.filter(s => s.classArmId === arm.id);
+                                    const studentCountLabel = armStudents.length === 1 ? "Student" : "Students";
 
-                                        return (
-                                            <div
-                                                key={arm.id}
-                                                className={`group relative flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${isSelected
-                                                        ? 'bg-white border-blue-300 shadow-sm ring-1 ring-blue-500/10'
-                                                        : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'
-                                                    }`}
-                                            >
-                                                <label className="flex items-center gap-3 cursor-pointer flex-1">
-                                                    <div className="relative flex items-center justify-center w-5 h-5">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isSelected}
-                                                            onChange={() => handleClassArmToggle(arm.id)}
-                                                            className="peer w-5 h-5 appearance-none rounded border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all cursor-pointer"
-                                                        />
-                                                        <Check className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className={`text-sm font-bold transition-colors ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
-                                                            {arm.armName}
+                                    return (
+                                        <div key={arm.id} className={c.armCard(isSelected)}>
+                                            <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                                <div className="relative flex items-center justify-center w-4 h-4 shrink-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleClassArmToggle(arm.id)}
+                                                        className="peer w-4 h-4 appearance-none rounded border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all cursor-pointer"
+                                                    />
+                                                    <Check className="w-3 h-3 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className={c.armName(isSelected)}>{arm.armName}</span>
+                                                    {isSelected && studentsLoading && (
+                                                        <span className={c.armSubText}>
+                                                            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Fetching students…
                                                         </span>
-                                                        {isSelected && studentsLoading && (
-                                                            <span className="text-xs text-blue-500 flex items-center gap-1 mt-0.5">
-                                                                <Loader2 className="w-3 h-3 animate-spin" /> Fetching enrolled students...
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </label>
+                                                    )}
+                                                </div>
+                                            </label>
 
-                                                {isSelected && !studentsLoading && armStudents.length > 0 && (
-                                                    <button
-                                                        onClick={(e) => { e.preventDefault(); setActiveModalArmId(arm.id); setSearchQuery(""); }}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors"
+                                            {isSelected && !studentsLoading && armStudents.length > 0 && (
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); setActiveModalArmId(arm.id); setSearchQuery(""); }}
+                                                    className={c.studentsBtn}
                                                 >
-                                                    <Users className="w-3.5 h-3.5" />
+                                                    <Users className="w-3 h-3" />
                                                     <span>{armStudents.length} {studentCountLabel}</span>
                                                 </button>
                                             )}
 
-                                                {isSelected && !studentsLoading && armStudents.length === 0 && (
-                                                    <span className="text-xs text-slate-400 italic px-2">No students enrolled</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            {isSelected && !studentsLoading && armStudents.length === 0 && (
+                                                <span className={c.noStudents}>No students enrolled</span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
