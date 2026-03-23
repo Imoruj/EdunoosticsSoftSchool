@@ -111,7 +111,7 @@ export function SlideProperties({ slide, dispatch, lesson }: SlidePropertiesProp
       </Section>
 
       {/* ── Narration ──────────────────────────────────────────────────────── */}
-      <NarrationSection slide={slide} update={update} lesson={lesson} />
+      <NarrationSection key={slide.id} slide={slide} update={update} lesson={lesson} />
 
       <Section title="Speaker Notes">
         <textarea value={slide.notes ?? ''} onChange={(e) => update({ notes: e.target.value })}
@@ -138,8 +138,13 @@ function NarrationSection({ slide, update, lesson }: {
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
   const [voice, setVoice] = useState<typeof VOICES[number]>('Kore');
+  // preview = audio ready to listen before committing to slide
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  // committed = audio already saved on slide.narrationUrl
   const [playing, setPlaying] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -148,6 +153,7 @@ function NarrationSection({ slide, update, lesson }: {
     setEnabled(on);
     if (!on) {
       update({ narrationUrl: undefined });
+      setPreviewUrl(null);
       setError('');
     }
   }
@@ -163,7 +169,7 @@ function NarrationSection({ slide, update, lesson }: {
       const res = await fetch('/api/upload', { method: 'POST', body: form });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Upload failed');
       const { fileUrl } = await res.json();
-      update({ narrationUrl: fileUrl });
+      setPreviewUrl(fileUrl); // preview first; user must click "Add to Slide"
     } catch (e: any) {
       setError(e.message ?? 'Upload failed');
     } finally {
@@ -189,7 +195,7 @@ function NarrationSection({ slide, update, lesson }: {
       recorderRef.current = recorder;
       setRecording(true);
     } catch (e: any) {
-      setError('Microphone access denied or unavailable');
+      setError('Microphone access denied. Allow microphone in browser settings and reload.');
     }
   }
 
@@ -204,16 +210,27 @@ function NarrationSection({ slide, update, lesson }: {
     setError('');
     setGenerating(true);
     try {
-      const script = extractSlideText(slide);
-      if (!script.trim()) throw new Error('No text content found on this slide');
+      // Build a short overview script from lesson metadata (title + description).
+      // Fall back to slide text only if no lesson data is available.
+      let script = '';
+      if (lesson?.title) {
+        script = lesson.title;
+        if (lesson.description) script += '. ' + lesson.description;
+        if (lesson.sowObjectives) script += '. Objectives: ' + lesson.sowObjectives.slice(0, 200);
+      } else {
+        script = extractSlideText(slide);
+      }
+      if (!script.trim()) throw new Error('No content found to generate narration');
       const res = await fetch('/api/lessons/generate-audio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: script.slice(0, 5000), voiceName: voice }),
+        body: JSON.stringify({ script: script.slice(0, 1000), voiceName: voice }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Generation failed');
-      const { audioUrl } = await res.json();
-      update({ narrationUrl: audioUrl });
+      const data = await res.json();
+      const audioUrl = data.url ?? data.audioUrl;
+      if (!audioUrl) throw new Error('No audio URL returned');
+      setPreviewUrl(audioUrl); // preview first; user must click "Add to Slide"
     } catch (e: any) {
       setError(e.message ?? 'Generation failed');
     } finally {
@@ -221,13 +238,32 @@ function NarrationSection({ slide, update, lesson }: {
     }
   }
 
+  // ── Preview player controls ─────────────────────────────────────────────────
+  function togglePreviewPlay() {
+    if (!previewAudioRef.current) return;
+    if (previewPlaying) { previewAudioRef.current.pause(); setPreviewPlaying(false); }
+    else { previewAudioRef.current.play(); setPreviewPlaying(true); }
+  }
+
+  function commitPreview() {
+    if (!previewUrl) return;
+    update({ narrationUrl: previewUrl });
+    setPreviewUrl(null);
+    setPreviewPlaying(false);
+  }
+
+  function discardPreview() {
+    if (previewAudioRef.current) { previewAudioRef.current.pause(); }
+    setPreviewUrl(null);
+    setPreviewPlaying(false);
+  }
+
+  // ── Committed narration controls ────────────────────────────────────────────
   function togglePlay() {
     if (!audioRef.current) return;
     if (playing) { audioRef.current.pause(); setPlaying(false); }
     else { audioRef.current.play(); setPlaying(true); }
   }
-
-  const accentStyle = { borderColor: '#e2e8f0' };
 
   return (
     <div>
@@ -248,105 +284,140 @@ function NarrationSection({ slide, update, lesson }: {
 
       {enabled && (
         <div className="space-y-2.5">
-          {/* Tab switcher */}
-          <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: '#f1f5f9' }}>
-            {([
-              { id: 'upload', label: 'Upload', icon: <Upload size={9} /> },
-              { id: 'record', label: 'Record', icon: <Mic size={9} /> },
-              { id: 'ai',     label: 'AI',     icon: <Sparkles size={9} /> },
-            ] as const).map(({ id, label, icon }) => (
-              <button key={id} onClick={() => setTab(id)}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-medium transition-colors"
-                style={{
-                  background: tab === id ? '#ffffff' : 'transparent',
-                  color: tab === id ? '#4f46e5' : '#64748b',
-                  boxShadow: tab === id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                }}>
-                {icon}{label}
-              </button>
-            ))}
-          </div>
 
-          {/* Upload tab */}
-          {tab === 'upload' && (
-            <div className="space-y-2">
-              <input ref={fileRef} type="file" accept="audio/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }} />
+          {/* ── When preview is ready: replace tab UI with player ── */}
+          {previewUrl ? (
+            <>
+              <audio ref={previewAudioRef} src={previewUrl} onEnded={() => setPreviewPlaying(false)} className="hidden" />
+              <p className="text-[10px] text-slate-400 text-center">Audio ready — preview before adding</p>
+              {/* Big play button */}
               <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-60"
-                style={{ color: '#0891b2', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                onClick={togglePreviewPlay}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-[12px] transition-colors"
+                style={{ background: '#7c3aed', color: '#ffffff' }}
               >
-                {uploading ? <><Loader2 size={11} className="animate-spin" /> Uploading…</> : <><Upload size={11} /> Choose audio file</>}
+                {previewPlaying ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Play Preview</>}
               </button>
-              <p className="text-[10px] text-slate-400 text-center">MP3, WAV, OGG, M4A, AAC</p>
-            </div>
-          )}
-
-          {/* Record tab */}
-          {tab === 'record' && (
-            <div className="space-y-2">
-              {!recording ? (
-                <button onClick={startRecording} disabled={uploading}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors"
-                  style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fff1f2' }}>
-                  <Mic size={11} /> Start Recording
+              <div className="flex gap-2">
+                <button
+                  onClick={discardPreview}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-medium border transition-colors"
+                  style={{ color: '#64748b', borderColor: '#e2e8f0', background: '#f8fafc' }}
+                >
+                  Discard
                 </button>
-              ) : (
-                <button onClick={stopRecording}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border animate-pulse"
-                  style={{ color: '#dc2626', borderColor: '#dc2626', background: '#fff1f2' }}>
-                  <Square size={11} /> Stop & Save
+                <button
+                  onClick={commitPreview}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold border transition-colors"
+                  style={{ color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}
+                >
+                  Add to Slide ✓
                 </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Tab switcher */}
+              <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: '#f1f5f9' }}>
+                {([
+                  { id: 'upload', label: 'Upload', icon: <Upload size={9} /> },
+                  { id: 'record', label: 'Record', icon: <Mic size={9} /> },
+                  { id: 'ai',     label: 'AI',     icon: <Sparkles size={9} /> },
+                ] as const).map(({ id, label, icon }) => (
+                  <button key={id} onClick={() => setTab(id)}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-medium transition-colors"
+                    style={{
+                      background: tab === id ? '#ffffff' : 'transparent',
+                      color: tab === id ? '#4f46e5' : '#64748b',
+                      boxShadow: tab === id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    }}>
+                    {icon}{label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Upload tab */}
+              {tab === 'upload' && (
+                <div className="space-y-2">
+                  <input ref={fileRef} type="file" accept="audio/*" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }} />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-60"
+                    style={{ color: '#0891b2', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                  >
+                    {uploading ? <><Loader2 size={11} className="animate-spin" /> Uploading…</> : <><Upload size={11} /> Choose audio file</>}
+                  </button>
+                  <p className="text-[10px] text-slate-400 text-center">MP3, WAV, OGG, M4A, AAC</p>
+                </div>
               )}
-              {uploading && (
-                <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
-                  <Loader2 size={10} className="animate-spin" /> Saving recording…
-                </p>
+
+              {/* Record tab */}
+              {tab === 'record' && (
+                <div className="space-y-2">
+                  {!recording ? (
+                    <button onClick={startRecording} disabled={uploading}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors"
+                      style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fff1f2' }}>
+                      <Mic size={11} /> Start Recording
+                    </button>
+                  ) : (
+                    <button onClick={stopRecording}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border animate-pulse"
+                      style={{ color: '#dc2626', borderColor: '#dc2626', background: '#fff1f2' }}>
+                      <Square size={11} /> Stop & Save
+                    </button>
+                  )}
+                  {uploading && (
+                    <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1">
+                      <Loader2 size={10} className="animate-spin" /> Saving recording…
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
-          )}
 
-          {/* AI Generate tab */}
-          {tab === 'ai' && (
-            <div className="space-y-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] text-slate-400">Voice</span>
-                <select value={voice} onChange={(e) => setVoice(e.target.value as typeof VOICES[number])}
-                  className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
-                  style={{ background: '#ffffff', ...accentStyle }}>
-                  {VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </label>
-              <p className="text-[10px] text-slate-400 leading-relaxed">
-                Generates audio narration from this slide's text content using Gemini TTS.
-              </p>
-              <button onClick={generateNarration} disabled={generating}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-60"
-                style={{ color: '#7c3aed', borderColor: '#ddd6fe', background: '#faf5ff' }}>
-                {generating ? <><Loader2 size={11} className="animate-spin" /> Generating…</> : <><Sparkles size={11} /> Generate Narration</>}
-              </button>
-            </div>
-          )}
+              {/* AI Generate tab */}
+              {tab === 'ai' && (
+                <div className="space-y-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-400">Voice</span>
+                    <select value={voice} onChange={(e) => setVoice(e.target.value as typeof VOICES[number])}
+                      className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
+                      style={{ background: '#ffffff', borderColor: '#e2e8f0' }}>
+                      {VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </label>
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Generates a short lesson overview narration from the lesson title and description.
+                  </p>
+                  <button onClick={generateNarration} disabled={generating}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold border transition-colors disabled:opacity-60"
+                    style={{ color: '#7c3aed', borderColor: '#ddd6fe', background: '#faf5ff' }}>
+                    {generating ? <><Loader2 size={11} className="animate-spin" /> Generating…</> : <><Sparkles size={11} /> Generate Narration</>}
+                  </button>
+                </div>
+              )}
 
-          {error && <p className="text-[10px] text-red-500 px-1">{error}</p>}
+              {error && <p className="text-[10px] text-red-500 px-1">{error}</p>}
 
-          {/* Playback preview */}
-          {slide.narrationUrl && (
-            <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-              <button onClick={togglePlay}
-                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors"
-                style={{ background: '#16a34a', color: '#ffffff' }}>
-                {playing ? <Pause size={10} /> : <Play size={10} />}
-              </button>
-              <span className="text-[10px] text-green-700 flex-1 truncate">Narration ready</span>
-              <button onClick={() => { update({ narrationUrl: undefined }); setPlaying(false); }}
-                className="text-green-500 hover:text-red-500 transition-colors" title="Remove narration">
-                <Trash2 size={10} />
-              </button>
-              <audio ref={audioRef} src={slide.narrationUrl} onEnded={() => setPlaying(false)} className="hidden" />
-            </div>
+              {/* ── Committed narration (on slide) ── */}
+              {slide.narrationUrl && (
+                <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                  <audio ref={audioRef} src={slide.narrationUrl} onEnded={() => setPlaying(false)} className="hidden" />
+                  <button onClick={togglePlay}
+                    className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                    style={{ background: '#16a34a', color: '#ffffff' }}>
+                    {playing ? <Pause size={10} /> : <Play size={10} />}
+                  </button>
+                  <span className="text-[10px] text-green-700 flex-1 truncate">Narration added ✓</span>
+                  <button onClick={() => { update({ narrationUrl: undefined }); setPlaying(false); }}
+                    className="text-green-500 hover:text-red-500 transition-colors" title="Remove narration">
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

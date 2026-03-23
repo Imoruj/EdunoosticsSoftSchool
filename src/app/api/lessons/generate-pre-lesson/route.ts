@@ -220,16 +220,18 @@ export async function POST(req: NextRequest) {
 
         let systemMsg: string;
         let userMsg: string;
+        let maxTokens = 350;
 
         if (field === "description") {
             if (outputFormat === 'outline') {
+                maxTokens = 120;
                 systemMsg =
-                    "You are an experienced Nigerian secondary school teacher. Write concise lesson overview bullet points. Return exactly 4–6 short bullet points (one per line), each starting with a dash (-). No prose, no headings, no numbering.";
+                    "You are an experienced Nigerian secondary school teacher. Write a brief lesson overview as exactly 2–3 bullet points. Each point covers one core thing students will learn. Return only the bullet lines, each starting with a dash (-). No prose, no headings, no numbering, no extra text.";
                 userMsg =
-                    `Write 4–6 short bullet points summarising what students will learn in this ${subjectName} lesson${classBlock}.
+                    `Write exactly 2–3 short bullet points summarising the core things students will learn in this ${subjectName} lesson${classBlock}.
 Topic: ${topic}${contentBlock}${objectivesBlock}
 
-Each bullet should be a single short phrase (8–15 words). Start each line with a dash (-). Output only the bullet lines.`;
+Focus on the most important learning outcomes only. Each bullet should be a single short phrase (8–12 words). Start each line with a dash (-). Output only the bullet lines — nothing else.`;
             } else {
                 systemMsg =
                     "You are an experienced Nigerian secondary school teacher. Write clear, professional lesson plan content in plain prose. No bullet points, no markdown, no headings — just well-structured sentences.";
@@ -264,7 +266,7 @@ Do not mention URLs, file names, or source labels directly in the response.`;
                 { role: "system", content: systemMsg },
                 { role: "user", content: userMsg },
             ],
-            350,
+            maxTokens,
         );
 
         const text = raw.trim();

@@ -11,6 +11,54 @@ export const dynamic = "force-dynamic";
 const GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts";
 const SUPPORTED_VOICES = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"] as const;
 
+// ── Rewrite bullet-point slide text into natural teacher narration ─────────────
+async function rewriteAsTeacherNarration(rawScript: string): Promise<string> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return rawScript;
+
+    const models = [
+        "google/gemini-2.5-flash-lite",
+        "meta-llama/llama-3.3-70b-instruct",
+        "mistralai/mistral-small-3.1-24b-instruct",
+    ];
+
+    const systemMsg =
+        "You are an experienced Nigerian secondary school teacher. Write a SHORT spoken introduction for a lesson — 2 to 3 sentences maximum. Speak directly and naturally to students. Use simple, clear language. Do NOT use bullet points, markdown, or headers. Do NOT narrate the whole lesson — just give a brief, engaging overview.";
+    const userMsg =
+        `Write a short spoken lesson introduction (2–3 sentences, no more than 120 words) based on this lesson info. Speak directly to the students.\n\nLesson info:\n${rawScript}\n\nOutput only the narration — no labels, no formatting.`;
+
+    for (const model of models) {
+        try {
+            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": process.env.NEXTAUTH_URL || "https://app.edunostics.com",
+                    "X-Title": "EduNostics Lesson Narration",
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: [
+                        { role: "system", content: systemMsg },
+                        { role: "user", content: userMsg },
+                    ],
+                    max_tokens: 175,
+                    temperature: 0.65,
+                }),
+                signal: AbortSignal.timeout(25000),
+            });
+            if (!res.ok) continue;
+            const data = await res.json();
+            const text = (data.choices[0]?.message?.content ?? "").trim();
+            if (text) return text.slice(0, 670); // hard cap at 670 chars
+        } catch {
+            // try next model
+        }
+    }
+    return rawScript; // fallback to original text if all models fail
+}
+
 type VoiceName = (typeof SUPPORTED_VOICES)[number];
 
 function isValidVoice(value: unknown): value is VoiceName {
@@ -144,12 +192,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Script is required" }, { status: 400 });
         }
 
-        if (script.trim().length > 5000) {
-            return NextResponse.json({ error: "Script must be 5000 characters or less" }, { status: 400 });
+        if (script.trim().length > 1000) {
+            return NextResponse.json({ error: "Script must be 1000 characters or less" }, { status: 400 });
         }
 
         const voiceName: VoiceName = isValidVoice(rawVoice) ? rawVoice : "Aoede";
-        const audio = await callGeminiAudio(script.trim(), voiceName, apiKey);
+        // Convert raw slide text (bullet points) into natural teacher speech first
+        const narrationScript = await rewriteAsTeacherNarration(script.trim());
+        const audio = await callGeminiAudio(narrationScript, voiceName, apiKey);
         const storedName = `lesson-audio-ai-${user.id}-${randomUUID()}${audio.extension}`;
 
         const uploaded = await prisma.uploadedFile.create({
