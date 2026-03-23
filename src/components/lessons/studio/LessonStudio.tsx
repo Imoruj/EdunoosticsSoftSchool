@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Lesson } from '@/lib/db/types';
 import { migrateToSlides, createDefaultSlides } from '@/lib/lessons/migrateToSlides';
 import { useStudioState } from './useStudioState';
@@ -14,6 +14,110 @@ import { TextEditorModal } from './modals/TextEditorModal';
 import { MediaPickerModal } from './modals/MediaPickerModal';
 import { PreviewModal } from './modals/PreviewModal';
 import { useLessons } from '@/lib/db/hooks';
+import type { LessonReferenceMaterial, LessonSlide, SlideElement } from '@/lib/db/types';
+import type { SowWeek } from './panels/SowWeekPanel';
+
+// ─── Pre-lesson slide factory ────────────────────────────────────────────────
+
+function eid() {
+  return `el-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function makeTextEl(
+  content: string,
+  x: number, y: number, w: number, h: number,
+  z: number,
+  duration: number,
+  extra: Partial<SlideElement> = {}
+): SlideElement {
+  return {
+    id: eid(), type: 'text',
+    data: { content, format: 'html' },
+    x, y, width: w, height: h,
+    zIndex: z,
+    startTime: 0, endTime: duration,
+    animateIn: 'fade', animateInDuration: 400,
+    opacity: 1,
+    ...extra,
+  };
+}
+
+function createPreLessonSlides(week: SowWeek): LessonSlide[] {
+  const DUR = 15;
+  const sid = (n: number) => `slide-prelesson-${n}-${Date.now()}`;
+  const base = { sceneType: 'pre-lesson' as const, autoAdvance: false, background: { type: 'color' as const, color: '#ffffff' }, transition: 'fade' as const, transitionDuration: 400 };
+
+  // ── Slide 1: Title ───────────────────────────────────────────────────────
+  const slide1: LessonSlide = {
+    ...base,
+    id: sid(1), order: 0, duration: DUR,
+    elements: [
+      makeTextEl(
+        `<p style="font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#6366f1;margin:0">WEEK ${week.weekNumber}</p>`,
+        5, 8, 40, 8, 1, DUR
+      ),
+      makeTextEl(
+        `<p style="font-size:34px;font-weight:800;color:#0f172a;line-height:1.15;margin:0">${week.topic}</p>`,
+        5, 20, 90, 40, 2, DUR, { animateIn: 'slide-up', animateInDuration: 450 }
+      ),
+      makeTextEl(
+        `<p style="font-size:12px;color:#94a3b8;margin:0">${week.className}&ensp;·&ensp;${week.sessionName}&ensp;·&ensp;${week.termName}</p>`,
+        5, 63, 90, 8, 3, DUR
+      ),
+    ],
+    notes: '',
+  };
+
+  // ── Slide 2: Content + Description ─────────────────────────────────────
+  const contentHtml = week.content
+    ? week.content.replace(/\n/g, '<br/>')
+    : '<em style="color:#94a3b8">No lesson content in SOW.</em>';
+
+  const slide2: LessonSlide = {
+    ...base,
+    id: sid(2), order: 1, duration: DUR,
+    elements: [
+      makeTextEl(
+        `<p style="font-size:8px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#6366f1;margin:0 0 8px">LESSON CONTENT</p>`
+        + `<p style="font-size:13px;color:#1e293b;line-height:1.65;margin:0">${contentHtml}</p>`,
+        4, 5, 55, 90, 1, DUR, { animateIn: 'slide-right' }
+      ),
+      makeTextEl(
+        `<p style="font-size:8px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#d97706;margin:0 0 8px">LESSON DESCRIPTION</p>`
+        + `<p style="font-size:12px;color:#92400e;line-height:1.6;margin:0;font-style:italic">Double-click to write, or use Insert → AI → Generate Text to auto-generate a lesson description from the SOW references.</p>`,
+        63, 5, 33, 90, 2, DUR,
+        { animateIn: 'slide-left', background: '#fffbeb', borderRadius: 8 }
+      ),
+    ],
+    notes: '',
+  };
+
+  // ── Slide 3: Objectives + Prior Knowledge ───────────────────────────────
+  const objHtml = week.objectives
+    ? week.objectives.replace(/\n/g, '<br/>')
+    : '<em style="color:#94a3b8">No objectives in SOW.</em>';
+
+  const slide3: LessonSlide = {
+    ...base,
+    id: sid(3), order: 2, duration: DUR,
+    elements: [
+      makeTextEl(
+        `<p style="font-size:8px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#059669;margin:0 0 8px">LEARNING OBJECTIVES</p>`
+        + `<p style="font-size:13px;color:#1e293b;line-height:1.65;margin:0">${objHtml}</p>`,
+        4, 5, 55, 90, 1, DUR, { animateIn: 'slide-right' }
+      ),
+      makeTextEl(
+        `<p style="font-size:8px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">LEARNER&apos;S PRIOR KNOWLEDGE</p>`
+        + `<p style="font-size:12px;color:#4c1d95;line-height:1.6;margin:0;font-style:italic">Double-click to write, or use Insert → AI → Generate Text to auto-generate prerequisite knowledge from SOW context.</p>`,
+        63, 5, 33, 90, 2, DUR,
+        { animateIn: 'slide-left', background: '#f5f3ff', borderRadius: 8 }
+      ),
+    ],
+    notes: '',
+  };
+
+  return [slide1, slide2, slide3];
+}
 
 interface LessonStudioProps {
   lesson?: Lesson;
@@ -50,6 +154,81 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
   }, [initialLesson, userId]);
 
   const { state, dispatch, activeSlide, selectedElement, slidesForScene } = useStudioState(preparedLesson);
+
+  // ── SOW state ─────────────────────────────────────────────────────────────
+  const [sowWeeks, setSowWeeks] = React.useState<SowWeek[]>([]);
+  const [sowLoading, setSowLoading] = React.useState(false);
+  const [selectedSowWeekId, setSelectedSowWeekId] = React.useState(initialLesson?.sowWeekId ?? '');
+  const [sowClassId, setSowClassId] = React.useState('');
+
+  // Fetch approved SOW weeks whenever subject or class changes
+  React.useEffect(() => {
+    const subjectId = state.lesson.subjectId;
+    if (!subjectId) { setSowWeeks([]); return; }
+    setSowLoading(true);
+    const params = new URLSearchParams({ subjectId });
+    if (sowClassId) params.set('classId', sowClassId);
+    fetch(`/api/scheme-of-work/approved-weeks?${params}`)
+      .then((r) => r.json())
+      .then((d) => setSowWeeks(d.weeks ?? []))
+      .catch(() => setSowWeeks([]))
+      .finally(() => setSowLoading(false));
+  }, [state.lesson.subjectId, sowClassId]);
+
+  function handleSowWeekSelect(weekId: string) {
+    setSelectedSowWeekId(weekId);
+    if (!weekId) {
+      // Reset pre-lesson slides to a single empty slide
+      const emptyPreLesson: LessonSlide = {
+        id: `slide-prelesson-empty-${Date.now()}`,
+        sceneType: 'pre-lesson', order: 0, duration: 10, autoAdvance: false,
+        background: { type: 'color', color: '#ffffff' }, transition: 'fade', transitionDuration: 400,
+        elements: [], notes: '',
+      };
+      const otherSlides = (state.lesson.slides ?? []).filter((s) => s.sceneType !== 'pre-lesson');
+      dispatch({ type: 'UPDATE_LESSON_META', patch: {
+        sowWeekId: undefined, sowLessonContent: undefined, sowObjectives: undefined,
+        sowSdgNumbers: undefined, referenceMaterials: undefined,
+        slides: [emptyPreLesson, ...otherSlides],
+      }});
+      return;
+    }
+
+    const week = sowWeeks.find((w) => w.weekId === weekId);
+    if (!week) return;
+
+    const objParts = [
+      week.objectives      ? `General:\n${week.objectives}`      : '',
+      week.waecObjectives  ? `WAEC:\n${week.waecObjectives}`     : '',
+      week.jambObjectives  ? `JAMB:\n${week.jambObjectives}`     : '',
+      week.igcseObjectives ? `IGCSE:\n${week.igcseObjectives}`   : '',
+    ].filter(Boolean);
+
+    const refs: LessonReferenceMaterial[] = (week.references ?? []).map((r) => ({
+      id: r.id, type: r.type, title: r.title,
+      url: r.url ?? undefined, fileKey: r.fileKey ?? undefined,
+      description: r.description ?? undefined, sortOrder: r.sortOrder,
+      source: 'scheme_of_work' as const, addedAt: Date.now(),
+    }));
+
+    // Build 3 structured pre-lesson slides
+    const preLessonSlides = createPreLessonSlides(week);
+    const otherSlides = (state.lesson.slides ?? []).filter((s) => s.sceneType !== 'pre-lesson');
+
+    dispatch({ type: 'UPDATE_LESSON_META', patch: {
+      title:              `Week ${week.weekNumber}: ${week.topic}`,
+      sowWeekId:          weekId,
+      sowLessonContent:   week.content ?? undefined,
+      sowObjectives:      objParts.join('\n\n') || undefined,
+      sowSdgNumbers:      week.sdgNumbers.length > 0 ? week.sdgNumbers : undefined,
+      referenceMaterials: refs.length > 0 ? refs : undefined,
+      slides:             [...preLessonSlides, ...otherSlides],
+    }});
+
+    // Navigate to first pre-lesson slide
+    dispatch({ type: 'SELECT_SCENE', sceneType: 'pre-lesson' });
+    dispatch({ type: 'SELECT_SLIDE', slideId: preLessonSlides[0].id });
+  }
 
   // Auto-save
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -193,6 +372,11 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
             dispatch={dispatch}
             activeSlide={curSlide}
             selectedElement={curElement}
+            sowWeeks={sowWeeks}
+            sowLoading={sowLoading}
+            selectedSowWeekId={selectedSowWeekId}
+            onSowWeekSelect={handleSowWeekSelect}
+            onClassChange={setSowClassId}
           />
         </div>
 

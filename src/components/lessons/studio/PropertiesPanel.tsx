@@ -7,15 +7,25 @@ import type { LessonSlide, SlideElement } from '@/lib/db/types';
 import { SlideProperties } from './panels/SlideProperties';
 import { ElementProperties } from './panels/ElementProperties';
 import { TargetAudienceSelector } from '@/components/shared/TargetAudienceSelector';
+import { SowWeekPanel } from './panels/SowWeekPanel';
+import type { SowWeek } from './panels/SowWeekPanel';
 
 interface PropertiesPanelProps {
   state: StudioState;
   dispatch: React.Dispatch<StudioAction>;
   activeSlide: LessonSlide | null;
   selectedElement: SlideElement | null;
+  sowWeeks: SowWeek[];
+  sowLoading: boolean;
+  selectedSowWeekId: string;
+  onSowWeekSelect: (weekId: string) => void;
+  onClassChange: (classId: string) => void;
 }
 
-export function PropertiesPanel({ state, dispatch, activeSlide, selectedElement }: PropertiesPanelProps) {
+export function PropertiesPanel({
+  state, dispatch, activeSlide, selectedElement,
+  sowWeeks, sowLoading, selectedSowWeekId, onSowWeekSelect, onClassChange,
+}: PropertiesPanelProps) {
   const panel = state.rightPanel;
 
   return (
@@ -47,6 +57,14 @@ export function PropertiesPanel({ state, dispatch, activeSlide, selectedElement 
               onSubjectChange={(id) => dispatch({ type: 'UPDATE_LESSON_META', patch: { subjectId: id } })}
               onClassArmsChange={(ids) => dispatch({ type: 'UPDATE_LESSON_META', patch: { classArmIds: ids } })}
               onAssignedToChange={(ids) => dispatch({ type: 'UPDATE_LESSON_META', patch: { assignedTo: ids } })}
+              onClassChange={onClassChange}
+            />
+            <SowWeekPanel
+              subjectId={state.lesson.subjectId}
+              weeks={sowWeeks}
+              loading={sowLoading}
+              selectedWeekId={selectedSowWeekId}
+              onWeekSelect={onSowWeekSelect}
             />
           </div>
         )}
