@@ -95,7 +95,7 @@ export default function GlobalAppMessageBox() {
     const cancelText = activeMessage.cancelText || "Cancel";
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
             <div
                 className="absolute inset-0"
                 onClick={() => closeMessage(activeMessage.mode === "alert")}

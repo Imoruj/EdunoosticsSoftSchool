@@ -15,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <GlobalAppMessageBox />
             <Toaster
                 position="top-right"
+                containerStyle={{ zIndex: 10000 }}
                 toastOptions={{
                     duration: 3500,
                     style: {

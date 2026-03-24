@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import type { Lesson } from '@/lib/db/types';
 import { migrateToSlides, createDefaultSlides } from '@/lib/lessons/migrateToSlides';
 import { useStudioState } from './useStudioState';
@@ -13,9 +14,12 @@ import { Timeline } from './Timeline';
 import { TextEditorModal } from './modals/TextEditorModal';
 import { MediaPickerModal } from './modals/MediaPickerModal';
 import { PreviewModal } from './modals/PreviewModal';
+import { TextGeneratorModal } from './modals/TextGeneratorModal';
+import { QuizBuilderModal } from './modals/QuizBuilderModal';
 import { useLessons } from '@/lib/db/hooks';
 import type { LessonReferenceMaterial, LessonSlide, SlideElement } from '@/lib/db/types';
 import type { SowWeek } from './panels/SowWeekPanel';
+import { showAppAlert } from '@/lib/appMessageBox';
 
 // ─── Pre-lesson slide factory ────────────────────────────────────────────────
 
@@ -236,7 +240,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     if (!state.isDirty) return;
     clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(async () => {
-      await handleSave();
+      await handleSave({ silent: true });
     }, AUTOSAVE_DELAY);
     return () => clearTimeout(autosaveTimer.current);
   }, [state.lesson, state.isDirty]); // eslint-disable-line
@@ -247,7 +251,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key === 'z' && !e.shiftKey) { e.preventDefault(); dispatch({ type: 'UNDO' }); }
       if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); dispatch({ type: 'REDO' }); }
-      if (ctrl && e.key === 's') { e.preventDefault(); handleSave(); }
+      if (ctrl && e.key === 's') { e.preventDefault(); handleSave({ silent: true }); }
       if (ctrl && e.key === '=') { e.preventDefault(); dispatch({ type: 'SET_ZOOM', zoom: state.zoom + 0.25 }); }
       if (ctrl && e.key === '-') { e.preventDefault(); dispatch({ type: 'SET_ZOOM', zoom: state.zoom - 0.25 }); }
     }
@@ -255,25 +259,60 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     return () => window.removeEventListener('keydown', onKey);
   }, [state.zoom, dispatch]); // eslint-disable-line
 
-  async function handleSave() {
+  async function persistLesson(nextLesson: Lesson, options?: { silent?: boolean; published?: boolean }) {
     setSaving(true);
     try {
-      await saveLesson({ ...state.lesson, updatedAt: Date.now() });
+      await saveLesson({ ...nextLesson, updatedAt: Date.now() });
       dispatch({ type: 'MARK_SAVED' });
+      if (!options?.silent) {
+        toast.success(options?.published ? 'Lesson published successfully.' : 'Draft saved.');
+      }
     } catch (e) {
       console.error('Failed to save lesson:', e);
+      if (!options?.silent) {
+        toast.error('Failed to save lesson.');
+      }
     } finally {
       setSaving(false);
     }
   }
 
+  async function handleSave(options?: { silent?: boolean }) {
+    if (!state.lesson.title.trim()) {
+      if (!options?.silent) {
+        await showAppAlert('Please add a lesson title before saving.', {
+          title: 'Missing Information',
+          variant: 'warning',
+        });
+      }
+      return;
+    }
+
+    await persistLesson(state.lesson, options);
+  }
+
   async function handlePublish() {
-    dispatch({ type: 'UPDATE_LESSON_META', patch: { isPublished: true, publishedAt: Date.now() } });
-    await handleSave();
+    if (!state.lesson.subjectId || state.lesson.classArmIds.length === 0) {
+      await showAppAlert('Please select a subject and at least one class arm before publishing.', {
+        title: 'Missing Information',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const publishedAt = state.lesson.publishedAt ?? Date.now();
+    const nextLesson: Lesson = {
+      ...state.lesson,
+      isPublished: true,
+      publishedAt,
+    };
+
+    dispatch({ type: 'UPDATE_LESSON_META', patch: { isPublished: true, publishedAt } });
+    await persistLesson(nextLesson, { published: true });
   }
 
   function handlePreview() {
-    dispatch({ type: 'OPEN_MODAL', modal: { type: 'preview' } });
+    dispatch({ type: 'OPEN_MODAL', modal: { type: 'preview', slideId: activeSlide()?.id } });
   }
 
   const curSlide = activeSlide();
@@ -285,7 +324,13 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     if (!modal) return null;
 
     if (modal.type === 'preview') {
-      return <PreviewModal lesson={state.lesson} onClose={() => dispatch({ type: 'CLOSE_MODAL' })} />;
+      return (
+        <PreviewModal
+          lesson={state.lesson}
+          initialSlideId={modal.slideId}
+          onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
+        />
+      );
     }
 
     if (modal.type === 'text-editor') {
@@ -304,12 +349,42 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       );
     }
 
+    if (modal.type === 'text-generator') {
+      const slide = (state.lesson.slides ?? []).find((entry) => entry.id === modal.targetSlideId) ?? null;
+      return (
+        <TextGeneratorModal
+          lesson={state.lesson}
+          slide={slide}
+          dispatch={dispatch}
+          onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
+        />
+      );
+    }
+
     if (modal.type === 'media-picker') {
       return (
         <MediaPickerModal
           insertType={modal.insertType}
           targetSlideId={modal.targetSlideId}
           state={state}
+          dispatch={dispatch}
+          onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
+        />
+      );
+    }
+
+    if (modal.type === 'quiz-builder') {
+      const slide = (state.lesson.slides ?? []).find(
+        (entry) => entry.elements.some((element) => element.id === modal.elementId)
+      );
+      const element = slide?.elements.find((entry) => entry.id === modal.elementId);
+      if (!slide || !element) return null;
+
+      return (
+        <QuizBuilderModal
+          lesson={state.lesson}
+          slide={slide}
+          element={element}
           dispatch={dispatch}
           onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
         />
