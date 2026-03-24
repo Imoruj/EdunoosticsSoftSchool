@@ -158,6 +158,9 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
 
   const { state, dispatch, activeSlide, selectedElement, slidesForScene } = useStudioState(preparedLesson);
 
+  // ── Narration audio sync ───────────────────────────────────────────────────
+  const narrationRef = useRef<HTMLAudioElement | null>(null);
+
   // ── SOW state ─────────────────────────────────────────────────────────────
   const [sowWeeks, setSowWeeks] = React.useState<SowWeek[]>([]);
   const [sowLoading, setSowLoading] = React.useState(false);
@@ -257,6 +260,39 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [state.zoom, dispatch]); // eslint-disable-line
+
+  // 1. When narration URL changes (new slide or URL updated): reset audio element
+  const narrationUrl = activeSlide()?.narrationUrl ?? null;
+  useEffect(() => {
+    const audio = narrationRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = narrationUrl ?? '';
+    audio.load();
+  }, [narrationUrl]); // eslint-disable-line
+
+  // 2. Play / pause in sync with timeline
+  useEffect(() => {
+    const audio = narrationRef.current;
+    if (!audio || !narrationUrl) return;
+    if (state.playing) {
+      // Seek to playhead before starting (handles resume after scrub)
+      if (Math.abs(audio.currentTime - state.playhead) > 0.3) {
+        audio.currentTime = state.playhead;
+      }
+      audio.play().catch(() => {}); // ignore autoplay policy errors
+    } else {
+      audio.pause();
+    }
+  }, [state.playing]); // eslint-disable-line
+
+  // 3. Scrub: seek audio when playhead changes while paused
+  useEffect(() => {
+    const audio = narrationRef.current;
+    if (!audio || !narrationUrl || state.playing) return;
+    audio.currentTime = state.playhead;
+  }, [state.playhead]); // eslint-disable-line
 
   async function persistLesson(nextLesson: Lesson, options?: { silent?: boolean; published?: boolean }) {
     setSaving(true);
@@ -381,6 +417,10 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     <>
       {/* CSS animations for preview */}
       <style>{ANIMATION_STYLES}</style>
+
+      {/* Hidden narration audio — synced to timeline playhead */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={narrationRef} preload="auto" style={{ display: 'none' }} />
 
       <div
         className="fixed inset-0 flex flex-col overflow-hidden"
