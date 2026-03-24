@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pencil, ExternalLink, RefreshCw, AlignLeft, AlignCenter, AlignRight, Sparkles, Loader2 } from 'lucide-react';
 import type { Lesson, SlideElement, SlideAnimation } from '@/lib/db/types';
 import type { StudioAction } from '../useStudioState';
+import { InlineQuizBuilder } from './InlineQuizBuilder';
 
 interface ElementPropertiesProps {
   element: SlideElement;
@@ -479,31 +480,12 @@ function ContentSection({
 
     case 'quiz':
       return (
-        <Section title="Quiz">
-          <div className="space-y-2.5">
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] text-slate-400">Quiz title</span>
-              <input
-                type="text" value={data?.quizTitle ?? ''}
-                onChange={(e) => patchData({ quizTitle: e.target.value })}
-                placeholder="Quiz title"
-                className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
-                style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
-              />
-            </label>
-            <div className="flex items-center justify-between px-2 py-1.5 rounded-md text-[10px] text-slate-500"
-              style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <span>{data?.embeddedQuiz?.questions?.length ?? 0} question(s)</span>
-              <span className="text-slate-400">Pass: {data?.embeddedQuiz?.passingScore ?? 60}%</span>
-            </div>
-            <button
-              onClick={() => dispatch({ type: 'OPEN_MODAL', modal: { type: 'quiz-builder', elementId: element.id } })}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold text-amber-600 border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
-            >
-              <Pencil size={10} /> Edit Quiz Questions
-            </button>
-          </div>
-        </Section>
+        <InlineQuizBuilder
+          element={element}
+          slideId={slideId}
+          lesson={lesson ?? {} as Lesson}
+          dispatch={dispatch}
+        />
       );
 
     case 'embed':

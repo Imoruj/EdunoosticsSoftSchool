@@ -27,11 +27,12 @@ export function PropertiesPanel({
   sowWeeks, sowLoading, selectedSowWeekId, onSowWeekSelect, onClassChange,
 }: PropertiesPanelProps) {
   const panel = state.rightPanel;
+  const panelWidth = selectedElement?.type === 'quiz' ? 360 : 260;
 
   return (
     <aside
       className="flex flex-col overflow-hidden shrink-0"
-      style={{ width: 260, background: '#ffffff', borderLeft: '1px solid #e2e8f0' }}
+      style={{ width: panelWidth, background: '#ffffff', borderLeft: '1px solid #e2e8f0', transition: 'width 0.15s ease' }}
     >
       {/* Tabs */}
       <div className="flex shrink-0" style={{ borderBottom: '1px solid #e2e8f0' }}>
