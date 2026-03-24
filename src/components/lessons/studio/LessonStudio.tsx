@@ -15,7 +15,6 @@ import { TextEditorModal } from './modals/TextEditorModal';
 import { MediaPickerModal } from './modals/MediaPickerModal';
 import { PreviewModal } from './modals/PreviewModal';
 import { TextGeneratorModal } from './modals/TextGeneratorModal';
-import { QuizBuilderModal } from './modals/QuizBuilderModal';
 import { useLessons } from '@/lib/db/hooks';
 import type { LessonReferenceMaterial, LessonSlide, SlideElement } from '@/lib/db/types';
 import type { SowWeek } from './panels/SowWeekPanel';
@@ -373,23 +372,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       );
     }
 
-    if (modal.type === 'quiz-builder') {
-      const slide = (state.lesson.slides ?? []).find(
-        (entry) => entry.elements.some((element) => element.id === modal.elementId)
-      );
-      const element = slide?.elements.find((entry) => entry.id === modal.elementId);
-      if (!slide || !element) return null;
-
-      return (
-        <QuizBuilderModal
-          lesson={state.lesson}
-          slide={slide}
-          element={element}
-          dispatch={dispatch}
-          onClose={() => dispatch({ type: 'CLOSE_MODAL' })}
-        />
-      );
-    }
+    // quiz-builder is now inline in the sidebar — no modal needed
 
     return null;
   }

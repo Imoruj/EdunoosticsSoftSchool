@@ -168,9 +168,8 @@ export function CanvasElement({
     e.stopPropagation();
     if (element.type === 'text') {
       setIsEditing(true); // inline contenteditable editing
-    } else if (element.type === 'quiz') {
-      dispatch({ type: 'OPEN_MODAL', modal: { type: 'quiz-builder', elementId: element.id } });
     }
+    // quiz: editing is done in the sidebar properties panel — no modal
   }
 
   function handleTextEditEnd(html: string) {
