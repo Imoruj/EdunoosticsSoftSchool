@@ -69,7 +69,7 @@ export function ModalShell({
   wide?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'rgba(0,0,0,0.75)' }}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6" style={{ background: 'rgba(0,0,0,0.75)' }}>
       <div
         className="relative flex flex-col rounded-xl shadow-2xl overflow-hidden"
         style={{

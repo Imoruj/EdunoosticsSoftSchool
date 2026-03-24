@@ -7,18 +7,27 @@ import { SECTION_LABEL } from '@/lib/lessons/migrateToSlides';
 
 interface PreviewModalProps {
   lesson: Lesson;
+  initialSlideId?: string;
   onClose: () => void;
 }
 
-export function PreviewModal({ lesson, onClose }: PreviewModalProps) {
+export function PreviewModal({ lesson, initialSlideId, onClose }: PreviewModalProps) {
   const slides = lesson.slides ?? [];
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const initialIndex = Math.max(0, slides.findIndex((entry) => entry.id === initialSlideId));
+  const [currentIdx, setCurrentIdx] = useState(initialIndex);
   const [playing, setPlaying] = useState(false);
   const [playhead, setPlayhead] = useState(0);
   const raf = useRef<number>(0);
   const lastTime = useRef<number>(0);
 
   const slide = slides[currentIdx] ?? null;
+
+  useEffect(() => {
+    const nextIndex = Math.max(0, slides.findIndex((entry) => entry.id === initialSlideId));
+    setCurrentIdx(nextIndex);
+    setPlayhead(0);
+    setPlaying(false);
+  }, [initialSlideId, slides]);
 
   const goNext = useCallback(() => {
     setPlayhead(0);
@@ -71,7 +80,7 @@ export function PreviewModal({ lesson, onClose }: PreviewModalProps) {
 
   if (!slide) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: '#000' }}>
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center" style={{ background: '#000' }}>
         <p className="text-white">No slides to preview</p>
         <button onClick={onClose} className="absolute top-4 right-4 text-white"><X size={20} /></button>
       </div>
@@ -86,7 +95,7 @@ export function PreviewModal({ lesson, onClose }: PreviewModalProps) {
     : { background: '#fff' };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#000' }}>
+    <div className="fixed inset-0 z-[10000] flex flex-col" style={{ background: '#000' }}>
       {/* Top bar */}
       <div className="flex items-center gap-4 px-6 py-3 shrink-0" style={{ background: 'rgba(0,0,0,0.8)' }}>
         <button onClick={onClose} className="p-1 rounded text-slate-400 hover:text-white">
