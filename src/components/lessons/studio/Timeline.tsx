@@ -29,11 +29,15 @@ export function Timeline({ state, dispatch, activeSlide }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const rafRef = useRef<number>(0);
+  const playheadRef = useRef(0);
 
   const slide = activeSlide;
   const duration = slide?.duration ?? 10;
   const playing = state.playing;
   const playhead = state.playhead;
+
+  // Keep ref in sync with state so the RAF tick always sees the current value
+  useEffect(() => { playheadRef.current = playhead; }, [playhead]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -43,15 +47,21 @@ export function Timeline({ state, dispatch, activeSlide }: TimelineProps) {
     return () => ro.disconnect();
   }, []);
 
-  // Playback RAF
+  // Playback RAF — uses playheadRef to avoid stale-closure bug
   useEffect(() => {
     if (!playing) return;
     let last = performance.now();
     function tick(now: number) {
       const dt = (now - last) / 1000;
       last = now;
-      dispatch({ type: 'SCRUB', time: Math.min(state.playhead + dt, duration) });
-      if (state.playhead + dt >= duration) { dispatch({ type: 'PAUSE' }); dispatch({ type: 'SCRUB', time: duration }); return; }
+      const newTime = Math.min(playheadRef.current + dt, duration);
+      playheadRef.current = newTime;
+      dispatch({ type: 'SCRUB', time: newTime });
+      if (newTime >= duration) {
+        dispatch({ type: 'PAUSE' });
+        dispatch({ type: 'SCRUB', time: duration });
+        return;
+      }
       rafRef.current = requestAnimationFrame(tick);
     }
     rafRef.current = requestAnimationFrame(tick);
@@ -114,7 +124,8 @@ export function Timeline({ state, dispatch, activeSlide }: TimelineProps) {
   }
 
   const elements = [...slide.elements].sort((a, b) => a.zIndex - b.zIndex);
-  const totalH = RULER_H + elements.length * ROW_H + 4;
+  const hasNarration = !!slide.narrationUrl;
+  const totalH = RULER_H + elements.length * ROW_H + (hasNarration ? ROW_H : 0) + 4;
 
   const step = duration <= 10 ? 1 : duration <= 30 ? 2 : 5;
   const marks: number[] = [];
@@ -204,6 +215,23 @@ export function Timeline({ state, dispatch, activeSlide }: TimelineProps) {
               </g>
             );
           })}
+
+          {/* Narration track */}
+          {hasNarration && (() => {
+            const rowIdx = elements.length;
+            const y = RULER_H + rowIdx * ROW_H;
+            return (
+              <g key="narration-row">
+                <rect x={LEFT_W} y={y} width={width} height={ROW_H} fill={rowIdx % 2 === 0 ? '#f1f5f9' : '#f8fafc'} />
+                <rect x={0} y={y} width={LEFT_W} height={ROW_H} fill="#f0fdf4" />
+                <text x={10} y={y + ROW_H / 2 + 3.5} fontSize={10} fill="#16a34a" fontFamily="system-ui,sans-serif">Narration</text>
+                <line x1={0} y1={y + ROW_H} x2={LEFT_W + width} y2={y + ROW_H} stroke="rgba(0,0,0,0.06)" strokeWidth={1} />
+                {/* Full-width green bar spanning whole slide */}
+                <rect x={LEFT_W} y={y + 5} width={width} height={ROW_H - 10} rx={3} fill="#16a34a" fillOpacity={0.45} />
+                <text x={LEFT_W + 8} y={y + ROW_H / 2 + 3.5} fontSize={9} fill="#166534" fontFamily="system-ui,sans-serif">audio narration</text>
+              </g>
+            );
+          })()}
 
           {/* Playhead */}
           <line x1={timeToX(playhead)} y1={0} x2={timeToX(playhead)} y2={totalH} stroke="#ef4444" strokeWidth={1} opacity={0.7} />
