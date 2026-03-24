@@ -102,6 +102,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [studentChangeRequests, setStudentChangeRequests] = useState<StudentChangeRequest[]>([]);
     const [loadingStudentChangeRequests, setLoadingStudentChangeRequests] = useState(false);
     const [reviewingStudentChangeRequestId, setReviewingStudentChangeRequestId] = useState<string | null>(null);
+    const [reviewConfirm, setReviewConfirm] = useState<{ requestId: string; action: 'approve' | 'reject' } | null>(null);
+    const [reviewNote, setReviewNote] = useState('');
 
     const getFirstClassArmId = (classList: ClassOption[]) => {
         for (const cls of classList) {
@@ -840,24 +842,19 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         }
     };
 
-    const handleStudentChangeRequestReview = async (
+    const handleStudentChangeRequestReview = (
         requestId: string,
         action: "approve" | "reject"
     ) => {
         if (!requestId) return;
+        setReviewNote('');
+        setReviewConfirm({ requestId, action });
+    };
 
-        const confirmed = window.confirm(
-            action === "approve"
-                ? "Approve this student request?"
-                : "Reject this student request?"
-        );
-
-        if (!confirmed) return;
-
-        const reviewNote = action === "reject"
-            ? window.prompt("Optional rejection reason:", "") ?? ""
-            : "";
-
+    const confirmStudentChangeRequestReview = async () => {
+        if (!reviewConfirm) return;
+        const { requestId, action } = reviewConfirm;
+        setReviewConfirm(null);
         setReviewingStudentChangeRequestId(requestId);
         try {
             const response = await fetch(`/api/students/change-requests/${requestId}`, {
@@ -879,6 +876,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             toast.error(err instanceof Error ? err.message : `Failed to ${action} request`);
         } finally {
             setReviewingStudentChangeRequestId(null);
+            setReviewNote('');
         }
     };
 
@@ -1764,6 +1762,61 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     </div>
                 )
             }
+
+            {/* Review Change Request Modal */}
+            {reviewConfirm && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4 ${reviewConfirm.action === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
+                            {reviewConfirm.action === 'approve' ? (
+                                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            ) : (
+                                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            )}
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                            {reviewConfirm.action === 'approve' ? 'Approve Request?' : 'Reject Request?'}
+                        </h3>
+                        <p className="text-gray-500 text-center mb-4 text-sm">
+                            {reviewConfirm.action === 'approve'
+                                ? 'The student record will be updated with the requested changes.'
+                                : 'The request will be declined and the student record will remain unchanged.'}
+                        </p>
+                        {reviewConfirm.action === 'reject' && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Rejection reason <span className="text-gray-400 font-normal">(optional)</span>
+                                </label>
+                                <textarea
+                                    value={reviewNote}
+                                    onChange={(e) => setReviewNote(e.target.value)}
+                                    placeholder="Enter a reason for rejection…"
+                                    rows={3}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+                                />
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setReviewConfirm(null)}
+                                className="btn-secondary flex-1"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmStudentChangeRequestReview}
+                                className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${reviewConfirm.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                            >
+                                {reviewConfirm.action === 'approve' ? 'Approve' : 'Reject'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Import CSV Modal */}
             {isAdmin && showImportModal && (
