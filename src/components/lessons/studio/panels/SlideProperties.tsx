@@ -315,6 +315,23 @@ function NarrationSection({ slide, update, lesson }: {
                 </button>
               </div>
             </>
+          ) : slide.narrationUrl ? (
+            /* ── Narration already on slide: show only the compact player ── */
+            <>
+              <audio ref={audioRef} src={slide.narrationUrl} onEnded={() => setPlaying(false)} className="hidden" />
+              <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <button onClick={togglePlay}
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                  style={{ background: '#16a34a', color: '#ffffff' }}>
+                  {playing ? <Pause size={10} /> : <Play size={10} />}
+                </button>
+                <span className="text-[10px] text-green-700 flex-1 truncate">Narration added ✓</span>
+                <button onClick={() => { update({ narrationUrl: undefined }); setPlaying(false); }}
+                  className="text-green-500 hover:text-red-500 transition-colors" title="Remove narration">
+                  <Trash2 size={10} />
+                </button>
+              </div>
+            </>
           ) : (
             <>
               {/* Tab switcher */}
@@ -400,23 +417,6 @@ function NarrationSection({ slide, update, lesson }: {
               )}
 
               {error && <p className="text-[10px] text-red-500 px-1">{error}</p>}
-
-              {/* ── Committed narration (on slide) ── */}
-              {slide.narrationUrl && (
-                <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                  <audio ref={audioRef} src={slide.narrationUrl} onEnded={() => setPlaying(false)} className="hidden" />
-                  <button onClick={togglePlay}
-                    className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors"
-                    style={{ background: '#16a34a', color: '#ffffff' }}>
-                    {playing ? <Pause size={10} /> : <Play size={10} />}
-                  </button>
-                  <span className="text-[10px] text-green-700 flex-1 truncate">Narration added ✓</span>
-                  <button onClick={() => { update({ narrationUrl: undefined }); setPlaying(false); }}
-                    className="text-green-500 hover:text-red-500 transition-colors" title="Remove narration">
-                    <Trash2 size={10} />
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
