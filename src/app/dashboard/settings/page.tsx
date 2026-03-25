@@ -1097,8 +1097,8 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
                                 {editingGrade === rule.id ? (
                                     <>
                                         <td className="px-4 py-2"><input type="text" className="input w-16" defaultValue={rule.grade} id={`edit-grade-${rule.id}`} /></td>
-                                        <td className="px-4 py-2"><input type="number" className="input w-20" defaultValue={rule.minScore} id={`edit-min-${rule.id}`} /></td>
-                                        <td className="px-4 py-2"><input type="number" className="input w-20" defaultValue={rule.maxScore} id={`edit-max-${rule.id}`} /></td>
+                                        <td className="px-4 py-2"><input type="number" step="0.1" className="input w-20" defaultValue={rule.minScore} id={`edit-min-${rule.id}`} /></td>
+                                        <td className="px-4 py-2"><input type="number" step="0.1" className="input w-20" defaultValue={rule.maxScore} id={`edit-max-${rule.id}`} /></td>
                                         <td className="px-4 py-2"><input type="text" className="input w-28" defaultValue={rule.remark} id={`edit-remark-${rule.id}`} /></td>
                                         <td className="px-4 py-2 space-x-2">
                                             <button
@@ -1138,8 +1138,8 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
             {/* Add New Grading Rule */}
             <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 rounded-lg">
                 <input type="text" placeholder="Grade (e.g., A1)" className="input w-24" value={newGrade.grade} onChange={(e) => setNewGrade({ ...newGrade, grade: e.target.value })} />
-                <input type="number" placeholder="Min" className="input w-20" value={newGrade.minScore} onChange={(e) => setNewGrade({ ...newGrade, minScore: e.target.value })} />
-                <input type="number" placeholder="Max" className="input w-20" value={newGrade.maxScore} onChange={(e) => setNewGrade({ ...newGrade, maxScore: e.target.value })} />
+                <input type="number" step="0.1" placeholder="Min" className="input w-20" value={newGrade.minScore} onChange={(e) => setNewGrade({ ...newGrade, minScore: e.target.value })} />
+                <input type="number" step="0.1" placeholder="Max" className="input w-20" value={newGrade.maxScore} onChange={(e) => setNewGrade({ ...newGrade, maxScore: e.target.value })} />
                 <input type="text" placeholder="Remark (e.g., Excellent)" className="input flex-1" value={newGrade.remark} onChange={(e) => setNewGrade({ ...newGrade, remark: e.target.value })} />
                 <button onClick={addGradingRule} disabled={saving} className="btn-primary text-sm px-4">+ Add</button>
             </div>
@@ -1757,7 +1757,15 @@ function GradingSettings() {
             {/* Assessment Types Section (shared across all categories) */}
             <div className="card p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Score Components</h3>
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 mb-1">
+                            Global Assessment Type Settings
+                        </p>
+                        <h3 className="text-lg font-semibold text-gray-900">Score Components</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            These are the school-wide default assessment components used unless a class-specific override is configured below.
+                        </p>
+                    </div>
                     <div className="text-sm text-gray-500 text-right">
                         <div>
                             Counted total: <span className={`font-bold ${assessmentSummary.countedMaxScore === 100 ? 'text-green-600' : 'text-orange-500'}`}>{assessmentSummary.countedMaxScore}</span>/100 points

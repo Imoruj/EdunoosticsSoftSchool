@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
         const gradingRule = await prisma.gradingRule.create({
             data: {
                 grade,
-                minScore: parseInt(minScore),
-                maxScore: parseInt(maxScore),
+                minScore: parseFloat(minScore),
+                maxScore: parseFloat(maxScore),
                 remark,
                 schoolId,
                 schoolCategory: schoolCategory || null,
@@ -143,8 +143,8 @@ export async function PUT(req: NextRequest) {
             where: { id: existingRule.id },
             data: {
                 grade,
-                minScore: minScore !== undefined ? parseInt(minScore) : undefined,
-                maxScore: maxScore !== undefined ? parseInt(maxScore) : undefined,
+                minScore: minScore !== undefined ? parseFloat(minScore) : undefined,
+                maxScore: maxScore !== undefined ? parseFloat(maxScore) : undefined,
                 remark,
                 // Only update schoolCategory if explicitly provided
                 ...(schoolCategory !== undefined

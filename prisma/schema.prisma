@@ -8,56 +8,57 @@ datasource db {
 }
 
 model School {
-  id                     String                  @id @default(cuid())
-  name                   String
-  motto                  String?
-  address                String?
-  city                   String?
-  state                  String?
-  country                String                  @default("Nigeria")
-  phone                  String?
-  email                  String?
-  website                String?
-  logoUrl                String?
-  primaryColor           String                  @default("#16a34a") // Brand color (default primary-600)
-  slug                   String?                 @unique // URL-friendly name for branded login
-  principalSignatureUrl  String?
-  stampUrl               String?
+  id                          String                   @id @default(cuid())
+  name                        String
+  motto                       String?
+  address                     String?
+  city                        String?
+  state                       String?
+  country                     String                   @default("Nigeria")
+  phone                       String?
+  email                       String?
+  website                     String?
+  logoUrl                     String?
+  primaryColor                String                   @default("#16a34a") // Brand color (default primary-600)
+  slug                        String?                  @unique // URL-friendly name for branded login
+  principalSignatureUrl       String?
+  stampUrl                    String?
   isActive                    Boolean                  @default(true)
   registrationStatus          SchoolRegistrationStatus @default(APPROVED)
   registrationRejectionReason String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  academicSessions       AcademicSession[]
-  affectiveTraits        AffectiveTrait[]
-  aiSettings             AiSettings?
-  assessmentTypes        AssessmentType[]
-  classes                Class[]
-  feeStructures          FeeStructure[]
-  gradingRules           GradingRule[]
-  messages               Message[]
-  psychomotorSkills      PsychomotorSkill[]
-  students               Student[]
-  subjects               Subject[]
-  users                  User[]
-  reportCardConfig       ReportCardConfig?
-  communicationConfig    CommunicationConfig?
-  broadsheetConfig       BroadsheetConfig?
-  featureControls        SchoolFeatureControl?
-  backgroundJobs         BackgroundJob[]
-  scoreSheetWorkflows    ScoreSheetWorkflow[]
-  classReportWorkflows   ClassReportWorkflow[]
-  studentReportWorkflows StudentReportWorkflow[]
-  notifications          UserNotification[]
-  uploadedFiles          UploadedFile[]
-  studentChangeRequests  StudentChangeRequest[]
-  schemesOfWork          SchemeOfWork[]
-  publicHolidays         PublicHoliday[]
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+  academicSessions            AcademicSession[]
+  affectiveTraits             AffectiveTrait[]
+  aiSettings                  AiSettings?
+  assessmentTypes             AssessmentType[]
+  classes                     Class[]
+  feeStructures               FeeStructure[]
+  gradingRules                GradingRule[]
+  messages                    Message[]
+  psychomotorSkills           PsychomotorSkill[]
+  students                    Student[]
+  subjects                    Subject[]
+  compositeSubjectConfigs     CompositeSubjectConfig[]
+  users                       User[]
+  reportCardConfig            ReportCardConfig?
+  communicationConfig         CommunicationConfig?
+  broadsheetConfig            BroadsheetConfig?
+  featureControls             SchoolFeatureControl?
+  backgroundJobs              BackgroundJob[]
+  scoreSheetWorkflows         ScoreSheetWorkflow[]
+  classReportWorkflows        ClassReportWorkflow[]
+  studentReportWorkflows      StudentReportWorkflow[]
+  notifications               UserNotification[]
+  uploadedFiles               UploadedFile[]
+  studentChangeRequests       StudentChangeRequest[]
+  schemesOfWork               SchemeOfWork[]
+  publicHolidays              PublicHoliday[]
 }
 
 model User {
-  id                                    String                  @id @default(cuid())
-  email                                 String                  @unique
+  id                                    String                     @id @default(cuid())
+  email                                 String                     @unique
   passwordHash                          String
   firstName                             String
   lastName                              String
@@ -65,61 +66,62 @@ model User {
   roles                                 UserRole[]
   avatarUrl                             String?
   signatureUrl                          String? // For class teacher/principal signatures
-  isActive                              Boolean                 @default(true)
-  mustChangePassword                    Boolean                 @default(true)
+  isActive                              Boolean                    @default(true)
+  mustChangePassword                    Boolean                    @default(true)
   lastLogin                             DateTime?
-  createdAt                             DateTime                @default(now())
-  updatedAt                             DateTime                @updatedAt
+  createdAt                             DateTime                   @default(now())
+  updatedAt                             DateTime                   @updatedAt
   schoolId                              String?
-  attendanceMarked                      Attendance[]            @relation("AttendanceMarker")
-  classArms                             ClassArm[]              @relation("ClassTeacher")
-  paymentsReceived                      FeePayment[]            @relation("PaymentReceiver")
-  messagesSent                          Message[]               @relation("MessageSender")
+  attendanceMarked                      Attendance[]               @relation("AttendanceMarker")
+  classArms                             ClassArm[]                 @relation("ClassTeacher")
+  paymentsReceived                      FeePayment[]               @relation("PaymentReceiver")
+  messagesSent                          Message[]                  @relation("MessageSender")
   parent                                Parent?
-  scoresCreated                         Score[]                 @relation("ScoreCreator")
-  scoresUpdated                         Score[]                 @relation("ScoreUpdater")
-  studentAccount                        Student?                @relation("StudentUser")
+  scoresCreated                         Score[]                    @relation("ScoreCreator")
+  scoresUpdated                         Score[]                    @relation("ScoreUpdater")
+  studentAccount                        Student?                   @relation("StudentUser")
   teacherSubjects                       TeacherSubject[]
-  scoreUploadRequests                   ScoreUploadRequest[]    @relation("ScoreUploader")
-  scoreUploadReviews                    ScoreUploadRequest[]    @relation("ScoreReviewer")
-  scoreSheetWorkflowsAsSubjectTeacher   ScoreSheetWorkflow[]    @relation("ScoreWorkflowSubjectTeacher")
-  scoreSheetWorkflowsAsClassTeacher     ScoreSheetWorkflow[]    @relation("ScoreWorkflowClassTeacher")
-  scoreSheetWorkflowsReviewed           ScoreSheetWorkflow[]    @relation("ScoreWorkflowReviewer")
-  scoreSheetWorkflowsBroadcasted        ScoreSheetWorkflow[]    @relation("ScoreWorkflowBroadcaster")
-  scoreSheetActionLogs                  ScoreSheetActionLog[]   @relation("ScoreWorkflowActionActor")
-  classReportWorkflowsResultBroadcasted ClassReportWorkflow[]   @relation("ClassReportResultBroadcaster")
-  classReportWorkflowsCommentsGenerated ClassReportWorkflow[]   @relation("ClassReportCommentsGenerator")
-  classReportWorkflowsPublished         ClassReportWorkflow[]   @relation("ClassReportPublisher")
-  classReportWorkflowsUnpublished       ClassReportWorkflow[]   @relation("ClassReportUnpublisher")
-  studentReportWorkflowsClassApproved   StudentReportWorkflow[] @relation("StudentReportClassApprover")
-  studentReportWorkflowsAdminReviewed   StudentReportWorkflow[] @relation("StudentReportAdminReviewer")
-  notifications                         UserNotification[]      @relation("UserNotifications")
-  school                                School?                 @relation(fields: [schoolId], references: [id])
+  scoreUploadRequests                   ScoreUploadRequest[]       @relation("ScoreUploader")
+  scoreUploadReviews                    ScoreUploadRequest[]       @relation("ScoreReviewer")
+  scoreSheetWorkflowsAsSubjectTeacher   ScoreSheetWorkflow[]       @relation("ScoreWorkflowSubjectTeacher")
+  scoreSheetWorkflowsAsClassTeacher     ScoreSheetWorkflow[]       @relation("ScoreWorkflowClassTeacher")
+  scoreSheetWorkflowsReviewed           ScoreSheetWorkflow[]       @relation("ScoreWorkflowReviewer")
+  scoreSheetWorkflowsBroadcasted        ScoreSheetWorkflow[]       @relation("ScoreWorkflowBroadcaster")
+  scoreSheetActionLogs                  ScoreSheetActionLog[]      @relation("ScoreWorkflowActionActor")
+  classReportWorkflowsResultBroadcasted ClassReportWorkflow[]      @relation("ClassReportResultBroadcaster")
+  classReportWorkflowsCommentsGenerated ClassReportWorkflow[]      @relation("ClassReportCommentsGenerator")
+  classReportWorkflowsPublished         ClassReportWorkflow[]      @relation("ClassReportPublisher")
+  classReportWorkflowsUnpublished       ClassReportWorkflow[]      @relation("ClassReportUnpublisher")
+  studentReportWorkflowsClassApproved   StudentReportWorkflow[]    @relation("StudentReportClassApprover")
+  studentReportWorkflowsAdminReviewed   StudentReportWorkflow[]    @relation("StudentReportAdminReviewer")
+  notifications                         UserNotification[]         @relation("UserNotifications")
+  school                                School?                    @relation(fields: [schoolId], references: [id])
   deviceKeys                            DeviceKey[]
   syncMetadata                          SyncMetadata[]
   encryptedBlobs                        EncryptedBlob[]
-  uploadedFiles                         UploadedFile[]          @relation("UploadedFileOwner")
-  signalingMessagesFrom                 SignalingMessage[]      @relation("SignalingFrom")
-  signalingMessagesTo                   SignalingMessage[]      @relation("SignalingTo")
-  schemesOfWorkOwned                    SchemeOfWork[]         @relation("SOWOwner")
-  schemesOfWorkApproved                 SchemeOfWork[]         @relation("SOWApprover")
-  schemeOfWorkTermsApproved             SchemeOfWorkTerm[]     @relation("SOWTermApprover")
+  uploadedFiles                         UploadedFile[]             @relation("UploadedFileOwner")
+  signalingMessagesFrom                 SignalingMessage[]         @relation("SignalingFrom")
+  signalingMessagesTo                   SignalingMessage[]         @relation("SignalingTo")
+  schemesOfWorkOwned                    SchemeOfWork[]             @relation("SOWOwner")
+  schemesOfWorkApproved                 SchemeOfWork[]             @relation("SOWApprover")
+  schemeOfWorkTermsApproved             SchemeOfWorkTerm[]         @relation("SOWTermApprover")
   schemeOfWorkCollaborators             SchemeOfWorkCollaborator[]
-  studentChangeRequestsRequested        StudentChangeRequest[] @relation("StudentChangeRequester")
-  studentChangeRequestsReviewed         StudentChangeRequest[] @relation("StudentChangeReviewer")
+  studentChangeRequestsRequested        StudentChangeRequest[]     @relation("StudentChangeRequester")
+  studentChangeRequestsReviewed         StudentChangeRequest[]     @relation("StudentChangeReviewer")
 }
 
 model AcademicSession {
-  id        String   @id @default(cuid())
-  name      String
-  startDate DateTime
-  endDate   DateTime
-  isCurrent Boolean  @default(false)
-  createdAt DateTime @default(now())
-  schoolId  String
-  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  terms         Term[]
-  schemesOfWork SchemeOfWork[]
+  id                      String                   @id @default(cuid())
+  name                    String
+  startDate               DateTime
+  endDate                 DateTime
+  isCurrent               Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  schoolId                String
+  school                  School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  terms                   Term[]
+  schemesOfWork           SchemeOfWork[]
+  compositeSubjectConfigs CompositeSubjectConfig[]
 
   @@unique([schoolId, name])
 }
@@ -152,17 +154,18 @@ model Term {
 }
 
 model Class {
-  id                   String                @id @default(cuid())
-  name                 String
-  level                ClassLevel
-  orderIndex           Int                   @default(0)
-  createdAt            DateTime              @default(now())
-  schoolId             String
-  school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  arms                 ClassArm[]
-  feeStructures        FeeStructure[]
-  schemesOfWork        SchemeOfWork[]
-  classAssessmentTypes ClassAssessmentType[]
+  id                      String                   @id @default(cuid())
+  name                    String
+  level                   ClassLevel
+  orderIndex              Int                      @default(0)
+  createdAt               DateTime                 @default(now())
+  schoolId                String
+  school                  School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  arms                    ClassArm[]
+  feeStructures           FeeStructure[]
+  schemesOfWork           SchemeOfWork[]
+  classAssessmentTypes    ClassAssessmentType[]
+  compositeSubjectConfigs CompositeSubjectConfig[]
 
   @@unique([schoolId, name])
 }
@@ -192,23 +195,68 @@ model ClassArm {
 }
 
 model Subject {
-  id                  String               @id @default(cuid())
-  name                String
-  code                String?
-  category            SubjectCategory      @default(CORE)
-  isActive            Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  schoolId            String
-  subjectClassArms    SubjectClassArm[]
-  subjectEnrollments  SubjectEnrollment[]
-  scores              Score[]
-  scoreUploadRequests ScoreUploadRequest[]
-  scoreSheetWorkflows ScoreSheetWorkflow[]
-  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacherSubjects     TeacherSubject[]
-  schemesOfWork       SchemeOfWork[]
+  id                        String                      @id @default(cuid())
+  name                      String
+  code                      String?
+  category                  SubjectCategory             @default(CORE)
+  subjectKind               SubjectKind                 @default(STANDARD)
+  defaultParentSubjectId    String?
+  isActive                  Boolean                     @default(true)
+  createdAt                 DateTime                    @default(now())
+  schoolId                  String
+  subjectClassArms          SubjectClassArm[]
+  subjectEnrollments        SubjectEnrollment[]
+  scores                    Score[]
+  scoreUploadRequests       ScoreUploadRequest[]
+  scoreSheetWorkflows       ScoreSheetWorkflow[]
+  school                    School                      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacherSubjects           TeacherSubject[]
+  schemesOfWork             SchemeOfWork[]
+  defaultParentSubject      Subject?                    @relation("DefaultCompositeParent", fields: [defaultParentSubjectId], references: [id], onDelete: SetNull)
+  defaultComponentSubjects  Subject[]                   @relation("DefaultCompositeParent")
+  parentCompositeConfigs    CompositeSubjectConfig[]    @relation("CompositeParentSubject")
+  componentCompositeEntries CompositeSubjectComponent[] @relation("CompositeComponentSubject")
+  derivedEnrollmentChildren SubjectEnrollment[]         @relation("DerivedEnrollmentSource")
 
   @@unique([schoolId, name])
+}
+
+model CompositeSubjectConfig {
+  id              String                      @id @default(cuid())
+  schoolId        String
+  sessionId       String
+  classId         String
+  parentSubjectId String
+  isActive        Boolean                     @default(true)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  school          School                      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session         AcademicSession             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  class           Class                       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  parentSubject   Subject                     @relation("CompositeParentSubject", fields: [parentSubjectId], references: [id], onDelete: Cascade)
+  components      CompositeSubjectComponent[]
+  derivedScores   Score[]                     @relation("DerivedCompositeScores")
+
+  @@unique([sessionId, classId, parentSubjectId])
+  @@index([schoolId, sessionId, classId])
+}
+
+model CompositeSubjectComponent {
+  id                 String                 @id @default(cuid())
+  compositeConfigId  String
+  componentSubjectId String
+  orderIndex         Int                    @default(0)
+  ca1Max             Int                    @default(0)
+  ca2Max             Int                    @default(0)
+  ca3Max             Int                    @default(0)
+  examMax            Int                    @default(0)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  compositeConfig    CompositeSubjectConfig @relation(fields: [compositeConfigId], references: [id], onDelete: Cascade)
+  componentSubject   Subject                @relation("CompositeComponentSubject", fields: [componentSubjectId], references: [id], onDelete: Cascade)
+
+  @@unique([compositeConfigId, componentSubjectId])
+  @@index([componentSubjectId])
 }
 
 model SubjectClassArm {
@@ -288,46 +336,52 @@ model Student {
 }
 
 model SubjectEnrollment {
-  id         String   @id @default(cuid())
-  studentId  String
-  subjectId  String
-  classArmId String
-  termId     String
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  studentId            String
+  subjectId            String
+  classArmId           String
+  termId               String
+  isActive             Boolean  @default(true)
+  isDerived            Boolean  @default(false)
+  derivedFromSubjectId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject  Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  classArm ClassArm @relation(fields: [classArmId], references: [id], onDelete: Cascade)
-  term     Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject            Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classArm           ClassArm @relation(fields: [classArmId], references: [id], onDelete: Cascade)
+  term               Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
+  derivedFromSubject Subject? @relation("DerivedEnrollmentSource", fields: [derivedFromSubjectId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, subjectId, termId])
   @@index([subjectId, classArmId, termId])
 }
 
 model Score {
-  id              String   @id @default(cuid())
-  ca1             Decimal  @default(0) @db.Decimal(5, 2)
-  ca2             Decimal  @default(0) @db.Decimal(5, 2)
-  ca3             Decimal  @default(0) @db.Decimal(5, 2)
-  exam            Decimal  @default(0) @db.Decimal(5, 2)
-  total           Decimal  @default(0) @db.Decimal(5, 2)
-  grade           String?
-  remark          String?
-  subjectPosition Int?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  studentId       String
-  subjectId       String
-  termId          String
-  createdById     String?
-  updatedById     String?
-  createdBy       User?    @relation("ScoreCreator", fields: [createdById], references: [id])
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  term            Term     @relation(fields: [termId], references: [id], onDelete: Cascade)
-  updatedBy       User?    @relation("ScoreUpdater", fields: [updatedById], references: [id])
+  id                           String                  @id @default(cuid())
+  ca1                          Decimal                 @default(0) @db.Decimal(5, 2)
+  ca2                          Decimal                 @default(0) @db.Decimal(5, 2)
+  ca3                          Decimal                 @default(0) @db.Decimal(5, 2)
+  exam                         Decimal                 @default(0) @db.Decimal(5, 2)
+  total                        Decimal                 @default(0) @db.Decimal(5, 2)
+  grade                        String?
+  remark                       String?
+  subjectPosition              Int?
+  isDerived                    Boolean                 @default(false)
+  derivedFromCompositeConfigId String?
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime                @updatedAt
+  studentId                    String
+  subjectId                    String
+  termId                       String
+  createdById                  String?
+  updatedById                  String?
+  createdBy                    User?                   @relation("ScoreCreator", fields: [createdById], references: [id])
+  student                      Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject                      Subject                 @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term                         Term                    @relation(fields: [termId], references: [id], onDelete: Cascade)
+  updatedBy                    User?                   @relation("ScoreUpdater", fields: [updatedById], references: [id])
+  derivedFromCompositeConfig   CompositeSubjectConfig? @relation("DerivedCompositeScores", fields: [derivedFromCompositeConfigId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, subjectId, termId])
 }
@@ -440,8 +494,8 @@ model PublicHoliday {
 
 model GradingRule {
   id             String          @id @default(cuid())
-  minScore       Int
-  maxScore       Int
+  minScore       Float
+  maxScore       Float
   grade          String
   remark         String
   createdAt      DateTime        @default(now())
@@ -453,32 +507,32 @@ model GradingRule {
 }
 
 model AssessmentType {
-  id        String   @id @default(cuid())
-  name      String
-  shortName String?
-  maxScore  Int
-  includeInTotal Boolean @default(true)
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  name           String
+  shortName      String?
+  maxScore       Int
+  includeInTotal Boolean  @default(true)
+  order          Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
 }
 
 model ClassAssessmentType {
-  id        String   @id @default(cuid())
-  name      String
-  shortName String?
-  maxScore  Int
-  includeInTotal Boolean @default(true)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  classId   String
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  name           String
+  shortName      String?
+  maxScore       Int
+  includeInTotal Boolean  @default(true)
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  classId        String
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   @@unique([classId, name])
 }
@@ -579,6 +633,12 @@ enum SubjectCategory {
   COMMERCIAL
   VOCATIONAL
   LANGUAGE
+}
+
+enum SubjectKind {
+  STANDARD
+  COMPOSITE_PARENT
+  COMPOSITE_COMPONENT
 }
 
 enum AttendanceStatus {
@@ -860,42 +920,42 @@ model CommunicationConfig {
 }
 
 model SchoolFeatureControl {
-  id                   String   @id @default(cuid())
-  schoolId             String   @unique
-  school               School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  schoolId String @unique
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   // People
-  studentsEnabled      Boolean  @default(true)
-  teachersEnabled      Boolean  @default(true)
+  studentsEnabled Boolean @default(true)
+  teachersEnabled Boolean @default(true)
 
   // Academics
-  scoreEntryEnabled    Boolean  @default(true)
-  scoreReviewsEnabled  Boolean  @default(true)
-  subjectsEnabled      Boolean  @default(true)
-  lessonsEnabled       Boolean  @default(true)
-  quizzesEnabled       Boolean  @default(true)
-  assignmentsEnabled   Boolean  @default(true)
-  schemesOfWorkEnabled Boolean  @default(true)
-  classesEnabled       Boolean  @default(true)
-  broadsheetEnabled    Boolean  @default(true)
-  transcriptsEnabled   Boolean  @default(true)
+  scoreEntryEnabled    Boolean @default(true)
+  scoreReviewsEnabled  Boolean @default(true)
+  subjectsEnabled      Boolean @default(true)
+  lessonsEnabled       Boolean @default(true)
+  quizzesEnabled       Boolean @default(true)
+  assignmentsEnabled   Boolean @default(true)
+  schemesOfWorkEnabled Boolean @default(true)
+  classesEnabled       Boolean @default(true)
+  broadsheetEnabled    Boolean @default(true)
+  transcriptsEnabled   Boolean @default(true)
 
   // Reports
-  reportCardsEnabled   Boolean  @default(true)
-  legacyRecordsEnabled Boolean  @default(true)
+  reportCardsEnabled    Boolean @default(true)
+  legacyRecordsEnabled  Boolean @default(true)
   uploadRequestsEnabled Boolean @default(true)
 
   // School
-  attendanceEnabled    Boolean  @default(true)
-  behaviourEnabled     Boolean  @default(true)
-  communicationEnabled Boolean  @default(true)
-  feesEnabled          Boolean  @default(true)
+  attendanceEnabled    Boolean @default(true)
+  behaviourEnabled     Boolean @default(true)
+  communicationEnabled Boolean @default(true)
+  feesEnabled          Boolean @default(true)
 
   // Settings
-  settingsEnabled      Boolean  @default(true)
+  settingsEnabled Boolean @default(true)
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model BroadsheetConfig {
@@ -950,9 +1010,9 @@ model DeviceKey {
   userId            String
   deviceId          String   @unique
   deviceName        String?
-  identityPublicKey String   // ECDH public key (base64)
-  signingPublicKey  String   // ECDSA public key (base64)
-  preKeys           Json?    // Signal-style prekeys
+  identityPublicKey String // ECDH public key (base64)
+  signingPublicKey  String // ECDSA public key (base64)
+  preKeys           Json? // Signal-style prekeys
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   lastSeenAt        DateTime @default(now())
@@ -967,10 +1027,10 @@ model SyncMetadata {
   id          String   @id @default(cuid())
   userId      String
   deviceId    String
-  entityType  String   // 'lesson', 'quiz', 'assignment', 'message'
+  entityType  String // 'lesson', 'quiz', 'assignment', 'message'
   entityId    String
   lastSyncAt  DateTime @default(now())
-  vectorClock Json     // CRDT vector clock
+  vectorClock Json // CRDT vector clock
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, deviceId, entityType, entityId])
@@ -979,17 +1039,17 @@ model SyncMetadata {
 
 // Encrypted data blobs (server cannot decrypt)
 model EncryptedBlob {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
-  blobType      String   // 'lesson', 'quiz', 'assignment', 'message'
-  entityId      String   // Reference to the actual entity
-  encryptedData Bytes    // Encrypted content
-  iv            String   // Initialization vector
-  signature     String?  // Signature for verification
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  blobType      String // 'lesson', 'quiz', 'assignment', 'message'
+  entityId      String // Reference to the actual entity
+  encryptedData Bytes // Encrypted content
+  iv            String // Initialization vector
+  signature     String? // Signature for verification
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   expiresAt     DateTime? // For temporary storage
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, blobType, entityId])
   @@index([userId, blobType])
@@ -997,7 +1057,7 @@ model EncryptedBlob {
 }
 
 model UploadedFile {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   schoolId     String?
   uploadedById String
   uploadType   String
@@ -1007,10 +1067,10 @@ model UploadedFile {
   extension    String
   size         Int
   data         Bytes
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  school       School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  uploadedBy   User      @relation("UploadedFileOwner", fields: [uploadedById], references: [id], onDelete: Cascade)
+  school     School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation("UploadedFileOwner", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([schoolId, uploadType])
   @@index([uploadedById, createdAt])
@@ -1028,28 +1088,28 @@ enum StudentChangeRequestStatus {
 }
 
 model StudentChangeRequest {
-  id               String                     @id @default(cuid())
-  schoolId         String
-  studentId        String?
-  requesterId      String
-  reviewerId       String?
-  action           StudentChangeRequestAction
-  status           StudentChangeRequestStatus @default(PENDING)
-  studentName      String
-  admissionNumber  String
-  classLabel       String?
-  currentData      Json?
-  requestedData    Json?
-  summary          String?
-  reviewNote       String?
-  reviewedAt       DateTime?
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
+  id              String                     @id @default(cuid())
+  schoolId        String
+  studentId       String?
+  requesterId     String
+  reviewerId      String?
+  action          StudentChangeRequestAction
+  status          StudentChangeRequestStatus @default(PENDING)
+  studentName     String
+  admissionNumber String
+  classLabel      String?
+  currentData     Json?
+  requestedData   Json?
+  summary         String?
+  reviewNote      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
 
-  school           School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student          Student?                   @relation(fields: [studentId], references: [id], onDelete: SetNull)
-  requester        User                       @relation("StudentChangeRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  reviewer         User?                      @relation("StudentChangeReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  requester User     @relation("StudentChangeRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewer  User?    @relation("StudentChangeReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
   @@index([schoolId, status, createdAt])
   @@index([requesterId, createdAt])
@@ -1058,14 +1118,14 @@ model StudentChangeRequest {
 
 // WebRTC signaling data (temporary)
 model SignalingMessage {
-  id          String   @id @default(cuid())
-  fromUserId  String
-  toUserId    String
-  signal      Json     // WebRTC signal data
-  createdAt   DateTime @default(now())
-  isRead      Boolean  @default(false)
-  fromUser    User     @relation("SignalingFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser      User     @relation("SignalingTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  signal     Json // WebRTC signal data
+  createdAt  DateTime @default(now())
+  isRead     Boolean  @default(false)
+  fromUser   User     @relation("SignalingFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("SignalingTo", fields: [toUserId], references: [id], onDelete: Cascade)
 
   @@index([toUserId, isRead])
   @@index([createdAt])
@@ -1087,27 +1147,27 @@ enum SowStatus {
 }
 
 model SchemeOfWork {
-  id           String                    @id @default(cuid())
+  id           String    @id @default(cuid())
   schoolId     String
   subjectId    String
   classId      String
   sessionId    String
   title        String
-  status       SowStatus                 @default(DRAFT)
+  status       SowStatus @default(DRAFT)
   adminNote    String?
   submittedAt  DateTime?
   approvedAt   DateTime?
   approvedById String?
   ownerId      String
-  createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  school        School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  subject       Subject                   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  class         Class                     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  session       AcademicSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  owner         User                      @relation("SOWOwner", fields: [ownerId], references: [id])
-  approvedBy    User?                     @relation("SOWApprover", fields: [approvedById], references: [id])
+  school        School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject       Subject                    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class         Class                      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  session       AcademicSession            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  owner         User                       @relation("SOWOwner", fields: [ownerId], references: [id])
+  approvedBy    User?                      @relation("SOWApprover", fields: [approvedById], references: [id])
   terms         SchemeOfWorkTerm[]
   collaborators SchemeOfWorkCollaborator[]
   classArms     SchemeOfWorkClassArm[]
@@ -1117,39 +1177,39 @@ model SchemeOfWork {
 }
 
 model SchemeOfWorkClassArm {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   schemeOfWorkId String
   classArmId     String
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime @default(now())
 
-  schemeOfWork   SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
-  classArm       ClassArm     @relation(fields: [classArmId], references: [id], onDelete: Cascade)
+  schemeOfWork SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  classArm     ClassArm     @relation(fields: [classArmId], references: [id], onDelete: Cascade)
 
   @@unique([schemeOfWorkId, classArmId])
   @@index([schemeOfWorkId])
 }
 
 model SchemeOfWorkTerm {
-  id               String             @id @default(cuid())
+  id               String    @id @default(cuid())
   schemeOfWorkId   String
   termId           String
   termNumber       Int
   objectives       String?
   // Per-term approval workflow
-  status           SowStatus          @default(DRAFT)
+  status           SowStatus @default(DRAFT)
   adminNote        String?
   submittedAt      DateTime?
   approvedAt       DateTime?
   approvedById     String?
   // Frozen snapshot of week data taken at approval time (used by lesson builder)
   approvedSnapshot Json?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  schemeOfWork     SchemeOfWork       @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
-  term             Term               @relation(fields: [termId], references: [id])
-  approvedBy       User?              @relation("SOWTermApprover", fields: [approvedById], references: [id])
-  weeks            SchemeOfWorkWeek[]
+  schemeOfWork SchemeOfWork       @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  term         Term               @relation(fields: [termId], references: [id])
+  approvedBy   User?              @relation("SOWTermApprover", fields: [approvedById], references: [id])
+  weeks        SchemeOfWorkWeek[]
 
   @@unique([schemeOfWorkId, termNumber])
   @@index([schemeOfWorkId])
@@ -1157,7 +1217,7 @@ model SchemeOfWorkTerm {
 }
 
 model SchemeOfWorkWeek {
-  id                 String           @id @default(cuid())
+  id                 String   @id @default(cuid())
   schemeOfWorkTermId String
   weekNumber         Int
   topic              String
@@ -1170,57 +1230,57 @@ model SchemeOfWorkWeek {
   jambObjectives     String?
   igcseObjectives    String?
   objectiveSegments  Json?
-  objectivesApproved Boolean          @default(false)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  objectivesApproved Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  schemeOfWorkTerm   SchemeOfWorkTerm @relation(fields: [schemeOfWorkTermId], references: [id], onDelete: Cascade)
-  references         SchemeOfWorkWeekReference[]
-  sdgMappings        SchemeOfWorkWeekSdg[]
+  schemeOfWorkTerm SchemeOfWorkTerm            @relation(fields: [schemeOfWorkTermId], references: [id], onDelete: Cascade)
+  references       SchemeOfWorkWeekReference[]
+  sdgMappings      SchemeOfWorkWeekSdg[]
 
   @@unique([schemeOfWorkTermId, weekNumber])
   @@index([schemeOfWorkTermId])
 }
 
 model SchemeOfWorkWeekReference {
-  id          String           @id @default(cuid())
+  id          String   @id @default(cuid())
   weekId      String
   type        String
   title       String
   url         String?
   fileKey     String?
   description String?
-  sortOrder   Int              @default(0)
-  createdAt   DateTime         @default(now())
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  week        SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  week SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
 
   @@index([weekId])
 }
 
 model SchemeOfWorkWeekSdg {
-  id          String           @id @default(cuid())
+  id          String   @id @default(cuid())
   weekId      String
   sdgNumber   Int
-  aiSuggested Boolean          @default(false)
-  approved    Boolean          @default(false)
-  createdAt   DateTime         @default(now())
+  aiSuggested Boolean  @default(false)
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
-  week        SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  week SchemeOfWorkWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
 
   @@unique([weekId, sdgNumber])
   @@index([weekId])
 }
 
 model SchemeOfWorkCollaborator {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   schemeOfWorkId String
   userId         String
   invitedById    String
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime @default(now())
 
-  schemeOfWork   SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schemeOfWork SchemeOfWork @relation(fields: [schemeOfWorkId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([schemeOfWorkId, userId])
   @@index([schemeOfWorkId])

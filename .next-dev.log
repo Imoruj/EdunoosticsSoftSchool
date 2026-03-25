@@ -1,0 +1,186 @@
+
+> edunostics-report-card@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 10.9s
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 4.7s (319 modules)
+ ✓ Compiled (321 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/csrf 200 in 10076ms
+ ○ Compiling /api/notifications ...
+ ✓ Compiled /api/notifications in 1661ms (347 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+ GET /api/notifications?limit=8 200 in 2574ms
+ GET /api/auth/csrf 200 in 137ms
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."firstName", "public"."User"."lastName", "public"."User"."phone", "public"."User"."roles"::text[], "public"."User"."avatarUrl", "public"."User"."signatureUrl", "public"."User"."isActive", "public"."User"."mustChangePassword", "public"."User"."lastLogin", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."schoolId" FROM "public"."User" WHERE ("public"."User"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."primaryColor", "public"."School"."slug", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl", "public"."School"."isActive", "public"."School"."registrationStatus"::text, "public"."School"."registrationRejectionReason", "public"."School"."createdAt", "public"."School"."updatedAt" FROM "public"."School" WHERE "public"."School"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."ClassArm"."id", "public"."ClassArm"."armName", "public"."ClassArm"."capacity", "public"."ClassArm"."createdAt", "public"."ClassArm"."classId", "public"."ClassArm"."classTeacherId" FROM "public"."ClassArm" WHERE "public"."ClassArm"."classTeacherId" IN ($1) OFFSET $2
+ POST /api/auth/callback/credentials 200 in 610ms
+ ○ Compiling /api/school ...
+ ✓ Compiled /api/school in 770ms (350 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/school 200 in 1092ms
+ ○ Compiling /api/sessions/current ...
+ ✓ Compiled /api/sessions/current in 1515ms (353 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 2059ms
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE "public"."AcademicSession"."schoolId" = $1 OFFSET $2
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."resumptionDate", "public"."Term"."isCurrent", "public"."Term"."totalWeeks", "public"."Term"."totalSchoolDays", "public"."Term"."createdAt", "public"."Term"."sessionId" FROM "public"."Term" WHERE "public"."Term"."sessionId" IN ($1,$2,$3) ORDER BY "public"."Term"."termNumber" ASC OFFSET $4
+ GET /api/notifications?limit=8 200 in 944ms
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE ("public"."AcademicSession"."schoolId" = $1 AND "public"."AcademicSession"."isCurrent" = $2) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."totalWeeks", "public"."Term"."sessionId" FROM "public"."Term" WHERE ("public"."Term"."isCurrent" = $1 AND "public"."Term"."sessionId" IN ($2)) OFFSET $3
+ GET /api/sessions/current 200 in 2190ms
+ GET /api/notifications/stream 200 in 43910ms
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+ GET /api/notifications?limit=8 200 in 220ms
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+ GET /api/notifications?limit=8 200 in 250ms
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 3.2s (219 modules)
+ ○ Compiling /dashboard/settings ...
+ ✓ Compiled /dashboard/settings in 22.2s (996 modules)
+ ✓ Compiled in 2.1s (329 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+[next-auth][error][JWT_SESSION_ERROR] 
+https://next-auth.js.org/errors#jwt_session_error Invalid Compact JWE {
+  message: 'Invalid Compact JWE',
+  stack: 'JWEInvalid: Invalid Compact JWE\n' +
+    '    at compactDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwe/compact/decrypt.js:16:15)\n' +
+    '    at jwtDecrypt (webpack-internal:///(rsc)/./node_modules/jose/dist/node/cjs/jwt/decrypt.js:8:61)\n' +
+    '    at Object.decode (webpack-internal:///(rsc)/./node_modules/next-auth/jwt/index.js:56:34)\n' +
+    '    at async Object.session (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/session.js:48:28)\n' +
+    '    at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:136:27)\n' +
+    '    at async getServerSession (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:129:19)\n' +
+    '    at async GET (webpack-internal:///(rsc)/./src/app/api/school/route.ts:18:25)\n' +
+    '    at async C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:6:57228\n' +
+    '    at async eT.execute (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:6:46851)\n' +
+    '    at async eT.handle (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:6:58760)\n' +
+    '    at async doRender (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:1366:42)\n' +
+    '    at async cacheEntry.responseCache.get.routeKind (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:1588:28)\n' +
+    '    at async DevServer.renderToResponseWithComponentsImpl (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:1496:28)\n' +
+    '    at async DevServer.renderPageComponent (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:1924:24)\n' +
+    '    at async DevServer.renderToResponseImpl (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:1962:32)\n' +
+    '    at async DevServer.pipeImpl (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:922:25)\n' +
+    '    at async NextNodeServer.handleCatchallRenderRequest (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\next-server.js:272:17)\n' +
+    '    at async DevServer.handleRequestImpl (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\base-server.js:818:17)\n' +
+    '    at async C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:339:20\n' +
+    '    at async Span.traceAsyncFn (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\trace\\trace.js:154:20)\n' +
+    '    at async DevServer.handleRequest (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:336:24)\n' +
+    '    at async invokeRender (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\lib\\router-server.js:179:21)\n' +
+    '    at async handleRequest (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\lib\\router-server.js:359:24)\n' +
+    '    at async requestHandlerImpl (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\lib\\router-server.js:383:13)\n' +
+    '    at async Server.requestListener (C:\\Users\\Edunostics\\Desktop\\BEETER\\ReportCardManagementSystem\\node_modules\\next\\dist\\server\\lib\\start-server.js:141:13)',
+  name: 'JWEInvalid'
+}
+ GET /api/school 401 in 7214ms
+ GET /api/auth/session 200 in 7238ms
+ GET /api/notifications/stream 200 in 29768ms
+ GET /dashboard/settings 200 in 28312ms
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+ ○ Compiling /_not-found ...
+ POST /api/auth/_log 200 in 1747ms
+ ✓ Compiled /_not-found in 4.3s (985 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 5492ms
+ ○ Compiling /icon ...
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+ GET /api/auth/session 200 in 1621ms
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE "public"."AcademicSession"."schoolId" = $1 OFFSET $2
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/school 200 in 1926ms
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."resumptionDate", "public"."Term"."isCurrent", "public"."Term"."totalWeeks", "public"."Term"."totalSchoolDays", "public"."Term"."createdAt", "public"."Term"."sessionId" FROM "public"."Term" WHERE "public"."Term"."sessionId" IN ($1,$2,$3) ORDER BY "public"."Term"."termNumber" ASC OFFSET $4
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE ("public"."AcademicSession"."schoolId" = $1 AND "public"."AcademicSession"."isCurrent" = $2) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."totalWeeks", "public"."Term"."sessionId" FROM "public"."Term" WHERE ("public"."Term"."isCurrent" = $1 AND "public"."Term"."sessionId" IN ($2)) OFFSET $3
+ GET /api/sessions/current 200 in 1970ms
+ GET /api/auth/session 200 in 1314ms
+ GET /api/notifications/stream 200 in 854ms
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/notifications?limit=8 200 in 1402ms
+ GET /api/school 200 in 1477ms
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/school 200 in 665ms
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE "public"."AcademicSession"."schoolId" = $1 OFFSET $2
+prisma:query SELECT COUNT(*) FROM (SELECT "public"."ScoreUploadRequest"."id" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) OFFSET $3) AS "sub"
+prisma:query SELECT "public"."UserNotification"."id", "public"."UserNotification"."type"::text, "public"."UserNotification"."title", "public"."UserNotification"."message", "public"."UserNotification"."href", "public"."UserNotification"."metadata", "public"."UserNotification"."createdAt", "public"."UserNotification"."isRead" FROM "public"."UserNotification" WHERE "public"."UserNotification"."userId" = $1 ORDER BY "public"."UserNotification"."createdAt" DESC LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."resumptionDate", "public"."Term"."isCurrent", "public"."Term"."totalWeeks", "public"."Term"."totalSchoolDays", "public"."Term"."createdAt", "public"."Term"."sessionId" FROM "public"."Term" WHERE "public"."Term"."sessionId" IN ($1,$2,$3) ORDER BY "public"."Term"."termNumber" ASC OFFSET $4
+prisma:query SELECT "public"."AcademicSession"."id", "public"."AcademicSession"."name", "public"."AcademicSession"."startDate", "public"."AcademicSession"."endDate", "public"."AcademicSession"."isCurrent", "public"."AcademicSession"."createdAt", "public"."AcademicSession"."schoolId" FROM "public"."AcademicSession" WHERE ("public"."AcademicSession"."schoolId" = $1 AND "public"."AcademicSession"."isCurrent" = $2) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."Term"."id", "public"."Term"."name", "public"."Term"."termNumber", "public"."Term"."startDate", "public"."Term"."endDate", "public"."Term"."totalWeeks", "public"."Term"."sessionId" FROM "public"."Term" WHERE ("public"."Term"."isCurrent" = $1 AND "public"."Term"."sessionId" IN ($2)) OFFSET $3
+ GET /api/sessions/current 200 in 974ms
+prisma:query SELECT "public"."ScoreUploadRequest"."id", "public"."ScoreUploadRequest"."createdAt", "public"."ScoreUploadRequest"."studentCount", "public"."ScoreUploadRequest"."uploaderId", "public"."ScoreUploadRequest"."subjectId", "public"."ScoreUploadRequest"."termId", "public"."ScoreUploadRequest"."classArmId" FROM "public"."ScoreUploadRequest" WHERE ("public"."ScoreUploadRequest"."schoolId" = $1 AND "public"."ScoreUploadRequest"."status" = CAST($2::text AS "public"."ScoreUploadStatus")) ORDER BY "public"."ScoreUploadRequest"."createdAt" DESC LIMIT $3 OFFSET $4
+ GET /api/notifications?limit=8 200 in 1213ms
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/school 200 in 571ms
+ ✓ Compiled /api/school/features in 7.4s (1092 modules)
+ GET /icon?82fa9c2b0593045f 200 in 8811ms
+ ✓ Compiled /api/assessment-types in 2ms (671 modules)
+ ✓ Compiled in 4ms (676 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT 1
+prisma:query BEGIN
+prisma:query SELECT "public"."School"."id", "public"."School"."name", "public"."School"."motto", "public"."School"."address", "public"."School"."city", "public"."School"."state", "public"."School"."country", "public"."School"."phone", "public"."School"."email", "public"."School"."website", "public"."School"."logoUrl", "public"."School"."principalSignatureUrl", "public"."School"."stampUrl" FROM "public"."School" WHERE ("public"."School"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ GET /api/school 200 in 8081ms
+prisma:query SELECT "public"."SchoolFeatureControl"."id" FROM "public"."SchoolFeatureControl" WHERE ("public"."SchoolFeatureControl"."schoolId" = $1 AND 1=1) OFFSET $2
+prisma:query SELECT "public"."SchoolFeatureControl"."id", "public"."SchoolFeatureControl"."studentsEnabled", "public"."SchoolFeatureControl"."teachersEnabled", "public"."SchoolFeatureControl"."scoreEntryEnabled", "public"."SchoolFeatureControl"."scoreReviewsEnabled", "public"."SchoolFeatureControl"."subjectsEnabled", "public"."SchoolFeatureControl"."lessonsEnabled", "public"."SchoolFeatureControl"."quizzesEnabled", "public"."SchoolFeatureControl"."assignmentsEnabled", "public"."SchoolFeatureControl"."schemesOfWorkEnabled", "public"."SchoolFeatureControl"."classesEnabled", "public"."SchoolFeatureControl"."broadsheetEnabled", "public"."SchoolFeatureControl"."transcriptsEnabled", "public"."SchoolFeatureControl"."reportCardsEnabled", "public"."SchoolFeatureControl"."legacyRecordsEnabled", "public"."SchoolFeatureControl"."uploadRequestsEnabled", "public"."SchoolFeatureControl"."attendanceEnabled", "public"."SchoolFeatureControl"."behaviourEnabled", "public"."SchoolFeatureControl"."communicationEnabled", "public"."SchoolFeatureControl"."feesEnabled", "public"."SchoolFeatureControl"."settingsEnabled" FROM "public"."SchoolFeatureControl" WHERE ("public"."SchoolFeatureControl"."id" = $1 AND ("public"."SchoolFeatureControl"."schoolId" = $2 AND 1=1)) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."SchoolFeatureControl"."id", "public"."SchoolFeatureControl"."studentsEnabled", "public"."SchoolFeatureControl"."teachersEnabled", "public"."SchoolFeatureControl"."scoreEntryEnabled", "public"."SchoolFeatureControl"."scoreReviewsEnabled", "public"."SchoolFeatureControl"."subjectsEnabled", "public"."SchoolFeatureControl"."lessonsEnabled", "public"."SchoolFeatureControl"."quizzesEnabled", "public"."SchoolFeatureControl"."assignmentsEnabled", "public"."SchoolFeatureControl"."schemesOfWorkEnabled", "public"."SchoolFeatureControl"."classesEnabled", "public"."SchoolFeatureControl"."broadsheetEnabled", "public"."SchoolFeatureControl"."transcriptsEnabled", "public"."SchoolFeatureControl"."reportCardsEnabled", "public"."SchoolFeatureControl"."legacyRecordsEnabled", "public"."SchoolFeatureControl"."uploadRequestsEnabled", "public"."SchoolFeatureControl"."attendanceEnabled", "public"."SchoolFeatureControl"."behaviourEnabled", "public"."SchoolFeatureControl"."communicationEnabled", "public"."SchoolFeatureControl"."feesEnabled", "public"."SchoolFeatureControl"."settingsEnabled" FROM "public"."SchoolFeatureControl" WHERE "public"."SchoolFeatureControl"."id" = $1 LIMIT $2 OFFSET $3
+prisma:query COMMIT
+ GET /api/school/features 200 in 13038ms
+prisma:query 
+        ALTER TABLE "AssessmentType"
+        ADD COLUMN IF NOT EXISTS "includeInTotal" BOOLEAN NOT NULL DEFAULT TRUE
+    
+prisma:query SELECT "public"."AssessmentType"."id", "public"."AssessmentType"."name", "public"."AssessmentType"."shortName", "public"."AssessmentType"."maxScore", "public"."AssessmentType"."includeInTotal", "public"."AssessmentType"."order", "public"."AssessmentType"."isActive", "public"."AssessmentType"."createdAt", "public"."AssessmentType"."updatedAt", "public"."AssessmentType"."schoolId" FROM "public"."AssessmentType" WHERE ("public"."AssessmentType"."schoolId" = $1 AND "public"."AssessmentType"."isActive" = $2) ORDER BY "public"."AssessmentType"."order" ASC OFFSET $3
+ GET /api/assessment-types 200 in 4947ms
+prisma:query 
+        ALTER TABLE "AssessmentType"
+        ADD COLUMN IF NOT EXISTS "includeInTotal" BOOLEAN NOT NULL DEFAULT TRUE
+    
+prisma:query SELECT "public"."AssessmentType"."id", "public"."AssessmentType"."name", "public"."AssessmentType"."shortName", "public"."AssessmentType"."maxScore", "public"."AssessmentType"."includeInTotal", "public"."AssessmentType"."order", "public"."AssessmentType"."isActive", "public"."AssessmentType"."createdAt", "public"."AssessmentType"."updatedAt", "public"."AssessmentType"."schoolId" FROM "public"."AssessmentType" WHERE ("public"."AssessmentType"."schoolId" = $1 AND "public"."AssessmentType"."isActive" = $2) ORDER BY "public"."AssessmentType"."order" ASC OFFSET $3
+ GET /api/assessment-types 200 in 609ms
+ ○ Compiling /api/grading-rules ...
+ ✓ Compiled /api/grading-rules in 1246ms (678 modules)
+ ✓ Compiled (680 modules)
+[next-auth][warn][DEBUG_ENABLED] 
+https://next-auth.js.org/warnings#debug_enabled
+prisma:query SELECT "public"."GradingRule"."id", "public"."GradingRule"."minScore", "public"."GradingRule"."maxScore", "public"."GradingRule"."grade", "public"."GradingRule"."remark", "public"."GradingRule"."createdAt", "public"."GradingRule"."schoolId", "public"."GradingRule"."schoolCategory"::text FROM "public"."GradingRule" WHERE ("public"."GradingRule"."schoolId" = $1 AND "public"."GradingRule"."schoolCategory" = CAST($2::text AS "public"."SchoolCategory")) ORDER BY "public"."GradingRule"."minScore" DESC OFFSET $3
+ GET /api/grading-rules?category=PRIMARY 200 in 2686ms
+prisma:query SELECT "public"."Class"."id", "public"."Class"."name", "public"."Class"."level"::text, "public"."Class"."orderIndex", "public"."Class"."createdAt", "public"."Class"."schoolId" FROM "public"."Class" WHERE "public"."Class"."schoolId" = $1 ORDER BY "public"."Class"."name" ASC OFFSET $2
+prisma:query SELECT "public"."ClassArm"."id", "public"."ClassArm"."armName", "public"."ClassArm"."capacity", "public"."ClassArm"."createdAt", "public"."ClassArm"."classId", "public"."ClassArm"."classTeacherId", COALESCE("aggr_selection_0_Student"."_aggr_count_students", 0) AS "_aggr_count_students" FROM "public"."ClassArm" LEFT JOIN (SELECT "public"."Student"."classArmId", COUNT(*) AS "_aggr_count_students" FROM "public"."Student" WHERE 1=1 GROUP BY "public"."Student"."classArmId") AS "aggr_selection_0_Student" ON ("public"."ClassArm"."id" = "aggr_selection_0_Student"."classArmId") WHERE "public"."ClassArm"."classId" IN ($1,$2,$3,$4,$5,$6) OFFSET $7
+prisma:query SELECT "public"."User"."id", "public"."User"."firstName", "public"."User"."lastName" FROM "public"."User" WHERE "public"."User"."id" IN ($1,$2) OFFSET $3
+ GET /api/classes 200 in 2715ms
+prisma:query SELECT "public"."GradingRule"."id", "public"."GradingRule"."minScore", "public"."GradingRule"."maxScore", "public"."GradingRule"."grade", "public"."GradingRule"."remark", "public"."GradingRule"."createdAt", "public"."GradingRule"."schoolId", "public"."GradingRule"."schoolCategory"::text FROM "public"."GradingRule" WHERE ("public"."GradingRule"."schoolId" = $1 AND "public"."GradingRule"."schoolCategory" = CAST($2::text AS "public"."SchoolCategory")) ORDER BY "public"."GradingRule"."minScore" DESC OFFSET $3
+ GET /api/grading-rules?category=PRIMARY 200 in 264ms
+prisma:query SELECT "public"."Class"."id", "public"."Class"."name", "public"."Class"."level"::text, "public"."Class"."orderIndex", "public"."Class"."createdAt", "public"."Class"."schoolId" FROM "public"."Class" WHERE "public"."Class"."schoolId" = $1 ORDER BY "public"."Class"."name" ASC OFFSET $2
+prisma:query SELECT "public"."ClassArm"."id", "public"."ClassArm"."armName", "public"."ClassArm"."capacity", "public"."ClassArm"."createdAt", "public"."ClassArm"."classId", "public"."ClassArm"."classTeacherId", COALESCE("aggr_selection_0_Student"."_aggr_count_students", 0) AS "_aggr_count_students" FROM "public"."ClassArm" LEFT JOIN (SELECT "public"."Student"."classArmId", COUNT(*) AS "_aggr_count_students" FROM "public"."Student" WHERE 1=1 GROUP BY "public"."Student"."classArmId") AS "aggr_selection_0_Student" ON ("public"."ClassArm"."id" = "aggr_selection_0_Student"."classArmId") WHERE "public"."ClassArm"."classId" IN ($1,$2,$3,$4,$5,$6) OFFSET $7
+prisma:query SELECT "public"."User"."id", "public"."User"."firstName", "public"."User"."lastName" FROM "public"."User" WHERE "public"."User"."id" IN ($1,$2) OFFSET $3
+ GET /api/classes 200 in 264ms
