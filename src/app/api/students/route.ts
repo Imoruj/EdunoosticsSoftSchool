@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { clampLimit } from "@/lib/apiError";
@@ -406,7 +406,11 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        const [students, total] = await Promise.all([
+        // Build a where without the gender filter for accurate gender breakdown counts
+        const whereForGenderCounts: any = { ...where };
+        delete whereForGenderCounts.gender;
+
+        const [students, total, femaleCount, maleCount, activeCount] = await Promise.all([
             prisma.student.findMany({
                 where,
                 include,
@@ -415,6 +419,9 @@ export async function GET(req: NextRequest) {
                 take: limit,
             }),
             prisma.student.count({ where }),
+            prisma.student.count({ where: { ...whereForGenderCounts, gender: 'FEMALE' } }),
+            prisma.student.count({ where: { ...whereForGenderCounts, gender: 'MALE' } }),
+            prisma.student.count({ where: { ...whereForGenderCounts, isActive: true } }),
         ]);
 
         return NextResponse.json({
@@ -424,6 +431,9 @@ export async function GET(req: NextRequest) {
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit),
+                femaleCount,
+                maleCount,
+                activeCount,
             },
         });
     } catch (error: any) {
@@ -997,3 +1007,4 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
+

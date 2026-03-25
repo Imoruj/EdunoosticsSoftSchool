@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { randomUUID } from "crypto";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
 
@@ -238,3 +238,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Audio generation failed. Please try again." }, { status: 500 });
     }
 }
+

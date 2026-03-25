@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
@@ -263,3 +263,4 @@ export async function GET(req: NextRequest) {
         );
     }
 }
+

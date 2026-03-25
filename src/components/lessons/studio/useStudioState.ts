@@ -39,9 +39,10 @@ export interface StudioState {
 
 export type StudioModal =
   | { type: 'text-editor'; elementId: string }
+  | { type: 'text-generator'; targetSlideId: string }
   | { type: 'media-picker'; insertType: ContentBlockType; targetSlideId: string }
   | { type: 'quiz-builder'; elementId: string }
-  | { type: 'preview' };
+  | { type: 'preview'; slideId?: string };
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 

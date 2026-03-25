@@ -1,5 +1,5 @@
 import React from "react";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { TeacherStats } from "./TeacherStats";
 
 export async function TeacherDashboardAsync({ userId, isClassTeacher, isSubjectTeacher, schoolId }: { userId: string, isClassTeacher: boolean, isSubjectTeacher: boolean, schoolId: string }) {
@@ -77,3 +77,4 @@ export async function TeacherDashboardAsync({ userId, isClassTeacher, isSubjectT
 
     return <TeacherStats myClasses={myClasses} mySubjects={mySubjects} stats={stats} />;
 }
+

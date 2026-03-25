@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { syncCurrentTerm } from "@/lib/currentTerm";
@@ -148,3 +148,4 @@ export default async function DashboardPage() {
         </div>
     );
 }
+

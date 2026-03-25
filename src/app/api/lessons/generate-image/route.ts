@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { randomUUID } from "crypto";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
 import { buildReferenceMaterialsBlock, type ReferenceMaterialPromptInput } from "@/lib/lessons/referenceMaterialPrompt";
@@ -130,3 +130,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Image generation failed. Please try again." }, { status: 500 });
     }
 }
+

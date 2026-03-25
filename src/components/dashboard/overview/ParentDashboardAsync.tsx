@@ -1,5 +1,5 @@
 import React from "react";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { ParentWards } from "./ParentWards";
 
 export async function ParentDashboardAsync({ userId }: { userId: string }) {
@@ -16,3 +16,4 @@ export async function ParentDashboardAsync({ userId }: { userId: string }) {
 
     return <ParentWards wards={wards} />;
 }
+

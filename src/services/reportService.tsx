@@ -1,24 +1,127 @@
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { ReportCardData } from "@/components/reports/types";
 import ReactPDF from "@react-pdf/renderer";
 import ReportCardDocument from "@/components/reports/ReportCardDocument";
-import { resolveTemplateForTerm } from "@/lib/templateResolver";
+import { resolveTemplateForTerm, resolveClassArmOverride } from "@/lib/templateResolver";
 import React from "react";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeSummary } from "@/lib/assessment-types";
+
+const SCHOOL_TIMEZONE = "Africa/Lagos";
+
+function getScoreFieldNumber(value: { toNumber?: () => number } | number | null | undefined) {
+    if (typeof value === "number") return value;
+    if (value && typeof value === "object" && typeof value.toNumber === "function") {
+        return value.toNumber();
+    }
+    return Number(value || 0);
+}
+
+function getEndOfTermScoreMetrics(score: {
+    ca1?: { toNumber?: () => number } | number | null;
+    ca2?: { toNumber?: () => number } | number | null;
+    ca3?: { toNumber?: () => number } | number | null;
+    exam?: { toNumber?: () => number } | number | null;
+}, assessmentTypes: Array<{ id: string; name: string; maxScore: number; order: number; includeInTotal?: boolean }>) {
+    const values = {
+        ca1: getScoreFieldNumber(score.ca1),
+        ca2: getScoreFieldNumber(score.ca2),
+        ca3: getScoreFieldNumber(score.ca3),
+        exam: getScoreFieldNumber(score.exam),
+    };
+
+    return {
+        ...values,
+        ...calculateEndOfTermScoreTotals(values, assessmentTypes),
+    };
+}
+
+function normalizeScoreForRuleScale(total: number, rules: Array<{ maxScore: number }>) {
+    const maxRuleScore = rules.reduce((max, rule) => Math.max(max, Number(rule.maxScore) || 0), 0);
+    if (maxRuleScore <= 50 && total > 50) {
+        return Math.round(total / 2);
+    }
+    return total;
+}
+
+function calculateGrade(total: number, rules: Array<{ minScore: number; maxScore: number; grade: string; remark: string }>) {
+    const normalizedTotal = normalizeScoreForRuleScale(total, rules);
+    const rule = rules.find((item) => normalizedTotal >= item.minScore && normalizedTotal <= item.maxScore);
+    if (rule) {
+        return { grade: rule.grade, remark: rule.remark };
+    }
+    return { grade: "-", remark: "-" };
+}
+
+function toSchoolDateKey(date: Date) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: SCHOOL_TIMEZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+    const month = parts.find((part) => part.type === "month")?.value ?? "00";
+    const day = parts.find((part) => part.type === "day")?.value ?? "00";
+
+    return `${year}-${month}-${day}`;
+}
+
+async function getSchoolCalendarSummary(schoolId: string, startDate: Date, endDate: Date) {
+    const closedDays = await prisma.publicHoliday.findMany({
+        where: {
+            schoolId,
+            date: { gte: startDate, lte: endDate },
+        },
+        select: { date: true },
+    });
+    const closedDateKeys = new Set(closedDays.map((day) => toSchoolDateKey(day.date)));
+    const normalizedStart = new Date(Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate()
+    ));
+    const normalizedEnd = new Date(Date.UTC(
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate()
+    ));
+
+    let totalSchoolDays = 0;
+    for (const currentDate = new Date(normalizedStart); currentDate <= normalizedEnd; currentDate.setUTCDate(currentDate.getUTCDate() + 1)) {
+        const dayOfWeek = currentDate.getUTCDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        if (closedDateKeys.has(toSchoolDateKey(currentDate))) continue;
+        totalSchoolDays += 1;
+    }
+
+    return {
+        totalSchoolDays,
+        closedDates: closedDays.map((day) => day.date),
+    };
+}
 
 // Helper to calculate attendance if not stored
-async function getAttendanceStats(studentId: string, startDate: Date, endDate: Date) {
+async function getAttendanceStats(studentId: string, startDate: Date, endDate: Date, closedDates: Date[] = []) {
+    const dateFilter = {
+        gte: startDate,
+        lte: endDate,
+        ...(closedDates.length ? { notIn: closedDates } : {}),
+    };
+
     const presentCount = await prisma.attendance.count({
         where: {
             studentId,
-            date: { gte: startDate, lte: endDate },
+            date: dateFilter,
             status: "PRESENT"
         }
     });
     const absentCount = await prisma.attendance.count({
         where: {
             studentId,
-            date: { gte: startDate, lte: endDate },
+            date: dateFilter,
             status: "ABSENT"
         }
     });
@@ -68,6 +171,7 @@ export async function generateReportCardData(
     ]);
 
     if (!term) throw new Error("Term not found");
+    const calendarSummary = await getSchoolCalendarSummary(school.id, term.startDate, term.endDate);
 
     // Resolve template via mappings with cross-session fallback by term number
     let activeTemplate = config?.activeTemplate || "standard";
@@ -79,6 +183,7 @@ export async function generateReportCardData(
         reportType,
         termMappings: (config as any)?.termMappings,
         fallbackTemplate: activeTemplate,
+        classId: studentData.classArm?.classId ?? null,
     });
 
     // If resolved template is a custom one, load its full config
@@ -119,14 +224,10 @@ export async function generateReportCardData(
     else if (classLevel === "SENIOR_SECONDARY") schoolCategory = "SENIOR_SECONDARY";
 
     // Fetch all grading rules and assessment types for the school
-    const [allGradingRules, assessmentTypes] = await Promise.all([
+    const [allGradingRules] = await Promise.all([
         prisma.gradingRule.findMany({
             where: { schoolId: school.id },
             orderBy: { maxScore: "desc" }
-        }),
-        prisma.assessmentType.findMany({
-            where: { schoolId: school.id, isActive: true },
-            orderBy: { order: "asc" }
         })
     ]);
 
@@ -137,9 +238,6 @@ export async function generateReportCardData(
     const gradingRules = categorySpecificRules.length > 0
         ? categorySpecificRules
         : allGradingRules.filter(r => (r as any).schoolCategory === null);
-
-    const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam"));
-    const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
 
     // 2. Get previous terms in this session
     const previousTerms = term.session.terms.filter(t => t.termNumber < term.termNumber);
@@ -165,6 +263,13 @@ export async function generateReportCardData(
 
     const effectiveClassArm = reportCard?.classArm || studentData.classArm;
     const effectiveClassArmId = reportCard?.classArmId || studentData.classArmId || null;
+    const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+        schoolId: school.id,
+        classArmId: effectiveClassArmId,
+    });
+    const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam"));
+    const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
+    const assessmentSummary = getAssessmentTypeSummary(assessmentTypes);
 
     // Use report-card class context for historical records, then fallback to student's current class.
     const classTeacherSignatureUrl = effectiveClassArm?.classTeacherId
@@ -175,11 +280,11 @@ export async function generateReportCardData(
     let attendance = {
         daysPresent: reportCard?.daysPresent || 0,
         daysAbsent: reportCard?.daysAbsent || 0,
-        totalSchoolDays: reportCard?.totalSchoolDays || term.totalSchoolDays || 0
+        totalSchoolDays: reportCard?.totalSchoolDays ?? calendarSummary.totalSchoolDays ?? term.totalSchoolDays ?? 0
     };
 
     if (!reportCard?.daysPresent && !reportCard?.daysAbsent) {
-        const stats = await getAttendanceStats(studentId, term.startDate, term.endDate);
+        const stats = await getAttendanceStats(studentId, term.startDate, term.endDate, calendarSummary.closedDates);
         attendance.daysPresent = stats.presentCount;
         attendance.daysAbsent = stats.absentCount;
     }
@@ -240,7 +345,7 @@ export async function generateReportCardData(
         if (!scoresBySubject[s.subjectId]) scoresBySubject[s.subjectId] = [];
         const scoreValue = reportType === "halfTerm"
             ? s.ca1.toNumber()
-            : s.total.toNumber();
+            : getEndOfTermScoreMetrics(s, assessmentTypes).adjustedTotal;
         scoresBySubject[s.subjectId].push(scoreValue);
     });
 
@@ -298,7 +403,8 @@ export async function generateReportCardData(
                 const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
 
                 const caTotal = s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber();
-                const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : s.total.toNumber();
+                const endOfTermMetrics = getEndOfTermScoreMetrics(s, assessmentTypes);
+                const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
 
                 // Rank calculation (use CA1 for halfTerm, full total for endOfTerm)
                 const sorted = [...subjectScores].sort((a, b) => b - a);
@@ -307,7 +413,8 @@ export async function generateReportCardData(
                 const minScore = subjectScores.length > 0 ? Math.min(...subjectScores) : 0;
                 const maxScore = subjectScores.length > 0 ? Math.max(...subjectScores) : 0;
                 const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
-                const totalScore = reportType === "halfTerm" ? caTotal : (caTotal + s.exam.toNumber());
+                const totalScore = reportType === "halfTerm" ? caTotal : endOfTermMetrics.adjustedTotal;
+                const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, gradingRules);
 
                 return {
                     id: s.subjectId,
@@ -319,12 +426,12 @@ export async function generateReportCardData(
                     ca3: s.ca3.toNumber(),
                     exam: examScore,
                     total: totalScore,
-                    cumulativeTotal1: reportType === "halfTerm" ? undefined : term1Score?.total.toNumber(),
-                    cumulativeTotal2: reportType === "halfTerm" ? undefined : term2Score?.total.toNumber(),
+                    cumulativeTotal1: reportType === "halfTerm" ? undefined : (term1Score ? getEndOfTermScoreMetrics(term1Score, assessmentTypes).adjustedTotal : undefined),
+                    cumulativeTotal2: reportType === "halfTerm" ? undefined : (term2Score ? getEndOfTermScoreMetrics(term2Score, assessmentTypes).adjustedTotal : undefined),
                     subjectClassAverage: Number(avg.toFixed(1)),
                     subjectPosition: getOrdinal(rank),
-                    grade: reportType === "halfTerm" ? undefined : s.grade || "-",
-                    remark: reportType === "halfTerm" ? undefined : s.remark || "-",
+                    grade: reportType === "halfTerm" ? undefined : gradeDetails?.grade || "-",
+                    remark: reportType === "halfTerm" ? undefined : gradeDetails?.remark || "-",
                     subjectLowestScore: minScore,
                     subjectHighestScore: maxScore
                 };
@@ -332,13 +439,13 @@ export async function generateReportCardData(
             summary: {
                 totalScore: reportType === "halfTerm"
                     ? currentScores.reduce((acc, curr) => acc + (curr.ca1.toNumber() + curr.ca2.toNumber() + curr.ca3.toNumber()), 0)
-                    : (reportCard?.totalScore?.toNumber() ?? currentScores.reduce((acc, curr) => acc + curr.total.toNumber(), 0)),
+                    : currentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, assessmentTypes).adjustedTotal, 0),
                 totalObtainable: reportType === "halfTerm"
                     ? (config as any)?.maxCaScore ? currentScores.length * (config as any).maxCaScore : currentScores.length * 30 // Fallback to 30 if not specified
-                    : currentScores.length * 100,
+                    : currentScores.length * assessmentSummary.countedMaxScore,
                 average: reportType === "halfTerm"
                     ? (currentScores.length > 0 ? currentScores.reduce((acc, curr) => acc + (curr.ca1.toNumber() + curr.ca2.toNumber() + curr.ca3.toNumber()), 0) / currentScores.length : 0)
-                    : (reportCard?.average?.toNumber() ?? (currentScores.length > 0 ? currentScores.reduce((acc, curr) => acc + curr.total.toNumber(), 0) / currentScores.length : 0)),
+                    : (currentScores.length > 0 ? currentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, assessmentTypes).adjustedTotal, 0) / currentScores.length : 0),
                 classPosition: reportType === "halfTerm" ? undefined : reportCard?.classPosition || undefined,
                 classSize: reportCard?.classSize || undefined
             }
@@ -354,7 +461,11 @@ export async function generateReportCardData(
         comments: {
             classTeacher: reportCard?.classTeacherComment || undefined,
             principal: reportCard?.principalComment || undefined,
-            promotionStatus: (term.termNumber === 3 && reportType === "endOfTerm") ? (reportCard?.average?.toNumber() ?? 0 >= 50 ? "PROMOTED TO NEXT CLASS" : "NOT PROMOTED") : undefined,
+            promotionStatus: (term.termNumber === 3 && reportType === "endOfTerm")
+                ? ((currentScores.length > 0 ? currentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, assessmentTypes).adjustedTotal, 0) / currentScores.length : 0) >= 50
+                    ? "PROMOTED TO NEXT CLASS"
+                    : "NOT PROMOTED")
+                : undefined,
             publishedAt: reportCard?.publishedAt?.toISOString() || undefined
         },
         gradingRules: gradingRules.length > 0 ? gradingRules.map(r => ({
@@ -416,7 +527,7 @@ export async function bulkGenerateReportCardData(
     if (!school) throw new Error("School data not found");
 
     // Fetch report config + term context + assessment types + grading rules
-    const [config, term, allGradingRules, assessmentTypes] = await Promise.all([
+    const [config, term, allGradingRules] = await Promise.all([
         prisma.reportCardConfig.findUnique({ where: { schoolId: school.id } }),
         prisma.term.findUnique({
             where: { id: termId },
@@ -427,14 +538,11 @@ export async function bulkGenerateReportCardData(
         prisma.gradingRule.findMany({
             where: { schoolId: school.id },
             orderBy: { maxScore: "desc" }
-        }),
-        prisma.assessmentType.findMany({
-            where: { schoolId: school.id, isActive: true },
-            orderBy: { order: "asc" }
         })
     ]);
 
     if (!term) throw new Error("Term not found");
+    const calendarSummary = await getSchoolCalendarSummary(school.id, term.startDate, term.endDate);
 
     // Resolve templates per student/class level
     const baseTemplates = new Set(["classic", "modern", "minimal", "professional", "standard"]);
@@ -467,12 +575,23 @@ export async function bulkGenerateReportCardData(
         if (customTemplateEntry.activeTemplate) globalActiveTemplate = customTemplateEntry.activeTemplate;
     }
 
-    const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam"));
-    const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
     const previousTerms = term.session.terms.filter(t => t.termNumber < term.termNumber);
 
     // Fetch all related data in bulk
     const effectiveClassArmIds = Array.from(new Set(studentsData.map(s => s.classArmId).filter(Boolean))) as string[];
+    const defaultAssessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+        schoolId: school.id,
+    });
+    const assessmentTypesByClassArm = new Map<string, typeof defaultAssessmentTypes>();
+    await Promise.all(
+        effectiveClassArmIds.map(async (classArmId) => {
+            const resolvedTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+                schoolId: school.id,
+                classArmId,
+            });
+            assessmentTypesByClassArm.set(classArmId, resolvedTypes);
+        })
+    );
 
     // Check if we have historical reports (for class contexts)
     const allReportCards = await prisma.reportCard.findMany({
@@ -501,7 +620,11 @@ export async function bulkGenerateReportCardData(
         by: ['studentId', 'status'],
         where: {
             studentId: { in: studentIds },
-            date: { gte: term.startDate, lte: term.endDate }
+            date: {
+                gte: term.startDate,
+                lte: term.endDate,
+                ...(calendarSummary.closedDates.length ? { notIn: calendarSummary.closedDates } : {}),
+            }
         },
         _count: { status: true }
     });
@@ -555,7 +678,10 @@ export async function bulkGenerateReportCardData(
         if (!scoresByClassAndSubject[cArmId]) scoresByClassAndSubject[cArmId] = {};
         if (!scoresByClassAndSubject[cArmId][s.subjectId]) scoresByClassAndSubject[cArmId][s.subjectId] = [];
 
-        const scoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : s.total.toNumber();
+        const classAssessmentTypes = assessmentTypesByClassArm.get(cArmId) || defaultAssessmentTypes;
+        const scoreValue = reportType === "halfTerm"
+            ? s.ca1.toNumber()
+            : getEndOfTermScoreMetrics(s, classAssessmentTypes).adjustedTotal;
         scoresByClassAndSubject[cArmId][s.subjectId].push(scoreValue);
     });
 
@@ -570,6 +696,37 @@ export async function bulkGenerateReportCardData(
         const reportCard = allReportCards.find(rc => rc.studentId === studentData.id);
         const effectiveClassArm = reportCard?.classArm || studentData.classArm;
         const effectiveClassArmId = reportCard?.classArmId || studentData.classArmId || null;
+        const studentAssessmentTypes = effectiveClassArmId
+            ? (assessmentTypesByClassArm.get(effectiveClassArmId) || defaultAssessmentTypes)
+            : defaultAssessmentTypes;
+        const studentCaTypes = studentAssessmentTypes.filter((type) => !type.name.toLowerCase().includes("exam"));
+        const studentExamType = studentAssessmentTypes.find((type) => type.name.toLowerCase().includes("exam"));
+        const studentAssessmentSummary = getAssessmentTypeSummary(studentAssessmentTypes);
+
+        // Per-student template: check class override first, then fall back to global
+        const effectiveClassId = effectiveClassArm?.classId ?? null;
+        let studentActiveTemplate = globalActiveTemplate;
+        let studentCustomLayout = resolvedCustomLayout;
+        let studentDisplayOptions = resolvedDisplayOptions;
+        let studentCustomTemplateEntry = customTemplateEntry;
+        const armTemplateId = resolveClassArmOverride({
+            termId: term.id,
+            classId: effectiveClassId,
+            reportType,
+            termMappings: (config as any)?.termMappings,
+        });
+        if (armTemplateId && (customTemplates?.[armTemplateId] || baseTemplates.has(armTemplateId))) {
+            studentActiveTemplate = armTemplateId;
+            studentCustomTemplateEntry = customTemplates?.[armTemplateId];
+            if (studentCustomTemplateEntry) {
+                studentDisplayOptions = studentCustomTemplateEntry.displayOptions || undefined;
+                studentCustomLayout = studentCustomTemplateEntry.displayOptions?.customLayout || undefined;
+                if (studentCustomTemplateEntry.activeTemplate) studentActiveTemplate = studentCustomTemplateEntry.activeTemplate;
+            } else {
+                studentDisplayOptions = (config as any)?.displayOptions;
+                studentCustomLayout = undefined;
+            }
+        }
 
         const classLevel = effectiveClassArm?.class?.level;
         let schoolCategory: string | null = null;
@@ -585,7 +742,7 @@ export async function bulkGenerateReportCardData(
         let attendance = {
             daysPresent: reportCard?.daysPresent || 0,
             daysAbsent: reportCard?.daysAbsent || 0,
-            totalSchoolDays: reportCard?.totalSchoolDays || term.totalSchoolDays || 0
+            totalSchoolDays: reportCard?.totalSchoolDays ?? calendarSummary.totalSchoolDays ?? term.totalSchoolDays ?? 0
         };
 
         if (!reportCard?.daysPresent && !reportCard?.daysAbsent) {
@@ -645,7 +802,8 @@ export async function bulkGenerateReportCardData(
                     const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
 
                     const caTotal = s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber();
-                    const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : s.total.toNumber();
+                    const endOfTermMetrics = getEndOfTermScoreMetrics(s, studentAssessmentTypes);
+                    const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
 
                     const sorted = [...subjectScores].sort((a, b) => b - a);
                     const computedRank = sorted.indexOf(studentScoreValue) + 1;
@@ -653,7 +811,8 @@ export async function bulkGenerateReportCardData(
                     const minScore = subjectScores.length > 0 ? Math.min(...subjectScores) : 0;
                     const maxScore = subjectScores.length > 0 ? Math.max(...subjectScores) : 0;
                     const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
-                    const totalScore = reportType === "halfTerm" ? caTotal : (caTotal + s.exam.toNumber());
+                    const totalScore = reportType === "halfTerm" ? caTotal : endOfTermMetrics.adjustedTotal;
+                    const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, studentGradingRules);
 
                     return {
                         id: s.subjectId,
@@ -665,12 +824,12 @@ export async function bulkGenerateReportCardData(
                         ca3: s.ca3.toNumber(),
                         exam: examScore,
                         total: totalScore,
-                        cumulativeTotal1: reportType === "halfTerm" ? undefined : term1Score?.total.toNumber(),
-                        cumulativeTotal2: reportType === "halfTerm" ? undefined : term2Score?.total.toNumber(),
+                        cumulativeTotal1: reportType === "halfTerm" ? undefined : (term1Score ? getEndOfTermScoreMetrics(term1Score, studentAssessmentTypes).adjustedTotal : undefined),
+                        cumulativeTotal2: reportType === "halfTerm" ? undefined : (term2Score ? getEndOfTermScoreMetrics(term2Score, studentAssessmentTypes).adjustedTotal : undefined),
                         subjectClassAverage: Number(avg.toFixed(1)),
                         subjectPosition: getOrdinal(rank),
-                        grade: reportType === "halfTerm" ? undefined : s.grade || "-",
-                        remark: reportType === "halfTerm" ? undefined : s.remark || "-",
+                        grade: reportType === "halfTerm" ? undefined : gradeDetails?.grade || "-",
+                        remark: reportType === "halfTerm" ? undefined : gradeDetails?.remark || "-",
                         subjectLowestScore: minScore,
                         subjectHighestScore: maxScore
                     };
@@ -678,13 +837,13 @@ export async function bulkGenerateReportCardData(
                 summary: {
                     totalScore: reportType === "halfTerm"
                         ? studentCurrentScores.reduce((acc, curr) => acc + (curr.ca1.toNumber() + curr.ca2.toNumber() + curr.ca3.toNumber()), 0)
-                        : (reportCard?.totalScore?.toNumber() ?? studentCurrentScores.reduce((acc, curr) => acc + curr.total.toNumber(), 0)),
+                        : studentCurrentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, studentAssessmentTypes).adjustedTotal, 0),
                     totalObtainable: reportType === "halfTerm"
                         ? (config as any)?.maxCaScore ? studentCurrentScores.length * (config as any).maxCaScore : studentCurrentScores.length * 30
-                        : studentCurrentScores.length * 100,
+                        : studentCurrentScores.length * studentAssessmentSummary.countedMaxScore,
                     average: reportType === "halfTerm"
                         ? (studentCurrentScores.length > 0 ? studentCurrentScores.reduce((acc, curr) => acc + (curr.ca1.toNumber() + curr.ca2.toNumber() + curr.ca3.toNumber()), 0) / studentCurrentScores.length : 0)
-                        : (reportCard?.average?.toNumber() ?? (studentCurrentScores.length > 0 ? studentCurrentScores.reduce((acc, curr) => acc + curr.total.toNumber(), 0) / studentCurrentScores.length : 0)),
+                        : (studentCurrentScores.length > 0 ? studentCurrentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, studentAssessmentTypes).adjustedTotal, 0) / studentCurrentScores.length : 0),
                     classPosition: reportType === "halfTerm" ? undefined : reportCard?.classPosition || undefined,
                     classSize: reportCard?.classSize || undefined
                 }
@@ -700,7 +859,11 @@ export async function bulkGenerateReportCardData(
             comments: {
                 classTeacher: reportCard?.classTeacherComment || undefined,
                 principal: reportCard?.principalComment || undefined,
-                promotionStatus: (term.termNumber === 3 && reportType === "endOfTerm") ? (reportCard?.average?.toNumber() ?? 0 >= 50 ? "PROMOTED TO NEXT CLASS" : "NOT PROMOTED") : undefined,
+                promotionStatus: (term.termNumber === 3 && reportType === "endOfTerm")
+                    ? ((studentCurrentScores.length > 0 ? studentCurrentScores.reduce((acc, curr) => acc + getEndOfTermScoreMetrics(curr, studentAssessmentTypes).adjustedTotal, 0) / studentCurrentScores.length : 0) >= 50
+                        ? "PROMOTED TO NEXT CLASS"
+                        : "NOT PROMOTED")
+                    : undefined,
                 publishedAt: reportCard?.publishedAt?.toISOString() || undefined
             },
             gradingRules: studentGradingRules.length > 0 ? studentGradingRules.map(r => ({
@@ -711,27 +874,28 @@ export async function bulkGenerateReportCardData(
             })) : undefined,
             classTeacherSignatureUrl: classTeacherSignatureUrl || undefined,
             config: config ? {
-                activeTemplate: globalActiveTemplate,
-                colorScheme: customTemplateEntry?.colorScheme || config.colorScheme,
-                showAttendance: customTemplateEntry?.showAttendance ?? config.showAttendance,
-                showTraits: customTemplateEntry?.showTraits ?? config.showTraits,
-                showSkills: customTemplateEntry?.showSkills ?? config.showSkills,
-                showComments: customTemplateEntry?.showComments ?? config.showComments,
-                showPhoto: customTemplateEntry?.showPhoto ?? config.showPhoto,
-                showPosition: customTemplateEntry?.showPosition ?? config.showPosition,
-                showBehaviourGradeKey: customTemplateEntry?.showBehaviourGradeKey ?? (config as any).showBehaviourGradeKey,
-                customTitles: customTemplateEntry?.customTitles || config.customTitles || undefined,
-                customLayout: resolvedCustomLayout,
-                displayOptions: resolvedDisplayOptions || (config as any).displayOptions,
-                assessmentTypeNames: assessmentTypes.length > 0 ? {
-                    ca1: caTypes[0]?.name,
-                    ca2: caTypes[1]?.name,
-                    ca3: caTypes[2]?.name,
-                    exam: examType?.name,
+                activeTemplate: studentActiveTemplate,
+                colorScheme: studentCustomTemplateEntry?.colorScheme || config.colorScheme,
+                showAttendance: studentCustomTemplateEntry?.showAttendance ?? config.showAttendance,
+                showTraits: studentCustomTemplateEntry?.showTraits ?? config.showTraits,
+                showSkills: studentCustomTemplateEntry?.showSkills ?? config.showSkills,
+                showComments: studentCustomTemplateEntry?.showComments ?? config.showComments,
+                showPhoto: studentCustomTemplateEntry?.showPhoto ?? config.showPhoto,
+                showPosition: studentCustomTemplateEntry?.showPosition ?? config.showPosition,
+                showBehaviourGradeKey: studentCustomTemplateEntry?.showBehaviourGradeKey ?? (config as any).showBehaviourGradeKey,
+                customTitles: studentCustomTemplateEntry?.customTitles || config.customTitles || undefined,
+                customLayout: studentCustomLayout,
+                displayOptions: studentDisplayOptions || (config as any).displayOptions,
+                assessmentTypeNames: studentAssessmentTypes.length > 0 ? {
+                    ca1: studentCaTypes[0]?.name,
+                    ca2: studentCaTypes[1]?.name,
+                    ca3: studentCaTypes[2]?.name,
+                    exam: studentExamType?.name,
                 } : undefined,
             } : undefined,
             reportType
         };
     });
 }
+
 

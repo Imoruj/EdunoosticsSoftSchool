@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -82,3 +82,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Failed to load student change requests" }, { status: 500 });
     }
 }
+

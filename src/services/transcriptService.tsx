@@ -1,5 +1,5 @@
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { TranscriptData } from "@/components/transcripts/types";
 import ReactPDF from "@react-pdf/renderer";
 import TranscriptDocument from "@/components/transcripts/TranscriptDocument";
@@ -303,3 +303,4 @@ function buildSchoolData(school: any) {
         stampUrl: school.stampUrl || undefined,
     };
 }
+

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { slugify } from "@/lib/utils";
 
@@ -126,3 +126,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

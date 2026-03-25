@@ -1,6 +1,6 @@
-
+﻿
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET /api/classes/[id] - Get details for a single class

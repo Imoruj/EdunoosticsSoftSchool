@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import ReportsClient from "@/components/reports/ReportsClient";
@@ -200,3 +200,4 @@ export default async function ReportCardsPage() {
         />
     );
 }
+

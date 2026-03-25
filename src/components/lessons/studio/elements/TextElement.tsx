@@ -50,7 +50,12 @@ export function TextElementView({ data, editing = false, onEditEnd }: TextElemen
   }
 
   // Build CSS override rules for font/color (need !important to beat inline styles)
-  const rules: string[] = [];
+  // Always inject list-style rules so <ul>/<ol> bullets render correctly
+  const rules: string[] = [
+    `#${elId} ul { list-style-type: disc; padding-left: 1.4em; margin: 0.2em 0; }`,
+    `#${elId} ol { list-style-type: decimal; padding-left: 1.4em; margin: 0.2em 0; }`,
+    `#${elId} li { margin: 0.1em 0; }`,
+  ];
   if (data?.textColor) {
     rules.push(`#${elId} * { color: ${data.textColor} !important; }`);
   }
@@ -78,7 +83,7 @@ export function TextElementView({ data, editing = false, onEditEnd }: TextElemen
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onPointerDown={(e) => e.stopPropagation()}
-          style={{ outline: 'none', minHeight: '1em', cursor: 'text', whiteSpace: 'pre-wrap', userSelect: 'text', height: '100%' }}
+          style={{ outline: 'none', minHeight: '1em', cursor: 'text', userSelect: 'text', height: '100%' }}
         />
       ) : (
         /* Read-only render */

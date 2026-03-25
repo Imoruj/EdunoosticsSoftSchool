@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { generateReportCardData, generateReportCardStream } from "@/services/reportService";
 
@@ -132,3 +132,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Failed to download report" }, { status: 500 });
     }
 }
+

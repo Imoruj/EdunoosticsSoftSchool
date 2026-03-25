@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
@@ -62,3 +62,4 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Failed to update AI settings" }, { status: 500 });
     }
 }
+

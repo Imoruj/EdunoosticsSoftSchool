@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { generateTeacherComment, generatePrincipalComment } from "@/services/aiService";
 
@@ -110,3 +110,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to generate comment" }, { status: 500 });
     }
 }
+

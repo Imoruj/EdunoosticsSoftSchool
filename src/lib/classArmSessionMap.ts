@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export type SessionMap = Record<string, string[]>;
 
@@ -114,3 +114,4 @@ export async function getSessionIdsByClassArms(
         ])
     );
 }
+

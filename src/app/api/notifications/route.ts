@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 const USER_NOTIFICATION_TABLE_HINTS = [
@@ -82,7 +82,14 @@ function buildScoreReviewHref(
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        let session;
+        try {
+            session = await getServerSession(authOptions);
+        } catch (sessionError) {
+            console.warn("Session resolution failed for /api/notifications", sessionError);
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -217,3 +224,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
     }
 }
+

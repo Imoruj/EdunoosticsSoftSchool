@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET - Fetch grading rules for the school, optionally filtered by category
@@ -217,3 +217,4 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
+

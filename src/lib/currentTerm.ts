@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Automatically sync the `isCurrent` flag on Term (and AcademicSession)
@@ -86,3 +86,4 @@ export async function syncCurrentTerm(schoolId: string): Promise<void> {
         });
     });
 }
+

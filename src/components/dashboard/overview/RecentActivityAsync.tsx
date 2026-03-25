@@ -1,6 +1,6 @@
 import React from "react";
 import { Prisma } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { RecentActivityFeed } from "./RecentActivityFeed";
 
 type RecentStudent = Prisma.StudentGetPayload<{ include: { classArm: { include: { class: true } } } }>;
@@ -92,3 +92,4 @@ export async function RecentActivityAsync({ schoolId, userId, isAdmin, isTeacher
 
     return <RecentActivityFeed activities={recentActivities} />;
 }
+

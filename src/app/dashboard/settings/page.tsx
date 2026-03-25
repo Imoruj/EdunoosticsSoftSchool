@@ -1,13 +1,70 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import BehaviorSkillsSettings from "@/components/settings/BehaviorSkillsSettings";
 import TermMappingSettings from "@/components/settings/TermMappingSettings";
 import BroadsheetTermMappingSettings from "@/components/settings/BroadsheetTermMappingSettings";
 import SuccessModal from "@/components/ui/SuccessModal";
 import { GradingCategory, GradingPreset, getPresetLabel, getPresetOptionsForCategory, isPresetAllowedForCategory } from "@/lib/gradingPresets";
+import { getAssessmentTypeSummary, MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES, MAX_CONTINUOUS_ASSESSMENT_TYPES } from "@/lib/assessment-types";
+import { handleUnauthorizedApiResponse, readApiError } from "@/lib/client-session";
+
+type TermKey = "first" | "second" | "third";
+
+interface TermDateConfig {
+    start: string;
+    end: string;
+    weeks: string;
+    manualWeeks: boolean;
+}
+
+type TermDatesState = Record<TermKey, TermDateConfig>;
+
+const TERM_KEYS: TermKey[] = ["first", "second", "third"];
+const TERM_LABELS: Record<TermKey, string> = {
+    first: "First Term",
+    second: "Second Term",
+    third: "Third Term",
+};
+
+function createEmptyTermDates(): TermDatesState {
+    return {
+        first: { start: "", end: "", weeks: "", manualWeeks: false },
+        second: { start: "", end: "", weeks: "", manualWeeks: false },
+        third: { start: "", end: "", weeks: "", manualWeeks: false },
+    };
+}
+
+function parseDateInput(value: string) {
+    if (!value) return null;
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return null;
+    return new Date(Date.UTC(year, month - 1, day));
+}
+
+function calculateTermWeeks(start: string, end: string) {
+    const startDate = parseDateInput(start);
+    const endDate = parseDateInput(end);
+    if (!startDate || !endDate) return "";
+
+    const diffMs = endDate.getTime() - startDate.getTime();
+    if (diffMs < 0) return "";
+
+    const diffDays = Math.floor(diffMs / 86400000) + 1;
+    return String(Math.max(1, Math.ceil(diffDays / 7)));
+}
+
+function createTermDateConfig(start = "", end = "", totalWeeks?: number | null): TermDateConfig {
+    const autoWeeks = calculateTermWeeks(start, end);
+    const storedWeeks = typeof totalWeeks === "number" && totalWeeks > 0 ? String(totalWeeks) : "";
+    return {
+        start,
+        end,
+        weeks: storedWeeks || autoWeeks,
+        manualWeeks: !!storedWeeks && storedWeeks !== autoWeeks,
+    };
+}
 
 interface SchoolData {
     id: string;
@@ -22,6 +79,66 @@ interface SchoolData {
     website: string | null;
     logoUrl: string | null;
     principalSignatureUrl: string | null;
+}
+
+interface AssessmentTypeConfig {
+    id: string;
+    name: string;
+    maxScore: number;
+    order: number;
+    shortName?: string | null;
+    includeInTotal?: boolean;
+}
+
+interface AssessmentTypeDraft {
+    name: string;
+    maxScore: string;
+    includeInTotal: boolean;
+}
+
+interface ClassOverrideEditorState {
+    overrides: AssessmentTypeConfig[];
+    loaded: boolean;
+    loading: boolean;
+    editingId: string | null;
+    newItem: AssessmentTypeDraft;
+    saving: boolean;
+    error: string;
+}
+
+interface ClassOverrideOption {
+    id: string;
+    name: string;
+}
+
+interface ClassOverrideLoadResult {
+    classId: string;
+    overrides: AssessmentTypeConfig[];
+    error: string;
+}
+
+function createEmptyAssessmentTypeDraft(): AssessmentTypeDraft {
+    return { name: "", maxScore: "", includeInTotal: true };
+}
+
+function createEmptyClassOverrideEditorState(): ClassOverrideEditorState {
+    return {
+        overrides: [],
+        loaded: false,
+        loading: false,
+        editingId: null,
+        newItem: createEmptyAssessmentTypeDraft(),
+        saving: false,
+        error: "",
+    };
+}
+
+function sortAssessmentTypes(types: AssessmentTypeConfig[]) {
+    return [...types].sort((left, right) => {
+        const orderDiff = left.order - right.order;
+        if (orderDiff !== 0) return orderDiff;
+        return left.name.localeCompare(right.name);
+    });
 }
 
 export default function SettingsPage() {
@@ -138,11 +255,14 @@ function SchoolProfileSettings() {
     const fetchSchool = async () => {
         try {
             const response = await fetch("/api/school");
+            if (await handleUnauthorizedApiResponse(response)) {
+                return;
+            }
             if (response.ok) {
                 const data = await response.json();
                 setSchool(data);
             } else {
-                setError("Failed to load school data");
+                setError(await readApiError(response, "Failed to load school data"));
             }
         } catch (err) {
             setError("Failed to load school data");
@@ -177,6 +297,9 @@ function SchoolProfileSettings() {
                 }),
             });
 
+            if (await handleUnauthorizedApiResponse(response)) {
+                return;
+            }
 
             if (response.ok) {
                 const data = await response.json();
@@ -187,8 +310,7 @@ function SchoolProfileSettings() {
 
                 setShowSuccessModal(true);
             } else {
-                const data = await response.json();
-                setError(data.error || "Failed to save");
+                setError(await readApiError(response, "Failed to save"));
             }
         } catch (err) {
             setError("Failed to save school settings");
@@ -450,11 +572,7 @@ function AcademicSettings() {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Term Dates State
-    const [termDates, setTermDates] = useState({
-        first: { start: "", end: "" },
-        second: { start: "", end: "" },
-        third: { start: "", end: "" }
-    });
+    const [termDates, setTermDates] = useState<TermDatesState>(createEmptyTermDates());
 
     useEffect(() => {
         fetchSessions();
@@ -498,22 +616,63 @@ function AcademicSettings() {
         }
 
         // Set dates
-        const newDates = {
-            first: { start: "", end: "" },
-            second: { start: "", end: "" },
-            third: { start: "", end: "" }
-        };
+        const newDates = createEmptyTermDates();
 
         session.terms.forEach((t: any) => {
             const start = t.startDate ? new Date(t.startDate).toISOString().split('T')[0] : "";
             const end = t.endDate ? new Date(t.endDate).toISOString().split('T')[0] : "";
 
-            if (t.termNumber === 1) newDates.first = { start, end };
-            if (t.termNumber === 2) newDates.second = { start, end };
-            if (t.termNumber === 3) newDates.third = { start, end };
+            if (t.termNumber === 1) newDates.first = createTermDateConfig(start, end, t.totalWeeks);
+            if (t.termNumber === 2) newDates.second = createTermDateConfig(start, end, t.totalWeeks);
+            if (t.termNumber === 3) newDates.third = createTermDateConfig(start, end, t.totalWeeks);
         });
 
         setTermDates(newDates);
+    };
+
+    const handleTermDateChange = (termKey: TermKey, field: "start" | "end", value: string) => {
+        setTermDates((prev) => {
+            const currentTerm = prev[termKey];
+            const nextTerm = { ...currentTerm, [field]: value };
+            const autoWeeks = calculateTermWeeks(nextTerm.start, nextTerm.end);
+
+            if (!currentTerm.manualWeeks || !currentTerm.weeks) {
+                nextTerm.weeks = autoWeeks;
+            }
+
+            return { ...prev, [termKey]: nextTerm };
+        });
+    };
+
+    const handleTermWeeksChange = (termKey: TermKey, value: string) => {
+        const sanitized = value.replace(/[^\d]/g, "");
+        setTermDates((prev) => {
+            const currentTerm = prev[termKey];
+            const autoWeeks = calculateTermWeeks(currentTerm.start, currentTerm.end);
+
+            return {
+                ...prev,
+                [termKey]: {
+                    ...currentTerm,
+                    weeks: sanitized,
+                    manualWeeks: sanitized !== "" && sanitized !== autoWeeks,
+                },
+            };
+        });
+    };
+
+    const resetTermWeeksToAuto = (termKey: TermKey) => {
+        setTermDates((prev) => {
+            const currentTerm = prev[termKey];
+            return {
+                ...prev,
+                [termKey]: {
+                    ...currentTerm,
+                    weeks: calculateTermWeeks(currentTerm.start, currentTerm.end),
+                    manualWeeks: false,
+                },
+            };
+        });
     };
 
     const handleSave = async () => {
@@ -527,9 +686,24 @@ function AcademicSettings() {
                 sessionName: newSessionName,
                 currentTerm,
                 terms: [
-                    { name: "First Term", startDate: termDates.first.start, endDate: termDates.first.end },
-                    { name: "Second Term", startDate: termDates.second.start, endDate: termDates.second.end },
-                    { name: "Third Term", startDate: termDates.third.start, endDate: termDates.third.end }
+                    {
+                        name: "First Term",
+                        startDate: termDates.first.start,
+                        endDate: termDates.first.end,
+                        totalWeeks: termDates.first.weeks ? Number(termDates.first.weeks) : null,
+                    },
+                    {
+                        name: "Second Term",
+                        startDate: termDates.second.start,
+                        endDate: termDates.second.end,
+                        totalWeeks: termDates.second.weeks ? Number(termDates.second.weeks) : null,
+                    },
+                    {
+                        name: "Third Term",
+                        startDate: termDates.third.start,
+                        endDate: termDates.third.end,
+                        totalWeeks: termDates.third.weeks ? Number(termDates.third.weeks) : null,
+                    }
                 ]
             };
 
@@ -590,11 +764,7 @@ function AcademicSettings() {
                                     if (val === "new") {
                                         setSelectedSessionId("new");
                                         setNewSessionName("");
-                                        setTermDates({
-                                            first: { start: "", end: "" },
-                                            second: { start: "", end: "" },
-                                            third: { start: "", end: "" }
-                                        });
+                                        setTermDates(createEmptyTermDates());
                                     } else {
                                         const s = sessions.find(s => s.id === val);
                                         if (s) selectSession(s);
@@ -635,77 +805,67 @@ function AcademicSettings() {
             <div className="pt-4 border-t border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Term Dates</h3>
                 <div className="space-y-4">
-                    <div className="grid md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">First Term</label>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.first.start}
-                                onChange={(e) => setTermDates({ ...termDates, first: { ...termDates.first, start: e.target.value } })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.first.end}
-                                onChange={(e) => setTermDates({ ...termDates, first: { ...termDates.first, end: e.target.value } })}
-                            />
-                        </div>
-                    </div>
+                    {TERM_KEYS.map((termKey) => {
+                        const term = termDates[termKey];
+                        const autoWeeks = calculateTermWeeks(term.start, term.end);
 
-                    <div className="grid md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Second Term</label>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.second.start}
-                                onChange={(e) => setTermDates({ ...termDates, second: { ...termDates.second, start: e.target.value } })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.second.end}
-                                onChange={(e) => setTermDates({ ...termDates, second: { ...termDates.second, end: e.target.value } })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Third Term</label>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.third.start}
-                                onChange={(e) => setTermDates({ ...termDates, third: { ...termDates.third, start: e.target.value } })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-500 mb-1">End Date</label>
-                            <input
-                                type="date"
-                                className="input w-full"
-                                value={termDates.third.end}
-                                onChange={(e) => setTermDates({ ...termDates, third: { ...termDates.third, end: e.target.value } })}
-                            />
-                        </div>
-                    </div>
+                        return (
+                            <div key={termKey} className="grid md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{TERM_LABELS[termKey]}</label>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="input w-full"
+                                        value={term.start}
+                                        onChange={(e) => handleTermDateChange(termKey, "start", e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                                    <input
+                                        type="date"
+                                        className="input w-full"
+                                        value={term.end}
+                                        onChange={(e) => handleTermDateChange(termKey, "end", e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Number of Weeks</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        className="input w-full"
+                                        value={term.weeks}
+                                        onChange={(e) => handleTermWeeksChange(termKey, e.target.value)}
+                                        placeholder="Auto"
+                                    />
+                                    <div className="mt-1 min-h-[20px] flex items-center gap-2 text-xs">
+                                        {autoWeeks ? (
+                                            term.manualWeeks ? (
+                                                <>
+                                                    <span className="text-amber-600">Auto: {autoWeeks} week{autoWeeks === "1" ? "" : "s"}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => resetTermWeeksToAuto(termKey)}
+                                                        className="text-primary-600 hover:text-primary-700 font-medium"
+                                                    >
+                                                        Use auto
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <span className="text-green-600">Auto-filled from selected dates</span>
+                                            )
+                                        ) : (
+                                            <span className="text-gray-400">Set valid start and end dates to auto-calculate.</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -989,10 +1149,498 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
     );
 }
 
+function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTypeConfig[] }) {
+    const [classes, setClasses] = useState<ClassOverrideOption[]>([]);
+    const [classStates, setClassStates] = useState<Record<string, ClassOverrideEditorState>>({});
+    const [expandedClassIds, setExpandedClassIds] = useState<string[]>([]);
+    const [loadingClasses, setLoadingClasses] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchClassesAndOverrides = async () => {
+            setLoadingClasses(true);
+            setError("");
+
+            try {
+                const response = await fetch("/api/classes");
+                if (await handleUnauthorizedApiResponse(response)) {
+                    return;
+                }
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || "Failed to load classes.");
+                }
+
+                const nextClasses: ClassOverrideOption[] = Array.isArray(payload.classes)
+                    ? payload.classes.map((item: any) => ({ id: item.id, name: item.name }))
+                    : [];
+
+                if (!isMounted) return;
+
+                setClasses(nextClasses);
+
+                if (nextClasses.length === 0) {
+                    setClassStates({});
+                    setExpandedClassIds([]);
+                    return;
+                }
+
+                const overrideResults: ClassOverrideLoadResult[] = await Promise.all(
+                    nextClasses.map(async (classItem) => {
+                        try {
+                            const classResponse = await fetch(`/api/class-assessment-types?classId=${classItem.id}`);
+                            if (await handleUnauthorizedApiResponse(classResponse)) {
+                                return {
+                                    classId: classItem.id,
+                                    overrides: [] as AssessmentTypeConfig[],
+                                    error: "",
+                                };
+                            }
+
+                            const classPayload = await classResponse.json().catch(() => ([]));
+                            if (!classResponse.ok) {
+                                throw new Error(
+                                    (classPayload && classPayload.error) || `Failed to load overrides for ${classItem.name}.`
+                                );
+                            }
+
+                            return {
+                                classId: classItem.id,
+                                overrides: sortAssessmentTypes(Array.isArray(classPayload) ? classPayload : []),
+                                error: "",
+                            };
+                        } catch (classError: any) {
+                            return {
+                                classId: classItem.id,
+                                overrides: [] as AssessmentTypeConfig[],
+                                error: classError.message || `Failed to load overrides for ${classItem.name}.`,
+                            };
+                        }
+                    })
+                );
+
+                if (!isMounted) return;
+
+                const nextStates = nextClasses.reduce((accumulator: Record<string, ClassOverrideEditorState>, classItem: ClassOverrideOption) => {
+                    const match = overrideResults.find((result) => result.classId === classItem.id);
+                    accumulator[classItem.id] = {
+                        ...createEmptyClassOverrideEditorState(),
+                        overrides: match?.overrides ?? [],
+                        loaded: true,
+                        error: match?.error ?? "",
+                    };
+                    return accumulator;
+                }, {});
+
+                setClassStates(nextStates);
+                setExpandedClassIds(
+                    overrideResults
+                        .filter((result) => result.overrides.length > 0)
+                        .map((result) => result.classId)
+                );
+            } catch (fetchError: any) {
+                if (isMounted) {
+                    setClasses([]);
+                    setClassStates({});
+                    setExpandedClassIds([]);
+                    setError(fetchError.message || "Failed to load classes.");
+                }
+            } finally {
+                if (isMounted) {
+                    setLoadingClasses(false);
+                }
+            }
+        };
+
+        fetchClassesAndOverrides();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const defaultSummary = getAssessmentTypeSummary(defaultTypes);
+
+    const updateClassState = (
+        classId: string,
+        updater: (current: ClassOverrideEditorState) => ClassOverrideEditorState
+    ) => {
+        setClassStates((current) => {
+            const existing = current[classId] ?? createEmptyClassOverrideEditorState();
+            return {
+                ...current,
+                [classId]: updater(existing),
+            };
+        });
+    };
+
+    const toggleClassCard = (classId: string) => {
+        setExpandedClassIds((current) =>
+            current.includes(classId)
+                ? current.filter((item) => item !== classId)
+                : [...current, classId]
+        );
+    };
+
+    const addOverride = async (classId: string) => {
+        const currentState = classStates[classId] ?? createEmptyClassOverrideEditorState();
+        if (!currentState.newItem.name || !currentState.newItem.maxScore) {
+            updateClassState(classId, (state) => ({ ...state, error: "Enter name and max score" }));
+            return;
+        }
+
+        updateClassState(classId, (state) => ({ ...state, saving: true, error: "" }));
+        try {
+            const res = await fetch("/api/class-assessment-types", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ classId, ...currentState.newItem }),
+            });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
+            if (res.ok) {
+                const created = await res.json();
+                updateClassState(classId, (state) => ({
+                    ...state,
+                    overrides: sortAssessmentTypes([...state.overrides, created]),
+                    newItem: createEmptyAssessmentTypeDraft(),
+                }));
+                setExpandedClassIds((current) => (current.includes(classId) ? current : [...current, classId]));
+            } else {
+                const nextError = await readApiError(res, "Failed to add");
+                updateClassState(classId, (state) => ({ ...state, error: nextError }));
+            }
+        } catch {
+            updateClassState(classId, (state) => ({ ...state, error: "Failed to add" }));
+        } finally {
+            updateClassState(classId, (state) => ({ ...state, saving: false }));
+        }
+    };
+
+    const updateOverride = async (classId: string, id: string, name: string, maxScore: string, includeInTotal: boolean) => {
+        updateClassState(classId, (state) => ({ ...state, saving: true, error: "" }));
+        try {
+            const res = await fetch("/api/class-assessment-types", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, name, maxScore, includeInTotal }),
+            });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
+            if (res.ok) {
+                const updated = await res.json();
+                updateClassState(classId, (state) => ({
+                    ...state,
+                    overrides: sortAssessmentTypes(state.overrides.map((item) => (item.id === id ? updated : item))),
+                    editingId: null,
+                }));
+            } else {
+                const nextError = await readApiError(res, "Failed to update");
+                updateClassState(classId, (state) => ({ ...state, error: nextError }));
+            }
+        } catch {
+            updateClassState(classId, (state) => ({ ...state, error: "Failed to update" }));
+        } finally {
+            updateClassState(classId, (state) => ({ ...state, saving: false }));
+        }
+    };
+
+    const deleteOverride = async (classId: string, id: string) => {
+        try {
+            const res = await fetch(`/api/class-assessment-types?id=${id}`, { method: "DELETE" });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
+            if (res.ok) {
+                updateClassState(classId, (state) => ({
+                    ...state,
+                    overrides: state.overrides.filter((item) => item.id !== id),
+                }));
+            } else {
+                const nextError = await readApiError(res, "Failed to delete");
+                updateClassState(classId, (state) => ({ ...state, error: nextError }));
+            }
+        } catch {
+            updateClassState(classId, (state) => ({ ...state, error: "Failed to delete" }));
+        }
+    };
+
+    const resetToDefaults = async (classId: string) => {
+        if (!confirm("Remove all overrides for this class and revert to school defaults?")) return;
+        try {
+            const res = await fetch(`/api/class-assessment-types?classId=${classId}&all=true`, { method: "DELETE" });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
+            if (res.ok) {
+                updateClassState(classId, (state) => ({
+                    ...state,
+                    overrides: [],
+                    editingId: null,
+                    newItem: createEmptyAssessmentTypeDraft(),
+                    error: "",
+                }));
+            } else {
+                const nextError = await readApiError(res, "Failed to reset");
+                updateClassState(classId, (state) => ({ ...state, error: nextError }));
+            }
+        } catch {
+            updateClassState(classId, (state) => ({ ...state, error: "Failed to reset" }));
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            {error && (
+                <div className="bg-red-50 text-red-700 px-4 py-2 rounded-lg text-sm flex items-center justify-between">
+                    <span>{error}</span>
+                    <button onClick={() => setError("")} className="text-red-500 text-lg leading-none">&times;</button>
+                </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-gray-600">
+                    Manage overrides for as many classes as needed. Each class keeps its own score-component setup.
+                </p>
+                {classes.length > 1 && (
+                    <div className="flex items-center gap-3 text-sm">
+                        <button
+                            onClick={() => setExpandedClassIds(classes.map((classItem) => classItem.id))}
+                            className="text-blue-600 hover:text-blue-800"
+                        >
+                            Expand all
+                        </button>
+                        <button
+                            onClick={() => setExpandedClassIds([])}
+                            className="text-gray-500 hover:text-gray-700"
+                        >
+                            Collapse all
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <p className="text-xs text-gray-500">
+                Each class can use up to {MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES} score components total:
+                {" "}up to {MAX_CONTINUOUS_ASSESSMENT_TYPES} CA components and 1 exam.
+            </p>
+
+            {loadingClasses ? (
+                <p className="text-sm text-gray-400">Loading classes...</p>
+            ) : classes.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                    No classes are available yet.
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {classes.map((classItem) => {
+                        const state = classStates[classItem.id] ?? createEmptyClassOverrideEditorState();
+                        const hasOverrides = state.overrides.length > 0;
+                        const isExpanded = expandedClassIds.includes(classItem.id);
+                        const summary = getAssessmentTypeSummary(hasOverrides ? state.overrides : defaultTypes);
+
+                        return (
+                            <div key={classItem.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleClassCard(classItem.id)}
+                                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-gray-50"
+                                >
+                                    <div>
+                                        <div className="text-base font-semibold text-gray-900">{classItem.name}</div>
+                                        <div className="text-sm text-gray-500">
+                                            {hasOverrides
+                                                ? `${state.overrides.length} class-specific component${state.overrides.length === 1 ? "" : "s"} configured`
+                                                : "Using school defaults"}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right text-sm text-gray-500">
+                                            <div>
+                                                Counted total:{" "}
+                                                <span className={`font-bold ${summary.countedMaxScore === 100 ? "text-green-600" : "text-orange-500"}`}>
+                                                    {summary.countedMaxScore}
+                                                </span>
+                                                /100 pts
+                                            </div>
+                                            {summary.excludedMaxScore > 0 && (
+                                                <div className="text-xs text-gray-500">Recorded only: {summary.excludedMaxScore} pts</div>
+                                            )}
+                                        </div>
+                                        <span className="text-sm font-medium text-blue-600">{isExpanded ? "Hide" : "Manage"}</span>
+                                    </div>
+                                </button>
+
+                                {isExpanded && (
+                                    <div className="border-t border-gray-200 px-4 py-4">
+                                        {state.error && (
+                                            <div className="mb-3 flex items-center justify-between rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
+                                                <span>{state.error}</span>
+                                                <button
+                                                    onClick={() => updateClassState(classItem.id, (current) => ({ ...current, error: "" }))}
+                                                    className="text-red-500 text-lg leading-none"
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {!hasOverrides ? (
+                                            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                                                Using school defaults:&nbsp;
+                                                {defaultTypes.length > 0
+                                                    ? defaultTypes.map((item) => `${item.name} (${item.maxScore} pts)`).join(" · ")
+                                                    : "none configured"}
+                                                {defaultTypes.length > 0 && (
+                                                    <div className="mt-2 text-xs text-gray-500">
+                                                        Counted total:{" "}
+                                                        <span className={`font-semibold ${defaultSummary.countedMaxScore === 100 ? "text-green-600" : "text-orange-500"}`}>
+                                                            {defaultSummary.countedMaxScore}
+                                                        </span>
+                                                        /100 pts
+                                                        {defaultSummary.excludedMaxScore > 0 && (
+                                                            <span className="ml-3">Recorded only: {defaultSummary.excludedMaxScore} pts</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="mb-3 space-y-2">
+                                                <div className="mb-1 flex items-center justify-between">
+                                                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Class overrides</span>
+                                                    <button
+                                                        onClick={() => resetToDefaults(classItem.id)}
+                                                        className="text-sm text-red-500 hover:text-red-700 underline"
+                                                    >
+                                                        Reset to school defaults
+                                                    </button>
+                                                </div>
+                                                {state.overrides.map((item) => (
+                                                    <div key={item.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                                                        {state.editingId === item.id ? (
+                                                            <>
+                                                                <input type="text" className="input flex-1" defaultValue={item.name} id={`co-name-${classItem.id}-${item.id}`} />
+                                                                <input type="number" className="input w-24" defaultValue={item.maxScore} id={`co-score-${classItem.id}-${item.id}`} />
+                                                                <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                                                                    <input type="checkbox" defaultChecked={item.includeInTotal !== false} id={`co-include-${classItem.id}-${item.id}`} />
+                                                                    Count in total
+                                                                </label>
+                                                                <button
+                                                                    disabled={state.saving}
+                                                                    onClick={() => {
+                                                                        const name = (document.getElementById(`co-name-${classItem.id}-${item.id}`) as HTMLInputElement).value;
+                                                                        const maxScore = (document.getElementById(`co-score-${classItem.id}-${item.id}`) as HTMLInputElement).value;
+                                                                        const includeInTotal = (document.getElementById(`co-include-${classItem.id}-${item.id}`) as HTMLInputElement).checked;
+                                                                        updateOverride(classItem.id, item.id, name, maxScore, includeInTotal);
+                                                                    }}
+                                                                    className="btn-primary px-3 py-1 text-sm"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => updateClassState(classItem.id, (current) => ({ ...current, editingId: null }))}
+                                                                    className="btn-secondary px-3 py-1 text-sm"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-medium">{item.name}</div>
+                                                                    {item.includeInTotal === false && (
+                                                                        <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
+                                                                    )}
+                                                                </div>
+                                                                <span className="w-24 text-center text-gray-600">{item.maxScore} pts</span>
+                                                                <button
+                                                                    onClick={() => updateClassState(classItem.id, (current) => ({ ...current, editingId: item.id }))}
+                                                                    className="text-sm text-blue-600 hover:text-blue-800"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => deleteOverride(classItem.id, item.id)}
+                                                                    className="text-sm text-red-600 hover:text-red-800"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="mt-2 flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 p-3">
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., CA1, Exam, Project"
+                                                className="input flex-1"
+                                                value={state.newItem.name}
+                                                onChange={(e) =>
+                                                    updateClassState(classItem.id, (current) => ({
+                                                        ...current,
+                                                        newItem: { ...current.newItem, name: e.target.value },
+                                                    }))
+                                                }
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="Max Score"
+                                                className="input w-28"
+                                                value={state.newItem.maxScore}
+                                                onChange={(e) =>
+                                                    updateClassState(classItem.id, (current) => ({
+                                                        ...current,
+                                                        newItem: { ...current.newItem, maxScore: e.target.value },
+                                                    }))
+                                                }
+                                            />
+                                            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={state.newItem.includeInTotal}
+                                                    onChange={(e) =>
+                                                        updateClassState(classItem.id, (current) => ({
+                                                            ...current,
+                                                            newItem: { ...current.newItem, includeInTotal: e.target.checked },
+                                                        }))
+                                                    }
+                                                />
+                                                Count in total
+                                            </label>
+                                            <button
+                                                onClick={() => addOverride(classItem.id)}
+                                                disabled={state.saving}
+                                                className="btn-primary px-4 text-sm"
+                                            >
+                                                + Add
+                                            </button>
+                                        </div>
+                                        <p className="mt-2 text-xs text-gray-500">
+                                            Components that are not counted still appear during score entry, but they do not affect end-of-term totals or grades.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function GradingSettings() {
     // Assessment Types State
-    const [assessmentTypes, setAssessmentTypes] = useState<any[]>([]);
-    const [newAssessment, setNewAssessment] = useState({ name: "", maxScore: "" });
+    const [assessmentTypes, setAssessmentTypes] = useState<AssessmentTypeConfig[]>([]);
+    const [newAssessment, setNewAssessment] = useState<AssessmentTypeDraft>({ name: "", maxScore: "", includeInTotal: true });
     const [editingAssessment, setEditingAssessment] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -1009,12 +1657,16 @@ function GradingSettings() {
         setLoading(true);
         try {
             const res = await fetch("/api/assessment-types");
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
             if (res.ok) setAssessmentTypes(await res.json());
+            else setError(await readApiError(res, "Failed to load assessment types"));
         } catch { setError("Failed to load assessment types"); }
         finally { setLoading(false); }
     };
 
-    const totalPoints = assessmentTypes.reduce((sum, a) => sum + (a.maxScore || 0), 0);
+    const assessmentSummary = getAssessmentTypeSummary(assessmentTypes);
 
     const addAssessmentType = async () => {
         if (!newAssessment.name || !newAssessment.maxScore) { setError("Please enter name and max score"); return; }
@@ -1025,15 +1677,17 @@ function GradingSettings() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(newAssessment),
             });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
             if (res.ok) {
                 const data = await res.json();
                 setAssessmentTypes([...assessmentTypes, data]);
-                setNewAssessment({ name: "", maxScore: "" });
+                setNewAssessment({ name: "", maxScore: "", includeInTotal: true });
                 setSuccessMessage("Score component added successfully.");
                 setShowSuccessModal(true);
             } else {
-                const err = await res.json();
-                setError(err.error || "Failed to add");
+                setError(await readApiError(res, "Failed to add"));
             }
         } catch { setError("Failed to add assessment type"); }
         finally { setSaving(false); }
@@ -1047,12 +1701,17 @@ function GradingSettings() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, ...data }),
             });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
             if (res.ok) {
                 const updated = await res.json();
                 setAssessmentTypes(assessmentTypes.map(a => a.id === id ? updated : a));
                 setEditingAssessment(null);
                 setSuccessMessage("Score component updated.");
                 setShowSuccessModal(true);
+            } else {
+                setError(await readApiError(res, "Failed to update"));
             }
         } catch { setError("Failed to update"); }
         finally { setSaving(false); }
@@ -1061,10 +1720,15 @@ function GradingSettings() {
     const deleteAssessmentType = async (id: string) => {
         try {
             const res = await fetch(`/api/assessment-types?id=${id}`, { method: "DELETE" });
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
             if (res.ok) {
                 setAssessmentTypes(assessmentTypes.filter(a => a.id !== id));
                 setSuccessMessage("Score component deleted.");
                 setShowSuccessModal(true);
+            } else {
+                setError(await readApiError(res, "Failed to delete"));
             }
         } catch { setError("Failed to delete"); }
     };
@@ -1094,9 +1758,14 @@ function GradingSettings() {
             <div className="card p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Score Components</h3>
-                    <span className="text-sm text-gray-500">
-                        Total: <span className={`font-bold ${totalPoints === 100 ? 'text-green-600' : 'text-orange-500'}`}>{totalPoints}</span>/100 points
-                    </span>
+                    <div className="text-sm text-gray-500 text-right">
+                        <div>
+                            Counted total: <span className={`font-bold ${assessmentSummary.countedMaxScore === 100 ? 'text-green-600' : 'text-orange-500'}`}>{assessmentSummary.countedMaxScore}</span>/100 points
+                        </div>
+                        {assessmentSummary.excludedMaxScore > 0 && (
+                            <div className="text-xs text-gray-500">Recorded only: {assessmentSummary.excludedMaxScore} pts</div>
+                        )}
+                    </div>
                 </div>
                 <div className="space-y-3 mb-4">
                     {assessmentTypes.map((assessment) => (
@@ -1105,11 +1774,16 @@ function GradingSettings() {
                                 <>
                                     <input type="text" className="input flex-1" defaultValue={assessment.name} id={`edit-name-${assessment.id}`} />
                                     <input type="number" className="input w-24" defaultValue={assessment.maxScore} id={`edit-score-${assessment.id}`} />
+                                    <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                                        <input type="checkbox" defaultChecked={assessment.includeInTotal !== false} id={`edit-include-${assessment.id}`} />
+                                        Count in total
+                                    </label>
                                     <button
                                         onClick={() => {
                                             const name = (document.getElementById(`edit-name-${assessment.id}`) as HTMLInputElement).value;
                                             const maxScore = (document.getElementById(`edit-score-${assessment.id}`) as HTMLInputElement).value;
-                                            updateAssessmentType(assessment.id, { name, maxScore });
+                                            const includeInTotal = (document.getElementById(`edit-include-${assessment.id}`) as HTMLInputElement).checked;
+                                            updateAssessmentType(assessment.id, { name, maxScore, includeInTotal });
                                         }}
                                         className="btn-primary text-sm px-3 py-1"
                                     >Save</button>
@@ -1117,7 +1791,12 @@ function GradingSettings() {
                                 </>
                             ) : (
                                 <>
-                                    <span className="flex-1 font-medium">{assessment.name}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium">{assessment.name}</div>
+                                        {assessment.includeInTotal === false && (
+                                            <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
+                                        )}
+                                    </div>
                                     <span className="text-gray-600 w-24 text-center">{assessment.maxScore} pts</span>
                                     <button onClick={() => setEditingAssessment(assessment.id)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
                                     <button onClick={() => deleteAssessmentType(assessment.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button>
@@ -1129,8 +1808,28 @@ function GradingSettings() {
                 <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 rounded-lg">
                     <input type="text" placeholder="e.g., CA1, Exam, Project" className="input flex-1" value={newAssessment.name} onChange={(e) => setNewAssessment({ ...newAssessment, name: e.target.value })} />
                     <input type="number" placeholder="Max Score" className="input w-28" value={newAssessment.maxScore} onChange={(e) => setNewAssessment({ ...newAssessment, maxScore: e.target.value })} />
+                    <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                        <input
+                            type="checkbox"
+                            checked={newAssessment.includeInTotal}
+                            onChange={(e) => setNewAssessment({ ...newAssessment, includeInTotal: e.target.checked })}
+                        />
+                        Count in total
+                    </label>
                     <button onClick={addAssessmentType} disabled={saving} className="btn-primary text-sm px-4">+ Add</button>
                 </div>
+                <p className="mt-2 text-xs text-gray-500">
+                    Components that are not counted can still be entered on score sheets, but they do not contribute to the end-of-term total or grade.
+                </p>
+            </div>
+
+            {/* Class-specific Score Components */}
+            <div className="card p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Class-specific Score Components</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                    Override the default score components for a specific class. Classes without overrides use the school defaults above.
+                </p>
+                <ClassAssessmentOverrides defaultTypes={assessmentTypes} />
             </div>
 
             {/* Grading Scale Section — 3 Category Tabs */}

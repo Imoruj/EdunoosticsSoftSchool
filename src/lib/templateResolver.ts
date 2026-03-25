@@ -9,6 +9,23 @@ function normalizeMappings(raw: unknown): TemplateMappings {
     return raw as TemplateMappings;
 }
 
+/**
+ * Synchronously check for a class-specific template override.
+ * Returns the template id if one is configured, or null otherwise.
+ */
+export function resolveClassArmOverride(params: {
+    termId: string;
+    classId: string | null | undefined;
+    reportType: TemplateReportType;
+    termMappings: unknown;
+}): string | null {
+    const { termId, classId, reportType, termMappings } = params;
+    if (!classId) return null;
+    const mappings = normalizeMappings(termMappings);
+    const override = (mappings[termId] as any)?.classOverrides?.[classId]?.[reportType];
+    return typeof override === "string" ? override : null;
+}
+
 export async function resolveTemplateForTerm(params: {
     prisma: PrismaClient;
     schoolId: string;
@@ -17,6 +34,7 @@ export async function resolveTemplateForTerm(params: {
     reportType: TemplateReportType;
     termMappings: unknown;
     fallbackTemplate: string;
+    classId?: string | null;
 }): Promise<string> {
     const {
         prisma,
@@ -26,7 +44,14 @@ export async function resolveTemplateForTerm(params: {
         reportType,
         termMappings,
         fallbackTemplate,
+        classId,
     } = params;
+
+    // 0) Class-specific override — checked before any term-level mapping
+    if (classId) {
+        const classOverride = resolveClassArmOverride({ termId, classId, reportType, termMappings });
+        if (classOverride) return classOverride;
+    }
 
     const mappings = normalizeMappings(termMappings);
     const mappingTermIds = Object.keys(mappings);

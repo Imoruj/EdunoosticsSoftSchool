@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { generateBroadsheetData } from "@/services/broadsheetService";
 
 export async function POST(req: NextRequest) {
@@ -117,3 +117,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

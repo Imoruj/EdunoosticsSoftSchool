@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import type { LessonReferenceMaterial } from "@/lib/db/types";
 
 export type ReferenceMaterialPromptInput = Pick<
@@ -123,3 +123,4 @@ export async function buildReferenceMaterialsBlock(
     ? `\n${heading}\n${items.join("\n\n")}`
     : "";
 }
+

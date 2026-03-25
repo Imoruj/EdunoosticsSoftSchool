@@ -25,9 +25,9 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
   }, [editingTitle]);
 
   function commitTitle() {
-    const t = titleDraft.trim() || 'Untitled Lesson';
-    dispatch({ type: 'UPDATE_LESSON_TITLE', title: t });
-    setTitleDraft(t);
+    const title = titleDraft.trim() || 'Untitled Lesson';
+    dispatch({ type: 'UPDATE_LESSON_TITLE', title });
+    setTitleDraft(title);
     setEditingTitle(false);
   }
 
@@ -39,7 +39,6 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
       className="flex items-center gap-2 px-4 shrink-0 select-none"
       style={{ height: 48, background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}
     >
-      {/* Back */}
       <button
         onClick={() => router.push('/dashboard/lessons')}
         className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors shrink-0 pr-3 mr-1"
@@ -49,16 +48,18 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
         Lessons
       </button>
 
-      {/* Title */}
       {editingTitle ? (
         <input
           ref={titleRef}
           value={titleDraft}
-          onChange={(e) => setTitleDraft(e.target.value)}
+          onChange={(event) => setTitleDraft(event.target.value)}
           onBlur={commitTitle}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commitTitle();
-            if (e.key === 'Escape') { setTitleDraft(state.lesson.title); setEditingTitle(false); }
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commitTitle();
+            if (event.key === 'Escape') {
+              setTitleDraft(state.lesson.title);
+              setEditingTitle(false);
+            }
           }}
           className="text-sm font-medium text-slate-900 px-2 py-0.5 rounded border border-indigo-400 outline-none w-56"
           style={{ background: '#f8fafc' }}
@@ -73,7 +74,6 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
         </button>
       )}
 
-      {/* Save indicator */}
       {saving ? (
         <Loader2 size={11} className="animate-spin text-indigo-500 ml-1" />
       ) : state.isDirty ? (
@@ -82,9 +82,14 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
         <CheckCircle2 size={11} className="text-emerald-500 ml-1" />
       )}
 
+      {state.lesson.isPublished && (
+        <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+          Published
+        </span>
+      )}
+
       <div className="flex-1" />
 
-      {/* Undo / Redo */}
       <div className="flex items-center gap-0.5">
         <Btn onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo} title="Undo (Ctrl+Z)">
           <Undo2 size={13} />
@@ -118,18 +123,26 @@ export function StudioHeader({ state, dispatch, onSave, onPublish, onPreview, sa
         disabled={saving}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-md transition-all disabled:opacity-40 ml-1"
         style={{ background: '#4f46e5' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#4338ca')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
+        onMouseEnter={(event) => (event.currentTarget.style.background = '#4338ca')}
+        onMouseLeave={(event) => (event.currentTarget.style.background = '#4f46e5')}
       >
         <Upload size={13} />
-        Publish
+        {state.lesson.isPublished ? 'Update Publish' : 'Publish'}
       </button>
     </header>
   );
 }
 
-function Btn({ children, onClick, disabled, title }: {
-  children: React.ReactNode; onClick: () => void; disabled?: boolean; title?: string;
+function Btn({
+  children,
+  onClick,
+  disabled,
+  title,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button

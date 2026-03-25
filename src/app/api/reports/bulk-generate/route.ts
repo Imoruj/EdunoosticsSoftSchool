@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { bulkGenerateReportCardData, generateReportCardStream } from "@/services/reportService";
 import archiver from "archiver";
 import fs from "fs";
@@ -254,3 +254,4 @@ async function processBackgroundJob(
         });
     }
 }
+

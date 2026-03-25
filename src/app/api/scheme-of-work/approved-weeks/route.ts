@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
 
@@ -140,3 +140,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Failed to fetch SOW weeks" }, { status: 500 });
     }
 }
+

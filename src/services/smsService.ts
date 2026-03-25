@@ -1,5 +1,5 @@
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/serverEncrypt";
 
 interface SmsConfig {
@@ -82,3 +82,4 @@ export const sendSms = async (schoolId: string, recipients: string[], message: s
         return { success: false, error: "Failed to send SMS" };
     }
 };
+

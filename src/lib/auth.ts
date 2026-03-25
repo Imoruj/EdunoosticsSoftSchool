@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 
 type AuthUserRecord = {
@@ -223,3 +223,4 @@ export const authOptions: NextAuthOptions = {
     debug: process.env.NODE_ENV === "development",
     secret: process.env.NEXTAUTH_SECRET,
 };
+

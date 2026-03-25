@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
 
 // CSV line parser that handles quoted values
 function parseCSVLine(line: string): string[] {
@@ -143,9 +145,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Fetch assessment types to map column headers to score fields
-        const assessmentTypes = await prisma.assessmentType.findMany({
-            where: { schoolId, isActive: true },
-            orderBy: { order: "asc" },
+        const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+            schoolId,
+            classArmId,
         });
 
         const caTypes = assessmentTypes
@@ -386,22 +388,9 @@ export async function POST(req: NextRequest) {
                 const ca2 = scoreEntry.ca2 ?? (existing ? Number(existing.ca2) : 0);
                 const ca3 = scoreEntry.ca3 ?? (existing ? Number(existing.ca3) : 0);
                 const exam = scoreEntry.exam ?? (existing ? Number(existing.exam) : 0);
-                const rawTotal = ca1 + ca2 + ca3 + exam;
+                const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
 
-                // Calculate adjusted total
-                let missedMax = 0;
-                if (exam > 0) {
-                    if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
-                    if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
-                    if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
-                }
-                const obtainable = 100 - missedMax;
-                let adjustedTotal = rawTotal;
-                if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
-                    adjustedTotal = Math.round((rawTotal / obtainable) * 100);
-                }
-
-                const { grade, remark } = calculateGrade(adjustedTotal, gradingRules);
+                const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
                 return prisma.score.upsert({
                     where: {
@@ -416,7 +405,7 @@ export async function POST(req: NextRequest) {
                         ...(scoreEntry.ca2 !== undefined && { ca2: scoreEntry.ca2 }),
                         ...(scoreEntry.ca3 !== undefined && { ca3: scoreEntry.ca3 }),
                         ...(scoreEntry.exam !== undefined && { exam: scoreEntry.exam }),
-                        total: adjustedTotal,
+                        total: totals.adjustedTotal,
                         grade,
                         remark,
                         updatedById: userId,
@@ -429,7 +418,7 @@ export async function POST(req: NextRequest) {
                         ca2: ca2,
                         ca3: ca3,
                         exam: exam,
-                        total: adjustedTotal,
+                        total: totals.adjustedTotal,
                         grade,
                         remark,
                         createdById: userId,
@@ -577,3 +566,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

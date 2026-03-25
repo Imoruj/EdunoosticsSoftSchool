@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { AttendanceStatus } from "@prisma/client";
 
@@ -129,3 +129,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to save attendance" }, { status: 500 });
     }
 }
+

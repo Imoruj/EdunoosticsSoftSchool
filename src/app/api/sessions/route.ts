@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
+
+function calculateTotalWeeks(startDate?: Date, endDate?: Date) {
+    if (!startDate || !endDate) return null;
+
+    const startUtc = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+    const endUtc = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+    if (endUtc < startUtc) return null;
+
+    const diffDays = Math.floor((endUtc - startUtc) / 86400000) + 1;
+    return Math.max(1, Math.ceil(diffDays / 7));
+}
 
 export async function GET(req: NextRequest) {
     try {
@@ -116,7 +127,7 @@ export async function POST(req: NextRequest) {
 
             // 2. Handle Terms
             // We expect 'terms' to be an array containing date info for specific terms.
-            // terms: [{ name: "First Term", startDate: "...", endDate: "..." }]
+            // terms: [{ name: "First Term", startDate: "...", endDate: "...", totalWeeks?: number }]
 
             if (terms && Array.isArray(terms)) {
                 for (const termData of terms) {
@@ -134,12 +145,17 @@ export async function POST(req: NextRequest) {
                     // Only update dates if provided
                     const startDate = termData.startDate ? new Date(termData.startDate) : undefined;
                     const endDate = termData.endDate ? new Date(termData.endDate) : undefined;
+                    const parsedTotalWeeks = Number(termData.totalWeeks);
+                    const totalWeeks = Number.isFinite(parsedTotalWeeks) && parsedTotalWeeks > 0
+                        ? Math.round(parsedTotalWeeks)
+                        : calculateTotalWeeks(startDate, endDate);
 
                     // We need to upsert these terms for the session.
                     // Accessing via unique constraint: [sessionId, termNumber]
                     const updateData: any = { isCurrent: isCurrentTerm };
                     if (startDate) updateData.startDate = startDate;
                     if (endDate) updateData.endDate = endDate;
+                    updateData.totalWeeks = totalWeeks;
 
 
                     await tx.term.upsert({
@@ -155,6 +171,7 @@ export async function POST(req: NextRequest) {
                             termNumber,
                             startDate: startDate || new Date(),
                             endDate: endDate || new Date(),
+                            totalWeeks,
                             isCurrent: isCurrentTerm
                         },
                         update: updateData
@@ -179,3 +196,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

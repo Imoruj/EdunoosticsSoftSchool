@@ -1,8 +1,9 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import ScoreReviewDesk from "@/components/scores/ScoreReviewDesk";
+import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
 
 interface ReviewTermOption {
     id: string;
@@ -20,6 +21,7 @@ interface ReviewAssessmentType {
     name: string;
     maxScore: number;
     order: number;
+    includeInTotal: boolean;
 }
 
 export default async function ScoreReviewsPage() {
@@ -42,6 +44,8 @@ export default async function ScoreReviewsPage() {
     if (!isAdmin && !isClassTeacher) {
         redirect("/dashboard");
     }
+
+    await ensureAssessmentTypeColumns(prisma);
 
     const [currentSession, latestSession, dbClassArms, dbAssessmentTypes] = await Promise.all([
         prisma.academicSession.findFirst({
@@ -92,6 +96,7 @@ export default async function ScoreReviewsPage() {
                 name: true,
                 maxScore: true,
                 order: true,
+                includeInTotal: true,
             },
             orderBy: { order: "asc" },
         }),
@@ -117,6 +122,7 @@ export default async function ScoreReviewsPage() {
         name: item.name,
         maxScore: item.maxScore,
         order: item.order,
+        includeInTotal: item.includeInTotal,
     }));
 
     return (
@@ -128,3 +134,4 @@ export default async function ScoreReviewsPage() {
         />
     );
 }
+

@@ -19,6 +19,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 
 interface ScoresClientProps {
     initialClasses: ClassLink[];
@@ -26,6 +27,21 @@ interface ScoresClientProps {
     initialAssessmentTypes: AssessmentType[];
     initialGradingRules: GradingRule[];
     initialSessions: Session[];
+}
+
+function areAssessmentTypesEqual(left: AssessmentType[], right: AssessmentType[]) {
+    if (left.length !== right.length) return false;
+
+    return left.every((item, index) => {
+        const other = right[index];
+        return !!other &&
+            item.id === other.id &&
+            item.name === other.name &&
+            item.shortName === other.shortName &&
+            item.maxScore === other.maxScore &&
+            item.order === other.order &&
+            item.includeInTotal === other.includeInTotal;
+    });
 }
 
 export default function ScoresClient({
@@ -45,6 +61,10 @@ export default function ScoresClient({
     const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>(initialAssessmentTypes);
     const [gradingRules, setGradingRules] = useState<GradingRule[]>(initialGradingRules);
     const [sessions, setSessions] = useState<Session[]>(initialSessions);
+    const assessmentColumns = useMemo(
+        () => mapAssessmentTypesToScoreFields(assessmentTypes),
+        [assessmentTypes]
+    );
 
     // Selection state
     const [selectedArmId, setSelectedArmId] = useState("");
@@ -96,32 +116,6 @@ export default function ScoresClient({
             }
         }
     }, [initialSessions]);
-
-    // Helper to calculate adjusted total and grade locally
-    // Adjustment only applies when exam score has been entered (exam > 0)
-    const calculateAdjustedTotal = (ca1: number, ca2: number, ca3: number, exam: number) => {
-        const rawTotal = ca1 + ca2 + ca3 + exam;
-
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-
-        let missedMax = 0;
-        // Only calculate adjustment if exam score exists
-        if (exam > 0) {
-            if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
-            if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
-            if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
-        }
-
-        const obtainable = 100 - missedMax;
-        let adjustedTotal = rawTotal;
-        if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
-            adjustedTotal = Math.round((rawTotal / obtainable) * 100);
-        }
-
-        return { rawTotal, adjustedTotal, isAdjusted: missedMax > 0 && rawTotal > 0 };
-    };
 
     const classLevelToCategory = (level: string | undefined): SchoolCategory | null => {
         if (!level) return null;
@@ -179,6 +173,14 @@ export default function ScoresClient({
             if (!response.ok) throw new Error("Failed to fetch students/scores");
 
             const data = await response.json();
+            const resolvedAssessmentTypes: AssessmentType[] = Array.isArray(data.assessmentTypes)
+                ? data.assessmentTypes
+                : initialAssessmentTypes;
+            const resolvedAssessmentColumns = mapAssessmentTypesToScoreFields(resolvedAssessmentTypes);
+
+            setAssessmentTypes((previous) =>
+                areAssessmentTypesEqual(previous, resolvedAssessmentTypes) ? previous : resolvedAssessmentTypes
+            );
 
             // Update enrollment info
             setHasEnrollments(data.hasEnrollments || false);
@@ -188,18 +190,8 @@ export default function ScoresClient({
 
             // Determine active fields based on assessmentTypes
             const activeFields = new Set<string>();
-            assessmentTypes.forEach((type) => {
-                if (type.name.toLowerCase().includes("exam")) {
-                    activeFields.add("exam");
-                } else {
-                    const caTypes = assessmentTypes
-                        .filter(t => !t.name.toLowerCase().includes("exam"))
-                        .sort((a, b) => a.order - b.order);
-                    const caIndex = caTypes.indexOf(type);
-                    if (caIndex === 0) activeFields.add("ca1");
-                    else if (caIndex === 1) activeFields.add("ca2");
-                    else activeFields.add("ca3");
-                }
+            resolvedAssessmentColumns.forEach((type) => {
+                activeFields.add(type.field);
             });
 
             // Clean data: Set inactive fields to 0 and recalculate total
@@ -212,15 +204,17 @@ export default function ScoresClient({
                 if (!activeFields.has("ca3")) cleaned.ca3 = 0;
                 if (!activeFields.has("exam")) cleaned.exam = 0;
 
-                // Calculate totals
-                const { rawTotal, adjustedTotal, isAdjusted } = calculateAdjustedTotal(
-                    cleaned.ca1 || 0, cleaned.ca2 || 0, cleaned.ca3 || 0, cleaned.exam || 0
-                );
-                cleaned.total = rawTotal;
-                cleaned.adjustedTotal = adjustedTotal;
-                cleaned.isAdjusted = isAdjusted;
+                const totals = calculateEndOfTermScoreTotals({
+                    ca1: cleaned.ca1 || 0,
+                    ca2: cleaned.ca2 || 0,
+                    ca3: cleaned.ca3 || 0,
+                    exam: cleaned.exam || 0,
+                }, resolvedAssessmentTypes);
+                cleaned.total = totals.rawTotal;
+                cleaned.adjustedTotal = totals.adjustedTotal;
+                cleaned.isAdjusted = totals.isAdjusted;
 
-                const { grade, remark } = calculateGrade(adjustedTotal);
+                const { grade, remark } = calculateGrade(totals.adjustedTotal);
                 return { ...cleaned, grade, remark };
             });
 
@@ -231,7 +225,7 @@ export default function ScoresClient({
         } finally {
             setLoadingData(false);
         }
-    }, [selectedArmId, selectedSubjectId, selectedTermId, activeGradingRules, assessmentTypes]);
+    }, [selectedArmId, selectedSubjectId, selectedTermId, activeGradingRules, initialAssessmentTypes]);
 
     useEffect(() => {
         if (selectedArmId && selectedSubjectId) {
@@ -240,6 +234,11 @@ export default function ScoresClient({
             setScoreWorkflow(null);
         }
     }, [fetchScores, selectedArmId, selectedSubjectId]);
+
+    useEffect(() => {
+        const allowedFields = new Set<string>(assessmentColumns.map((column) => column.field));
+        setSelectedColumns((previous) => previous.filter((field) => allowedFields.has(field)));
+    }, [assessmentColumns]);
 
     // Helper to calculate grade locally for immediate feedback
     const calculateGrade = (total: number) => {
@@ -265,8 +264,7 @@ export default function ScoresClient({
         if (isNaN(numValue)) numValue = 0;
 
         // Validation caps from assessmentTypes
-        const typeIndex = field === "ca1" ? 0 : field === "ca2" ? 1 : field === "ca3" ? 2 : 3;
-        const type = assessmentTypes[typeIndex];
+        const type = getAssessmentTypeForField(assessmentTypes, field);
         const max = type?.maxScore || 100;
 
         if (numValue > max) numValue = max;
@@ -275,14 +273,16 @@ export default function ScoresClient({
         setStudents(prev => prev.map(s => {
             if (s.id === studentId) {
                 const updated = { ...s, [field]: numValue };
-                // Recalculate totals
-                const { rawTotal, adjustedTotal, isAdjusted } = calculateAdjustedTotal(
-                    updated.ca1 || 0, updated.ca2 || 0, updated.ca3 || 0, updated.exam || 0
-                );
-                updated.total = rawTotal;
-                updated.adjustedTotal = adjustedTotal;
-                updated.isAdjusted = isAdjusted;
-                const { grade, remark } = calculateGrade(adjustedTotal);
+                const totals = calculateEndOfTermScoreTotals({
+                    ca1: updated.ca1 || 0,
+                    ca2: updated.ca2 || 0,
+                    ca3: updated.ca3 || 0,
+                    exam: updated.exam || 0,
+                }, assessmentTypes);
+                updated.total = totals.rawTotal;
+                updated.adjustedTotal = totals.adjustedTotal;
+                updated.isAdjusted = totals.isAdjusted;
+                const { grade, remark } = calculateGrade(totals.adjustedTotal);
                 updated.grade = grade;
                 updated.remark = remark;
                 return updated;
@@ -489,17 +489,10 @@ export default function ScoresClient({
 
     // Helper: map assessment type to score field key
     const getColumnOptions = () => {
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-        const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
-
-        const options: { key: string; label: string }[] = [];
-        if (caTypes[0]) options.push({ key: "ca1", label: caTypes[0].name });
-        if (caTypes[1]) options.push({ key: "ca2", label: caTypes[1].name });
-        if (caTypes[2]) options.push({ key: "ca3", label: caTypes[2].name });
-        if (examType) options.push({ key: "exam", label: examType.name });
-        return options;
+        return assessmentColumns.map((type) => ({
+            key: type.field,
+            label: type.name,
+        }));
     };
 
     const handleDownloadTemplate = () => {
@@ -536,14 +529,7 @@ export default function ScoresClient({
             } else if (data.status === "saved") {
                 setUploadResult(data);
                 setShowOverrideConfirm(false);
-                // Reload scores
-                if (selectedArmId && selectedSubjectId && selectedTermId) {
-                    const scoresRes = await fetch(`/api/scores?classArmId=${selectedArmId}&subjectId=${selectedSubjectId}&termId=${selectedTermId}`);
-                    if (scoresRes.ok) {
-                        const scoresData = await scoresRes.json();
-                        setStudents(scoresData.students || []);
-                    }
-                }
+                await fetchScores();
             } else if (data.error) {
                 setUploadResult({ status: "error", message: data.error, errors: data.errors || [] });
             }
@@ -872,7 +858,7 @@ export default function ScoresClient({
                                 <TableRow>
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
-                                    {assessmentTypes.map((type) => (
+                                    {assessmentColumns.map((type) => (
                                         <TableHead key={type.id} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24">
                                             {type.name} ({type.maxScore})
                                         </TableHead>
@@ -893,30 +879,16 @@ export default function ScoresClient({
                                                 <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
                                                 <div className="text-xs text-gray-400">{student.admissionNumber}</div>
                                             </TableCell>
-                                            {assessmentTypes.map((type) => {
-                                                let field: "ca1" | "ca2" | "ca3" | "exam";
-
-                                                const isExam = type.name.toLowerCase().includes("exam");
-                                                if (isExam) {
-                                                    field = "exam";
-                                                } else {
-                                                    const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam")).sort((a, b) => a.order - b.order);
-                                                    const caIndex = caTypes.indexOf(type);
-
-                                                    if (caIndex === 0) field = "ca1";
-                                                    else if (caIndex === 1) field = "ca2";
-                                                    else field = "ca3";
-                                                }
-
+                                            {assessmentColumns.map((type) => {
                                                 return (
                                                     <TableCell key={type.id} className="px-2 py-3">
                                                         <input
                                                             type="number"
                                                             className="w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm"
-                                                            value={student[field] === 0 ? "" : student[field]}
+                                                            value={student[type.field] === 0 ? "" : student[type.field]}
                                                             placeholder="0"
                                                             max={type.maxScore}
-                                                            onChange={(e) => handleScoreChange(student.id, field, e.target.value)}
+                                                            onChange={(e) => handleScoreChange(student.id, type.field, e.target.value)}
                                                         />
                                                     </TableCell>
                                                 );

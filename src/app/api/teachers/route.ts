@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
@@ -403,3 +403,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

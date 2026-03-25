@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { validateAssessmentTypeCollection } from "@/lib/assessment-types";
+import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
+import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
+
+function normalizeName(value: string) {
+    return value.trim().replace(/\s+/g, " ");
+}
+
+function parseMaxScore(value: unknown) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return Math.round(parsed);
+}
+
+function parseIncludeInTotal(value: unknown) {
+    if (value === undefined) return true;
+    return value !== false;
+}
+
+async function validateSchoolSession(schoolId: string | null | undefined) {
+    if (!schoolId) {
+        return NextResponse.json(
+            { error: "No school associated with user" },
+            { status: 400 }
+        );
+    }
+
+    const schoolExists = await sessionSchoolExists(prisma, schoolId);
+    if (!schoolExists) {
+        return NextResponse.json(
+            { error: STALE_SCHOOL_SESSION_MESSAGE },
+            { status: 401 }
+        );
+    }
+
+    return null;
+}
 
 // GET - Fetch all assessment types for the school
 export async function GET(req: NextRequest) {
@@ -16,13 +56,12 @@ export async function GET(req: NextRequest) {
 
         const schoolId = (session.user as any).schoolId;
 
-        if (!schoolId) {
-            return NextResponse.json(
-                { error: "No school associated with user" },
-                { status: 400 }
-            );
+        const sessionError = await validateSchoolSession(schoolId);
+        if (sessionError) {
+            return sessionError;
         }
 
+        await ensureAssessmentTypeColumns(prisma);
         const assessmentTypes = await prisma.assessmentType.findMany({
             where: { schoolId, isActive: true },
             orderBy: { order: "asc" },
@@ -52,21 +91,44 @@ export async function POST(req: NextRequest) {
 
         const schoolId = (session.user as any).schoolId;
 
-        if (!schoolId) {
-            return NextResponse.json(
-                { error: "No school associated with user" },
-                { status: 400 }
-            );
+        const sessionError = await validateSchoolSession(schoolId);
+        if (sessionError) {
+            return sessionError;
         }
 
         const body = await req.json();
-        const { name, shortName, maxScore, order } = body;
+        const normalizedName = typeof body.name === "string" ? normalizeName(body.name) : "";
+        const parsedMaxScore = parseMaxScore(body.maxScore);
+        const includeInTotal = parseIncludeInTotal(body.includeInTotal);
+        const { shortName, order } = body;
 
-        if (!name || !maxScore) {
+        if (!normalizedName || parsedMaxScore === null) {
             return NextResponse.json(
                 { error: "Name and max score are required" },
                 { status: 400 }
             );
+        }
+
+        await ensureAssessmentTypeColumns(prisma);
+
+        const existingTypes = await prisma.assessmentType.findMany({
+            where: { schoolId, isActive: true },
+            orderBy: { order: "asc" },
+        });
+
+        if (existingTypes.some((type) => normalizeName(type.name).toLowerCase() === normalizedName.toLowerCase())) {
+            return NextResponse.json(
+                { error: "Assessment type with this name already exists" },
+                { status: 400 }
+            );
+        }
+
+        const configurationError = validateAssessmentTypeCollection([
+            ...existingTypes.map((type) => ({ name: type.name })),
+            { name: normalizedName },
+        ]);
+        if (configurationError) {
+            return NextResponse.json({ error: configurationError }, { status: 400 });
         }
 
         // Get the next order if not provided
@@ -81,9 +143,10 @@ export async function POST(req: NextRequest) {
 
         const assessmentType = await prisma.assessmentType.create({
             data: {
-                name,
-                shortName: shortName || name,
-                maxScore: parseInt(maxScore),
+                name: normalizedName,
+                shortName: typeof shortName === "string" && shortName.trim() ? normalizeName(shortName) : normalizedName,
+                maxScore: parsedMaxScore,
+                includeInTotal,
                 order: assessmentOrder,
                 schoolId,
             },
@@ -118,8 +181,12 @@ export async function PUT(req: NextRequest) {
         }
 
         const schoolId = (session.user as any).schoolId;
+        const sessionError = await validateSchoolSession(schoolId);
+        if (sessionError) {
+            return sessionError;
+        }
         const body = await req.json();
-        const { id, name, shortName, maxScore, order, isActive } = body;
+        const { id, shortName, order, isActive } = body;
 
         if (!id) {
             return NextResponse.json(
@@ -128,12 +195,62 @@ export async function PUT(req: NextRequest) {
             );
         }
 
+        await ensureAssessmentTypeColumns(prisma);
+        const existing = await prisma.assessmentType.findFirst({
+            where: { id, schoolId },
+        });
+
+        if (!existing) {
+            return NextResponse.json(
+                { error: "Assessment type not found" },
+                { status: 404 }
+            );
+        }
+
+        const normalizedName = body.name === undefined
+            ? existing.name
+            : normalizeName(String(body.name));
+        const parsedMaxScore = body.maxScore === undefined
+            ? existing.maxScore
+            : parseMaxScore(body.maxScore);
+
+        if (!normalizedName || parsedMaxScore === null) {
+            return NextResponse.json(
+                { error: "Name and max score are required" },
+                { status: 400 }
+            );
+        }
+
+        const siblingTypes = await prisma.assessmentType.findMany({
+            where: { schoolId, isActive: true },
+            orderBy: { order: "asc" },
+        });
+
+        if (siblingTypes.some((type) => type.id !== id && normalizeName(type.name).toLowerCase() === normalizedName.toLowerCase())) {
+            return NextResponse.json(
+                { error: "Assessment type with this name already exists" },
+                { status: 400 }
+            );
+        }
+
+        const configurationError = validateAssessmentTypeCollection(
+            siblingTypes.map((type) => ({
+                name: type.id === id ? normalizedName : type.name,
+            }))
+        );
+        if (configurationError) {
+            return NextResponse.json({ error: configurationError }, { status: 400 });
+        }
+
         const assessmentType = await prisma.assessmentType.update({
             where: { id, schoolId },
             data: {
-                name,
-                shortName,
-                maxScore: maxScore ? parseInt(maxScore) : undefined,
+                name: normalizedName,
+                shortName: shortName === undefined
+                    ? existing.shortName
+                    : (typeof shortName === "string" && shortName.trim() ? normalizeName(shortName) : normalizedName),
+                maxScore: parsedMaxScore,
+                includeInTotal: parseIncludeInTotal(body.includeInTotal),
                 order,
                 isActive,
             },
@@ -162,6 +279,10 @@ export async function DELETE(req: NextRequest) {
         }
 
         const schoolId = (session.user as any).schoolId;
+        const sessionError = await validateSchoolSession(schoolId);
+        if (sessionError) {
+            return sessionError;
+        }
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
 
@@ -185,3 +306,4 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
+

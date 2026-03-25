@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 // GET: Fetch enrollment status for a class arm / subject / term
@@ -266,3 +266,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to manage enrollment" }, { status: 500 });
     }
 }
+

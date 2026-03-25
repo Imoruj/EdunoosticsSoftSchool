@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 async function callOpenRouter(prompt: string, model: string): Promise<string> {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -75,3 +75,4 @@ export async function generateTeacherComment(schoolId: string, studentData: any)
 export async function generatePrincipalComment(schoolId: string, studentData: any) {
     return generateAIComment({ ...studentData, schoolId }, "principal");
 }
+

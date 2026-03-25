@@ -8,6 +8,7 @@ import { navigation, isGroup, NavItem } from "./navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { useSchoolFeatures } from "@/hooks/useSchoolFeatures";
 import type { FeatureFlags } from "@/lib/getSchoolFeatures";
+import { handleUnauthorizedApiResponse } from "@/lib/client-session";
 
 // Map nav item names → feature flag keys
 const navItemFeatureKey: Partial<Record<string, keyof FeatureFlags>> = {
@@ -99,6 +100,9 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
             try {
                 const response = await fetch("/api/school");
+                if (await handleUnauthorizedApiResponse(response)) {
+                    return;
+                }
                 if (!response.ok) return;
                 const data = await response.json();
                 const nextName = data.name || "Edunostics";

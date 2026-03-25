@@ -1,5 +1,5 @@
 import React from "react";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
 import { AdminStats } from "./AdminStats";
 
@@ -57,3 +57,4 @@ export async function AdminDashboardAsync({ schoolId, isSuperOrSchoolAdmin }: { 
 
     return <AdminStats stats={stats} classProgress={classProgress} />;
 }
+

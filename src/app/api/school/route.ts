@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        let session;
+        try {
+            session = await getServerSession(authOptions);
+        } catch (sessionError) {
+            console.warn("Session resolution failed for /api/school", sessionError);
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         if (!session?.user) {
             return NextResponse.json(
@@ -45,8 +55,8 @@ export async function GET(req: NextRequest) {
 
         if (!school) {
             return NextResponse.json(
-                { error: "School not found" },
-                { status: 404 }
+                { error: STALE_SCHOOL_SESSION_MESSAGE },
+                { status: 401 }
             );
         }
 
@@ -80,6 +90,14 @@ export async function PUT(req: NextRequest) {
             );
         }
 
+        const schoolExists = await sessionSchoolExists(prisma, schoolId);
+        if (!schoolExists) {
+            return NextResponse.json(
+                { error: STALE_SCHOOL_SESSION_MESSAGE },
+                { status: 401 }
+            );
+        }
+
         const body = await req.json();
         const { name, motto, address, city, state, phone, email, website, logoUrl, principalSignatureUrl } = body;
 
@@ -108,3 +126,4 @@ export async function PUT(req: NextRequest) {
         );
     }
 }
+

@@ -1,9 +1,10 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ScoresClient from "@/components/scores/ScoresClient";
 import { AssessmentType, ClassLink, GradingRule, Subject, Session } from "@/components/scores/types";
+import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
 
 export default async function ScoreEntryPage() {
     const session = await getServerSession(authOptions);
@@ -29,6 +30,8 @@ export default async function ScoreEntryPage() {
     if (!isAdmin && !isTeacher) {
         redirect("/dashboard");
     }
+
+    await ensureAssessmentTypeColumns(prisma);
 
     const [dbAssessmentTypes, dbGradingRules, dbSessions] = await Promise.all([
         prisma.assessmentType.findMany({
@@ -225,7 +228,8 @@ export default async function ScoreEntryPage() {
         name: a.name,
         shortName: a.shortName,
         maxScore: a.maxScore,
-        order: a.order
+        order: a.order,
+        includeInTotal: a.includeInTotal,
     }));
 
     const initialGradingRules: GradingRule[] = dbGradingRules.map((g) => ({
@@ -254,3 +258,4 @@ export default async function ScoreEntryPage() {
         />
     );
 }
+

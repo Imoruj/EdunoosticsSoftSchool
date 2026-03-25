@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { generateReportCardData, generateReportCardStream } from "@/services/reportService";
 
 async function resolveAllowedSessionIdsForClassArm(
@@ -148,3 +148,4 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: error.message || "Failed to generate report" }, { status: 500 });
     }
 }
+

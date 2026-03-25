@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { ReportType } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, createUserNotifications } from "@/lib/userNotifications";
 import { generatePrincipalComment, generateTeacherComment } from "@/services/aiService";
@@ -941,3 +941,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to process workflow action" }, { status: 500 });
     }
 }
+

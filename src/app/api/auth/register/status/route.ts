@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 // Public endpoint — no auth required
 export async function GET() {
@@ -13,3 +13,4 @@ export async function GET() {
         signupEnabled: settings?.signupEnabled ?? true,
     });
 }
+

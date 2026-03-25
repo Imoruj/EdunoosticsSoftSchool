@@ -154,7 +154,7 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} method="post" className="space-y-5">
+                        <form onSubmit={handleSubmit} method="post" className="space-y-5" suppressHydrationWarning>
                             {loginType === "admin" && (
                                 <>
                                     <div>
@@ -166,6 +166,8 @@ export default function LoginPage() {
                                             name="email"
                                             type="email"
                                             required
+                                            autoComplete="username"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="you@school.edu.ng"
                                         />
@@ -179,6 +181,8 @@ export default function LoginPage() {
                                             name="password"
                                             type="password"
                                             required
+                                            autoComplete="current-password"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="••••••••"
                                         />
@@ -197,6 +201,8 @@ export default function LoginPage() {
                                             name="email"
                                             type="email"
                                             required
+                                            autoComplete="username"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="parent@email.com"
                                         />
@@ -211,6 +217,8 @@ export default function LoginPage() {
                                             type="password"
                                             required
                                             maxLength={6}
+                                            autoComplete="current-password"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="••••••"
                                         />
@@ -229,6 +237,8 @@ export default function LoginPage() {
                                             name="admissionNumber"
                                             type="text"
                                             required
+                                            autoComplete="username"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="SCH/2024/001"
                                         />
@@ -242,6 +252,8 @@ export default function LoginPage() {
                                             name="pin"
                                             type="password"
                                             required
+                                            autoComplete="current-password"
+                                            suppressHydrationWarning
                                             className="input"
                                             placeholder="••••••••"
                                         />

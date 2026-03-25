@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET /api/settings/broadsheet - Fetch the current configuration
@@ -109,3 +109,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

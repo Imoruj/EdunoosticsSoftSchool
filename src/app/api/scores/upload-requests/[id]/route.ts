@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, getSchoolAdminUserIds } from "@/lib/userNotifications";
 import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
 
 // Grade calculation helper
 function normalizeScoreForRuleScale(total: number, rules: any[]) {
@@ -116,9 +118,9 @@ export async function PATCH(
                 where: { schoolId },
                 orderBy: { minScore: "desc" },
             }),
-            prisma.assessmentType.findMany({
-                where: { schoolId, isActive: true },
-                orderBy: { order: "asc" },
+            getResolvedAssessmentTypesForClassContext(prisma, {
+                schoolId,
+                classArmId: request.classArmId,
             }),
             prisma.classArm.findFirst({
                 where: { id: request.classArmId, class: { schoolId } },
@@ -141,10 +143,6 @@ export async function PATCH(
             ? categoryRules
             : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-
         // Fetch existing scores to merge partial uploads
         const studentIds = scoreData.map((s: any) => s.studentId);
         const existingScores = await prisma.score.findMany({
@@ -161,21 +159,9 @@ export async function PATCH(
             const ca2 = entry.ca2 ?? (existing ? Number(existing.ca2) : 0);
             const ca3 = entry.ca3 ?? (existing ? Number(existing.ca3) : 0);
             const exam = entry.exam ?? (existing ? Number(existing.exam) : 0);
-            const rawTotal = ca1 + ca2 + ca3 + exam;
+            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
 
-            let missedMax = 0;
-            if (exam > 0) {
-                if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
-                if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
-                if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
-            }
-            const obtainable = 100 - missedMax;
-            let adjustedTotal = rawTotal;
-            if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
-                adjustedTotal = Math.round((rawTotal / obtainable) * 100);
-            }
-
-            const { grade, remark } = calculateGrade(adjustedTotal, gradingRules);
+            const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
             return prisma.score.upsert({
                 where: {
@@ -190,7 +176,7 @@ export async function PATCH(
                     ...(entry.ca2 !== undefined && { ca2: entry.ca2 }),
                     ...(entry.ca3 !== undefined && { ca3: entry.ca3 }),
                     ...(entry.exam !== undefined && { exam: entry.exam }),
-                    total: adjustedTotal,
+                    total: totals.adjustedTotal,
                     grade,
                     remark,
                     updatedById: user.id,
@@ -203,7 +189,7 @@ export async function PATCH(
                     ca2,
                     ca3,
                     exam,
-                    total: adjustedTotal,
+                    total: totals.adjustedTotal,
                     grade,
                     remark,
                     createdById: user.id,

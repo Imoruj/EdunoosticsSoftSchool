@@ -1,10 +1,39 @@
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { BroadsheetData, BroadsheetStudent, BroadsheetStudentScore, BroadsheetSubject } from "@/components/reports/broadsheetTypes";
 import ReactPDF from "@react-pdf/renderer";
 import BroadsheetDocument from "@/components/reports/BroadsheetDocument";
 import { resolveTemplateForTerm } from "@/lib/templateResolver";
 import React from "react";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+
+function getScoreFieldNumber(value: { toNumber?: () => number } | number | null | undefined) {
+    if (typeof value === "number") return value;
+    if (value && typeof value === "object" && typeof value.toNumber === "function") {
+        return value.toNumber();
+    }
+    return Number(value || 0);
+}
+
+function getEndOfTermScoreMetrics(score: {
+    ca1?: { toNumber?: () => number } | number | null;
+    ca2?: { toNumber?: () => number } | number | null;
+    ca3?: { toNumber?: () => number } | number | null;
+    exam?: { toNumber?: () => number } | number | null;
+}, assessmentTypes: Array<{ id: string; name: string; maxScore: number; order: number; includeInTotal?: boolean }>) {
+    const values = {
+        ca1: getScoreFieldNumber(score.ca1),
+        ca2: getScoreFieldNumber(score.ca2),
+        ca3: getScoreFieldNumber(score.ca3),
+        exam: getScoreFieldNumber(score.exam),
+    };
+
+    return {
+        ...values,
+        ...calculateEndOfTermScoreTotals(values, assessmentTypes),
+    };
+}
 
 export async function generateBroadsheetData(
     classArmId: string,
@@ -57,6 +86,7 @@ export async function generateBroadsheetData(
         reportType,
         termMappings: (dbConfig as any)?.termMappings,
         fallbackTemplate: activeTemplate,
+        classId: classArm.classId,
     });
 
     // If resolved template is a custom one, load its full config
@@ -192,9 +222,9 @@ export async function generateBroadsheetData(
     }) : [];
 
     // 9. Fetch assessment types and grading rules
-    const assessmentTypes = await prisma.assessmentType.findMany({
-        where: { schoolId: school.id, isActive: true },
-        orderBy: { order: "asc" }
+    const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+        schoolId: school.id,
+        classArmId,
     });
 
     const gradingRules = await prisma.gradingRule.findMany({
@@ -219,7 +249,7 @@ export async function generateBroadsheetData(
     const prevScoreMap: Record<string, Record<string, number>> = {};
     prevScores.forEach(score => {
         const key = `${score.studentId}_${score.subjectId}_${score.termId}`;
-        prevScoreMap[key] = { total: score.total.toNumber() };
+        prevScoreMap[key] = { total: getEndOfTermScoreMetrics(score, assessmentTypes).adjustedTotal };
     });
 
     const term1Id = term.session.terms.find(t => t.termNumber === 1)?.id;
@@ -244,7 +274,7 @@ export async function generateBroadsheetData(
             if (score) {
                 const value = reportType === "halfTerm"
                     ? (score.ca1.toNumber() + score.ca2.toNumber() + score.ca3.toNumber())
-                    : score.total.toNumber();
+                    : getEndOfTermScoreMetrics(score, assessmentTypes).adjustedTotal;
                 subjectTotals[subject.id].push({ studentId: student.id, value });
             }
         });
@@ -292,7 +322,8 @@ export async function generateBroadsheetData(
             const ca3 = score.ca3.toNumber();
             const caTotal = ca1 + ca2 + ca3;
             const exam = score.exam.toNumber();
-            const total = reportType === "halfTerm" ? caTotal : score.total.toNumber();
+            const endOfTermMetrics = getEndOfTermScoreMetrics(score, assessmentTypes);
+            const total = reportType === "halfTerm" ? caTotal : endOfTermMetrics.adjustedTotal;
             const grade = reportType === "halfTerm" ? "-" : getGrade(total);
 
             const position = subjectPositions[subject.id]?.[student.id] ?? 0;
@@ -472,3 +503,4 @@ export async function generateBroadsheetStream(data: BroadsheetData): Promise<No
         <BroadsheetDocument data={data} />
     ) as NodeJS.ReadableStream;
 }
+

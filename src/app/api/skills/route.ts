@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 
 // GET - Fetch all skills for the school
@@ -203,3 +203,4 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
+

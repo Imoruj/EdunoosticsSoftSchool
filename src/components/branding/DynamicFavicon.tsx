@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { handleUnauthorizedApiResponse } from "@/lib/client-session";
 
 type CachedBranding = {
     logoUrl: string | null;
@@ -119,6 +120,10 @@ export function DynamicFavicon() {
 
             try {
                 const response = await fetch("/api/school", { cache: "no-store" });
+                if (await handleUnauthorizedApiResponse(response)) {
+                    safeApplyFavicon(null);
+                    return;
+                }
                 if (!response.ok) {
                     safeApplyFavicon(null);
                     return;

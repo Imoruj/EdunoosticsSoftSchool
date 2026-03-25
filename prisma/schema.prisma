@@ -52,6 +52,7 @@ model School {
   uploadedFiles          UploadedFile[]
   studentChangeRequests  StudentChangeRequest[]
   schemesOfWork          SchemeOfWork[]
+  publicHolidays         PublicHoliday[]
 }
 
 model User {
@@ -131,6 +132,7 @@ model Term {
   endDate                DateTime
   resumptionDate         DateTime?
   isCurrent              Boolean                 @default(false)
+  totalWeeks             Int?
   totalSchoolDays        Int?
   createdAt              DateTime                @default(now())
   sessionId              String
@@ -150,16 +152,17 @@ model Term {
 }
 
 model Class {
-  id            String         @id @default(cuid())
-  name          String
-  level         ClassLevel
-  orderIndex    Int            @default(0)
-  createdAt     DateTime       @default(now())
-  schoolId      String
-  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  arms          ClassArm[]
-  feeStructures FeeStructure[]
-  schemesOfWork SchemeOfWork[]
+  id                   String                @id @default(cuid())
+  name                 String
+  level                ClassLevel
+  orderIndex           Int                   @default(0)
+  createdAt            DateTime              @default(now())
+  schoolId             String
+  school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  arms                 ClassArm[]
+  feeStructures        FeeStructure[]
+  schemesOfWork        SchemeOfWork[]
+  classAssessmentTypes ClassAssessmentType[]
 
   @@unique([schoolId, name])
 }
@@ -423,6 +426,18 @@ model Attendance {
   @@unique([studentId, date])
 }
 
+model PublicHoliday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  description String?
+  createdAt   DateTime @default(now())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, date])
+}
+
 model GradingRule {
   id             String          @id @default(cuid())
   minScore       Int
@@ -442,6 +457,7 @@ model AssessmentType {
   name      String
   shortName String?
   maxScore  Int
+  includeInTotal Boolean @default(true)
   order     Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -450,6 +466,21 @@ model AssessmentType {
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
+}
+
+model ClassAssessmentType {
+  id        String   @id @default(cuid())
+  name      String
+  shortName String?
+  maxScore  Int
+  includeInTotal Boolean @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, name])
 }
 
 model FeeStructure {

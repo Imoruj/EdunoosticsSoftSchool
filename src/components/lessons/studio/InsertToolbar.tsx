@@ -125,6 +125,10 @@ export function InsertToolbar({ state, dispatch, activeSlide }: InsertToolbarPro
                 onClick={() => {
                   setAiOpen(false);
                   if (!activeSlide) return;
+                  if (item.type === 'text') {
+                    dispatch({ type: 'OPEN_MODAL', modal: { type: 'text-generator', targetSlideId: activeSlide.id } });
+                    return;
+                  }
                   dispatch({ type: 'OPEN_MODAL', modal: { type: 'media-picker', insertType: item.type, targetSlideId: activeSlide.id } });
                 }}
               >

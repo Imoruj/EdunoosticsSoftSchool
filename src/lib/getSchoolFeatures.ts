@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 export interface FeatureFlags {
     studentsEnabled: boolean;
@@ -119,3 +119,4 @@ export function extractFeatureFlags(
     }
     return features;
 }
+

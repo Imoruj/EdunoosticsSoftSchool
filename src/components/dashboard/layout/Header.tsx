@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { handleUnauthorizedApiResponse } from "@/lib/client-session";
 
 interface HeaderNotification {
     id: string;
@@ -76,6 +77,9 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
 
         try {
             const response = await fetch("/api/notifications?limit=8", { cache: "no-store" });
+            if (await handleUnauthorizedApiResponse(response)) {
+                return;
+            }
             if (!response.ok) throw new Error("Failed to fetch notifications");
             const data = await response.json();
             const nextNotifications = data?.notifications || [];
@@ -104,6 +108,9 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const fetchTermInfo = useCallback(async () => {
         try {
             const res = await fetch("/api/sessions/current");
+            if (await handleUnauthorizedApiResponse(res)) {
+                return;
+            }
             if (res.ok) {
                 const data = await res.json();
                 setCurrentTermInfo({

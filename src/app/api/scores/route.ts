@@ -1,11 +1,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { createUserNotification } from "@/lib/userNotifications";
 import { checkCsrf } from "@/lib/csrf";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -236,11 +238,29 @@ export async function GET(req: NextRequest) {
             orderBy: { lastName: "asc" },
         });
 
-        // Fetch assessment types for adjusted total calculation
-        const assessmentTypes = await prisma.assessmentType.findMany({
-            where: { schoolId, isActive: true },
-            orderBy: { order: "asc" },
-        });
+        const [assessmentTypes, allGradingRules, classArmWithLevel] = await Promise.all([
+            getResolvedAssessmentTypesForClassContext(prisma, {
+                schoolId,
+                classId: searchParams.get("classId"),
+                classArmId,
+            }),
+            prisma.gradingRule.findMany({
+                where: { schoolId },
+                orderBy: { minScore: "desc" },
+            }),
+            prisma.classArm.findUnique({
+                where: { id: classArmId },
+                select: { class: { select: { level: true } } },
+            }),
+        ]);
+
+        const category = classLevelToCategory(classArmWithLevel?.class?.level);
+        const categoryRules = category
+            ? allGradingRules.filter((rule) => rule.schoolCategory === category)
+            : [];
+        const gradingRules = categoryRules.length > 0
+            ? categoryRules
+            : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
         // Map to a cleaner format for the frontend
         const data = students.map((student: any) => {
@@ -249,25 +269,9 @@ export async function GET(req: NextRequest) {
             const ca2 = score?.ca2 ? Number(score.ca2) : 0;
             const ca3 = score?.ca3 ? Number(score.ca3) : 0;
             const exam = score?.exam ? Number(score.exam) : 0;
-            const rawTotal = ca1 + ca2 + ca3 + exam;
+            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
 
-            // Calculate adjusted total: only adjust when exam has been entered (exam > 0)
-            // Fields left at 0 are treated as "missed" CAs
-            let missedMax = 0;
-            const caTypes = assessmentTypes.filter(t => !t.name.toLowerCase().includes("exam")).sort((a: any, b: any) => a.order - b.order);
-
-            // Only calculate adjustment if exam score exists
-            if (exam > 0) {
-                if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
-                if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
-                if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
-            }
-
-            const obtainable = 100 - missedMax;
-            let adjustedTotal = rawTotal;
-            if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
-                adjustedTotal = Math.round((rawTotal / obtainable) * 100);
-            }
+            const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
             return {
                 id: student.id,
@@ -278,11 +282,11 @@ export async function GET(req: NextRequest) {
                 ca2,
                 ca3,
                 exam,
-                total: rawTotal,
-                adjustedTotal,
-                isAdjusted: missedMax > 0 && rawTotal > 0,
-                grade: score?.grade || "-",
-                remark: score?.remark || "-",
+                total: totals.rawTotal,
+                adjustedTotal: totals.adjustedTotal,
+                isAdjusted: totals.isAdjusted,
+                grade,
+                remark,
             };
         });
 
@@ -327,6 +331,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             students: data,
+            assessmentTypes,
             termId: termId,
             hasEnrollments,
             enrolledCount: hasEnrollments ? activeEnrollmentCount : totalClassStudents,
@@ -513,9 +518,9 @@ export async function POST(req: NextRequest) {
                 where: { schoolId },
                 orderBy: { minScore: "desc" }
             }),
-            prisma.assessmentType.findMany({
-                where: { schoolId, isActive: true },
-                orderBy: { order: "asc" }
+            getResolvedAssessmentTypesForClassContext(prisma, {
+                schoolId,
+                classArmId: targetClassArmId,
             }),
             prisma.classArm.findUnique({
                 where: { id: targetClassArmId },
@@ -532,12 +537,6 @@ export async function POST(req: NextRequest) {
             ? categoryRules
             : allGradingRules.filter(r => r.schoolCategory === null);
 
-        // Pre-compute CA type max scores for adjusted total
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-        const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
-
         // Execute queries in a transaction
         // Loop through scores and upsert each one
         const scoreOps = scores.map((item: any) => {
@@ -545,24 +544,10 @@ export async function POST(req: NextRequest) {
             const ca2 = Number(item.ca2) || 0;
             const ca3 = Number(item.ca3) || 0;
             const exam = Number(item.exam) || 0;
-            const rawTotal = ca1 + ca2 + ca3 + exam;
-
-            // Calculate adjusted total: only adjust when exam has been entered
-            let missedMax = 0;
-            if (exam > 0) {
-                if (caTypes[0] && ca1 === 0) missedMax += caTypes[0].maxScore;
-                if (caTypes[1] && ca2 === 0) missedMax += caTypes[1].maxScore;
-                if (caTypes[2] && ca3 === 0) missedMax += caTypes[2].maxScore;
-            }
-
-            const obtainable = 100 - missedMax;
-            let adjustedTotal = rawTotal;
-            if (missedMax > 0 && obtainable > 0 && rawTotal > 0) {
-                adjustedTotal = Math.round((rawTotal / obtainable) * 100);
-            }
+            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
 
             // Use adjusted total for grading
-            const { grade, remark } = calculateGrade(adjustedTotal, gradingRules);
+            const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
             return prisma.score.upsert({
                 where: {
@@ -577,7 +562,7 @@ export async function POST(req: NextRequest) {
                     ca2,
                     ca3,
                     exam,
-                    total: adjustedTotal,
+                    total: totals.adjustedTotal,
                     grade,
                     remark,
                     updatedById: userId,
@@ -590,7 +575,7 @@ export async function POST(req: NextRequest) {
                     ca2,
                     ca3,
                     exam,
-                    total: adjustedTotal,
+                    total: totals.adjustedTotal,
                     grade,
                     remark,
                     createdById: userId,
@@ -795,3 +780,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

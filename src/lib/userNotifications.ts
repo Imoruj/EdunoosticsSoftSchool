@@ -1,5 +1,5 @@
 import { NotificationType, UserRole } from "@prisma/client";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
 
 export async function createUserNotification(params: {
@@ -76,3 +76,4 @@ export async function getSchoolAdminUserIds(schoolId: string, excludeUserId?: st
 
     return admins.map((admin) => admin.id);
 }
+

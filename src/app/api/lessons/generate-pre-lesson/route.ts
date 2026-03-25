@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
 
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
 
         const body = await req.json().catch(() => ({}));
-        const { field, outputFormat, subjectId, lessonTitle, weekContent, generalObjectives, className, referenceMaterials } = body as {
+        const { field, outputFormat, subjectId, lessonTitle, weekContent, generalObjectives, className, referenceMaterials, customInstructions } = body as {
             field: string;
             outputFormat?: 'prose' | 'outline';
             subjectId?: string;
@@ -192,6 +192,7 @@ export async function POST(req: NextRequest) {
             generalObjectives?: string;
             className?: string;
             referenceMaterials?: ReferenceMaterialInput[];
+            customInstructions?: string;
         };
 
         if (field !== "description" && field !== "priorKnowledge") {
@@ -261,6 +262,13 @@ ${referenceBlock}
 Do not mention URLs, file names, or source labels directly in the response.`;
         }
 
+        if (typeof customInstructions === "string" && customInstructions.trim()) {
+            userMsg = `${userMsg}
+
+Additional writing instructions:
+${customInstructions.trim()}`;
+        }
+
         const raw = await generateWithFallback(
             [
                 { role: "system", content: systemMsg },
@@ -283,3 +291,4 @@ Do not mention URLs, file names, or source labels directly in the response.`;
         return NextResponse.json({ error: "AI generation failed. Please try again." }, { status: 500 });
     }
 }
+

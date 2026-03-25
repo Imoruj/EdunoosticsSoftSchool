@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 const VALID_CATEGORIES = ["CORE", "SCIENCE", "ARTS", "COMMERCIAL", "VOCATIONAL", "LANGUAGE"];
@@ -192,3 +192,4 @@ function parseCSVLine(line: string): string[] {
     result.push(current.trim());
     return result;
 }
+

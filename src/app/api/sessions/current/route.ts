@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
+import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        let session;
+        try {
+            session = await getServerSession(authOptions);
+        } catch (sessionError) {
+            console.warn("Session resolution failed for /api/sessions/current", sessionError);
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -16,6 +24,11 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "School ID not found" }, { status: 400 });
         }
 
+        const schoolExists = await sessionSchoolExists(prisma, schoolId);
+        if (!schoolExists) {
+            return NextResponse.json({ error: STALE_SCHOOL_SESSION_MESSAGE }, { status: 401 });
+        }
+
         // Ensure term is synced with today's date
         await syncCurrentTerm(schoolId);
 
@@ -23,7 +36,15 @@ export async function GET(req: NextRequest) {
             where: { schoolId, isCurrent: true },
             include: {
                 terms: {
-                    where: { isCurrent: true }
+                    where: { isCurrent: true },
+                    select: {
+                        id: true,
+                        name: true,
+                        termNumber: true,
+                        startDate: true,
+                        endDate: true,
+                        totalWeeks: true,
+                    }
                 }
             }
         });
@@ -38,7 +59,11 @@ export async function GET(req: NextRequest) {
             sessionName: currentSession.name,
             termName: currentTerm?.name || "No active term",
             sessionId: currentSession.id,
-            termId: currentTerm?.id
+            termId: currentTerm?.id,
+            termNumber: currentTerm?.termNumber,
+            startDate: currentTerm?.startDate ? currentTerm.startDate.toISOString().split("T")[0] : null,
+            endDate: currentTerm?.endDate ? currentTerm.endDate.toISOString().split("T")[0] : null,
+            totalWeeks: currentTerm?.totalWeeks ?? null,
         });
     } catch (error: any) {
         console.error("Error fetching current session/term:", error);
@@ -48,3 +73,4 @@ export async function GET(req: NextRequest) {
         );
     }
 }
+

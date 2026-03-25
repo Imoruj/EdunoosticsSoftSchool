@@ -1,5 +1,5 @@
 import React from "react";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import BirthdayWidget from "@/components/BirthdayWidget";
 
 export async function BirthdayWidgetAsync({ schoolId }: { schoolId: string }) {
@@ -33,3 +33,4 @@ export async function BirthdayWidgetAsync({ schoolId }: { schoolId: string }) {
 
     return <BirthdayWidget students={upcomingBirthdays} />;
 }
+

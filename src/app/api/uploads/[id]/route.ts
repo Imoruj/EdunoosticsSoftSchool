@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 function buildContentDisposition(fileName: string, download: boolean) {
     const safeFileName = fileName.replace(/["\r\n]/g, "_");

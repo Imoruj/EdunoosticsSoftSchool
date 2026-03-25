@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification } from "@/lib/userNotifications";
 
@@ -393,3 +393,4 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "Failed to update score workflow" }, { status: 500 });
     }
 }
+

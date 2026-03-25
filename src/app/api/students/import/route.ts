@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -787,3 +787,4 @@ function parseCSVLine(line: string): string[] {
     result.push(current.trim());
     return result;
 }
+

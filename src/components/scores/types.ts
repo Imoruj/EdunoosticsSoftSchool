@@ -31,6 +31,7 @@ export interface AssessmentType {
     shortName: string | null;
     maxScore: number;
     order: number;
+    includeInTotal: boolean;
 }
 
 export interface ClassLink {

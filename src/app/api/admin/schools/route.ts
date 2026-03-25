@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 async function requireSuperAdmin(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -89,3 +89,4 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(school);
 }
+

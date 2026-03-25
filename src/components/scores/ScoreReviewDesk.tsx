@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Input } from "@/components/ui/Input";
+import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 
 type ReviewStatus = "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "BROADCASTED";
 
@@ -139,6 +140,7 @@ export default function ScoreReviewDesk({
 
     const [workflows, setWorkflows] = useState<ScoreReviewWorkflow[]>([]);
     const [students, setStudents] = useState<ReviewStudentScore[]>([]);
+    const [activeAssessmentTypes, setActiveAssessmentTypes] = useState<ReviewAssessmentType[]>(assessmentTypes);
 
     const [loadingQueue, setLoadingQueue] = useState(false);
     const [loadingScores, setLoadingScores] = useState(false);
@@ -151,6 +153,10 @@ export default function ScoreReviewDesk({
 
     const hasTerms = terms.length > 0;
     const hasClassArms = classArms.length > 0;
+
+    useEffect(() => {
+        setActiveAssessmentTypes(assessmentTypes);
+    }, [assessmentTypes]);
 
     useEffect(() => {
         if (selectedTermId) return;
@@ -265,6 +271,9 @@ export default function ScoreReviewDesk({
             const payload = await response.json();
             const nextStudents: ReviewStudentScore[] = Array.isArray(payload.students) ? payload.students : [];
             setStudents(nextStudents);
+            if (Array.isArray(payload.assessmentTypes)) {
+                setActiveAssessmentTypes(payload.assessmentTypes);
+            }
         } catch (scoreError: any) {
             setStudents([]);
             setError(scoreError.message || "Failed to load submitted scores.");
@@ -304,44 +313,13 @@ export default function ScoreReviewDesk({
     }, [students]);
 
     const assessmentColumns = useMemo<ReviewAssessmentColumn[]>(() => {
-        const sortedTypes = [...assessmentTypes].sort((a, b) => a.order - b.order);
-        const columns: ReviewAssessmentColumn[] = [];
-        let caCount = 0;
-        let examAdded = false;
-
-        for (const type of sortedTypes) {
-            const isExamType = type.name.toLowerCase().includes("exam");
-            if (isExamType) {
-                if (!examAdded) {
-                    columns.push({
-                        id: type.id,
-                        label: type.name,
-                        maxScore: type.maxScore,
-                        field: "exam",
-                    });
-                    examAdded = true;
-                }
-                continue;
-            }
-
-            let field: "ca1" | "ca2" | "ca3" | null = null;
-            if (caCount === 0) field = "ca1";
-            else if (caCount === 1) field = "ca2";
-            else if (caCount === 2) field = "ca3";
-
-            if (field) {
-                columns.push({
-                    id: type.id,
-                    label: type.name,
-                    maxScore: type.maxScore,
-                    field,
-                });
-            }
-            caCount += 1;
-        }
-
-        return columns;
-    }, [assessmentTypes]);
+        return mapAssessmentTypesToScoreFields(activeAssessmentTypes).map((type) => ({
+            id: type.id,
+            label: type.name,
+            maxScore: type.maxScore,
+            field: type.field,
+        }));
+    }, [activeAssessmentTypes]);
 
     const submitReviewAction = useCallback(
         async (action: "approve" | "reject") => {

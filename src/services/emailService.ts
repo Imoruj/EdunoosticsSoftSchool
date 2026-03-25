@@ -1,6 +1,6 @@
 
 import nodemailer from "nodemailer";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { decryptSecret } from "@/lib/serverEncrypt";
 
 export const sendEmail = async (schoolId: string, to: string, subject: string, html: string, userId: string) => {
@@ -73,3 +73,4 @@ export const sendEmail = async (schoolId: string, to: string, subject: string, h
         return { success: false, error: "Failed to send email" };
     }
 };
+
