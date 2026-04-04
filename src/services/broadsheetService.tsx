@@ -253,7 +253,7 @@ export async function generateBroadsheetData(
 
     const allGradingRules = await prisma.gradingRule.findMany({
         where: { schoolId: school.id },
-        orderBy: { maxScore: "desc" }
+        orderBy: { minScore: "desc" }
     });
 
     const schoolCategory = resolveSchoolCategory(classArm.class.level);

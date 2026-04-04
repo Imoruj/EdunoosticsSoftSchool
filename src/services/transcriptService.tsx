@@ -82,7 +82,7 @@ export async function generateTranscriptData(
     // 4. Fetch grading rules
     const gradingRules = await prisma.gradingRule.findMany({
         where: { schoolId: school.id },
-        orderBy: { maxScore: "desc" },
+        orderBy: { minScore: "desc" },
     });
 
     // Group scores by termId

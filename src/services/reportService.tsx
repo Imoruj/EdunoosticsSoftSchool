@@ -411,7 +411,7 @@ export async function generateReportCardData(
     const [allGradingRules] = await Promise.all([
         prisma.gradingRule.findMany({
             where: { schoolId: school.id },
-            orderBy: { maxScore: "desc" }
+            orderBy: { minScore: "desc" }
         })
     ]);
 
@@ -770,7 +770,7 @@ export async function bulkGenerateReportCardData(
         }),
         prisma.gradingRule.findMany({
             where: { schoolId: school.id },
-            orderBy: { maxScore: "desc" }
+            orderBy: { minScore: "desc" }
         }),
         normalizeSignatureSource(school.principalSignatureUrl),
     ]);
