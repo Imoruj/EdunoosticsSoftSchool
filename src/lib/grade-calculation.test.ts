@@ -44,7 +44,6 @@ const primarySchoolRules: GradingRule[] = [
         grade: "A",
         remark: "Excellent",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule2",
@@ -55,7 +54,6 @@ const primarySchoolRules: GradingRule[] = [
         grade: "B",
         remark: "Very Good",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule3",
@@ -66,7 +64,6 @@ const primarySchoolRules: GradingRule[] = [
         grade: "C",
         remark: "Good",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule4",
@@ -77,7 +74,6 @@ const primarySchoolRules: GradingRule[] = [
         grade: "D",
         remark: "Pass",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule5",
@@ -88,7 +84,6 @@ const primarySchoolRules: GradingRule[] = [
         grade: "F",
         remark: "Fail",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
 ];
 
@@ -103,7 +98,6 @@ const juniorSecondaryRules: GradingRule[] = [
         grade: "A",
         remark: "Excellent",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule2",
@@ -114,7 +108,6 @@ const juniorSecondaryRules: GradingRule[] = [
         grade: "B",
         remark: "Very Good",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule3",
@@ -125,7 +118,6 @@ const juniorSecondaryRules: GradingRule[] = [
         grade: "C",
         remark: "Good",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule4",
@@ -136,7 +128,6 @@ const juniorSecondaryRules: GradingRule[] = [
         grade: "D",
         remark: "Pass",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
     {
         id: "rule5",
@@ -147,7 +138,6 @@ const juniorSecondaryRules: GradingRule[] = [
         grade: "F",
         remark: "Fail",
         createdAt: new Date(),
-        updatedAt: new Date(),
     },
 ];
 
