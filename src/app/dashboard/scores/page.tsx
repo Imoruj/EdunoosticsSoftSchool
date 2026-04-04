@@ -68,7 +68,7 @@ export default async function ScoreEntryPage() {
         }),
         prisma.gradingRule.findMany({
             where: { schoolId },
-            orderBy: { maxScore: "desc" }
+            orderBy: { minScore: "desc" }
         }),
         prisma.academicSession.findMany({
             where: { schoolId },

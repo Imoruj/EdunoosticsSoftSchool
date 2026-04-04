@@ -174,8 +174,11 @@ export default function ScoresClient({
         const categoryRules = selectedCategory
             ? gradingRules.filter((rule) => rule.schoolCategory === selectedCategory)
             : [];
-        const schoolWideRules = gradingRules.filter((rule) => rule.schoolCategory === null);
-        return categoryRules.length > 0 ? categoryRules : schoolWideRules;
+        const selectedRules = categoryRules.length > 0 
+            ? categoryRules 
+            : gradingRules.filter((rule) => rule.schoolCategory === null);
+        // Sort by minScore in descending order to ensure correct rule matching
+        return [...selectedRules].sort((a, b) => b.minScore - a.minScore);
     }, [gradingRules, selectedCategory]);
 
     const normalizeScoreForRuleScale = (total: number, rules: GradingRule[]) => {
