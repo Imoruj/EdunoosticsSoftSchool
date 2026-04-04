@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View, Image } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./ClassicStyles";
+import { formatStudentFullName } from "../../formatStudentFullName";
 
 interface StudentProfileProps {
     student: ReportCardData["student"];
@@ -11,12 +12,14 @@ interface StudentProfileProps {
 }
 
 const StudentProfile: React.FC<StudentProfileProps & { config?: any }> = ({ student, term, attendance, summary, config }) => {
+    const studentFullName = formatStudentFullName(student);
+
     return (
         <View style={{ marginBottom: 15, flexDirection: "row", justifyContent: "space-between" }}>
             <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: "row", marginBottom: 2 }}>
                     <Text style={[styles.bold, { width: 100, fontSize: 10 }]}>Name:</Text>
-                    <Text style={{ fontSize: 10 }}>{student.lastName} {student.firstName}</Text>
+                    <Text style={{ fontSize: 10 }}>{studentFullName}</Text>
                 </View>
                 <View style={{ flexDirection: "row", marginBottom: 2 }}>
                     <Text style={[styles.bold, { width: 100, fontSize: 10 }]}>Admission No:</Text>

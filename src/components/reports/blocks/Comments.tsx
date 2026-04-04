@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { School } from "@prisma/client";
 import { Comments as CommentsType } from "../types";
+import { formatPublishedDate } from "../formatPublishedDate";
 
 const styles = StyleSheet.create({
     footer: {
@@ -69,6 +70,7 @@ interface CommentsProps {
 export const Comments: React.FC<CommentsProps> = ({ comments, school, displayOptions = {}, sectionStyle = {} }) => {
     const showOption = (key: string) => displayOptions[key] !== false;
     const { container, header, borderOnly } = sectionStyle;
+    const publishedDateLabel = formatPublishedDate(comments.publishedAt);
 
     return (
         <>
@@ -81,7 +83,7 @@ export const Comments: React.FC<CommentsProps> = ({ comments, school, displayOpt
                                 {showOption('showTeacherComment') ? (comments.classTeacher || "") : ""}
                             </Text>
                             {showOption('showTeacherSign') && <Text style={[styles.footerSign, borderOnly]}>Sign: __________</Text>}
-                            {showOption('showTeacherDate') && <Text style={styles.footerDate}>Date: __________</Text>}
+                            {showOption('showTeacherDate') && <Text style={styles.footerDate}>{publishedDateLabel}</Text>}
                         </View>
                     )}
                     {showOption('showPrincipalSection') && (
@@ -99,7 +101,7 @@ export const Comments: React.FC<CommentsProps> = ({ comments, school, displayOpt
                                     )}
                                 </View>
                             )}
-                            {showOption('showPrincipalDate') && <Text style={styles.footerDate}>Date: __________</Text>}
+                            {showOption('showPrincipalDate') && <Text style={styles.footerDate}>{publishedDateLabel}</Text>}
                         </View>
                     )}
                 </View>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
+import { normalizeSignatureDataUrl } from "@/lib/signature-images";
 
 export async function GET(req: NextRequest) {
     try {
@@ -50,6 +51,8 @@ export async function GET(req: NextRequest) {
                 logoUrl: true,
                 principalSignatureUrl: true,
                 stampUrl: true,
+                allowStudentAdmissionNumberLogin: true,
+                allowStudentEmailLogin: true,
             },
         });
 
@@ -60,7 +63,11 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        return NextResponse.json(school);
+        return NextResponse.json(school, {
+            headers: {
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+        });
     } catch (error: any) {
         console.error("Error fetching school:", error);
         return NextResponse.json(
@@ -99,7 +106,36 @@ export async function PUT(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name, motto, address, city, state, phone, email, website, logoUrl, principalSignatureUrl } = body;
+        const {
+            name,
+            motto,
+            address,
+            city,
+            state,
+            phone,
+            email,
+            website,
+            logoUrl,
+            principalSignatureUrl,
+            allowStudentAdmissionNumberLogin,
+            allowStudentEmailLogin,
+        } = body;
+
+        const normalizedAllowStudentAdmissionNumberLogin =
+            typeof allowStudentAdmissionNumberLogin === "boolean" ? allowStudentAdmissionNumberLogin : true;
+        const normalizedAllowStudentEmailLogin =
+            typeof allowStudentEmailLogin === "boolean" ? allowStudentEmailLogin : true;
+
+        if (!normalizedAllowStudentAdmissionNumberLogin && !normalizedAllowStudentEmailLogin) {
+            return NextResponse.json(
+                { error: "Enable at least one student login method." },
+                { status: 400 }
+            );
+        }
+        const normalizedPrincipalSignatureUrl =
+            typeof principalSignatureUrl === "string" && principalSignatureUrl.startsWith("data:image/")
+                ? await normalizeSignatureDataUrl(principalSignatureUrl)
+                : principalSignatureUrl;
 
         const updatedSchool = await prisma.school.update({
             where: { id: schoolId },
@@ -113,11 +149,17 @@ export async function PUT(req: NextRequest) {
                 email,
                 website,
                 logoUrl,
-                principalSignatureUrl,
+                principalSignatureUrl: normalizedPrincipalSignatureUrl,
+                allowStudentAdmissionNumberLogin: normalizedAllowStudentAdmissionNumberLogin,
+                allowStudentEmailLogin: normalizedAllowStudentEmailLogin,
             },
         });
 
-        return NextResponse.json(updatedSchool);
+        return NextResponse.json(updatedSchool, {
+            headers: {
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+        });
     } catch (error: any) {
         console.error("Error updating school:", error);
         return NextResponse.json(

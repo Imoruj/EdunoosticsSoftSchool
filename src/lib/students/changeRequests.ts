@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { syncStudentTemporaryLoginCredentials } from "@/lib/studentLoginCredentials";
 
 export type StudentWorkflowRecord = {
     id: string;
@@ -280,14 +281,37 @@ export async function applyStudentUpdateTransaction(
     });
 
     if (updatedStudent.userId) {
-        await tx.user.update({
-            where: { id: updatedStudent.userId },
-            data: {
-                firstName: data.firstName !== undefined ? data.firstName : undefined,
-                lastName: data.lastName !== undefined ? data.lastName : undefined,
-                isActive: data.isActive !== undefined ? data.isActive : undefined,
-            },
-        });
+        const [studentUser, school] = await Promise.all([
+            tx.user.findUnique({
+                where: { id: updatedStudent.userId },
+                select: { mustChangePassword: true, isActive: true },
+            }),
+            tx.school.findUnique({
+                where: { id: updatedStudent.schoolId },
+                select: { name: true },
+            }),
+        ]);
+
+        if (school?.name && studentUser) {
+            await syncStudentTemporaryLoginCredentials(tx, {
+                userId: updatedStudent.userId,
+                firstName: updatedStudent.firstName,
+                lastName: updatedStudent.lastName,
+                admissionNumber: updatedStudent.admissionNumber,
+                schoolName: school.name,
+                mustChangePassword: studentUser.mustChangePassword,
+                isActive: data.isActive !== undefined ? data.isActive : studentUser.isActive,
+            });
+        } else {
+            await tx.user.update({
+                where: { id: updatedStudent.userId },
+                data: {
+                    firstName: data.firstName !== undefined ? data.firstName : undefined,
+                    lastName: data.lastName !== undefined ? data.lastName : undefined,
+                    isActive: data.isActive !== undefined ? data.isActive : undefined,
+                },
+            });
+        }
     }
 
     if (updatedStudent.parentId) {

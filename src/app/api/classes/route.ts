@@ -1,14 +1,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getSafeServerSession } from "@/lib/server-session";
 
 // GET /api/classes - List all classes with arms
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSafeServerSession("/api/classes");
 
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

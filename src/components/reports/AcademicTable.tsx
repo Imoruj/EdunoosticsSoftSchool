@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View, StyleSheet } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./styles";
+import { formatScore } from "./scoreFormatting";
 
 interface AcademicTableProps {
     subjects: ReportCardData["academic"]["subjects"];
@@ -74,15 +75,15 @@ const AcademicTable: React.FC<AcademicTableProps & { config?: any }> = ({ subjec
                                 <View style={[styles.tableCol, { width: widths.subject }]}>
                                     <Text style={[styles.tableCell, { textAlign: "left" }]}>{s.name}</Text>
                                 </View>
-                                <View style={[styles.tableCol, { width: widths.bf }]}><Text style={styles.tableCell}>{s.cumulativeTotal1 || "-"}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.bf }]}><Text style={styles.tableCell}>{s.cumulativeTotal2 || "-"}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.ca }]}><Text style={styles.tableCell}>{s.ca}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.exam }]}><Text style={styles.tableCell}>{s.exam}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.total }]}><Text style={[styles.tableCell, styles.bold]}>{s.total}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.percent }]}><Text style={styles.tableCell}>{s.total}%</Text></View>
-                                <View style={[styles.tableCol, { width: widths.cum }]}><Text style={styles.tableCell}>{(s.cumulativeTotal1 || 0) + (s.cumulativeTotal2 || 0) + s.total}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.bf }]}><Text style={styles.tableCell}>{formatScore(s.cumulativeTotal1)}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.bf }]}><Text style={styles.tableCell}>{formatScore(s.cumulativeTotal2)}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.ca }]}><Text style={styles.tableCell}>{formatScore(s.ca)}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.exam }]}><Text style={styles.tableCell}>{formatScore(s.exam)}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.total }]}><Text style={[styles.tableCell, styles.bold]}>{formatScore(s.total)}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.percent }]}><Text style={styles.tableCell}>{formatScore(s.total)}%</Text></View>
+                                <View style={[styles.tableCol, { width: widths.cum }]}><Text style={styles.tableCell}>{formatScore((s.cumulativeTotal1 || 0) + (s.cumulativeTotal2 || 0) + s.total)}</Text></View>
                                 <View style={[styles.tableCol, { width: widths.pos }]}><Text style={styles.tableCell}>{s.subjectPosition}</Text></View>
-                                <View style={[styles.tableCol, { width: widths.avg }]}><Text style={styles.tableCell}>{s.subjectClassAverage}</Text></View>
+                                <View style={[styles.tableCol, { width: widths.avg }]}><Text style={styles.tableCell}>{formatScore(s.subjectClassAverage)}</Text></View>
                                 <View style={[styles.tableCol, { width: widths.remark }]}><Text style={styles.tableCell}>{s.remark}</Text></View>
                                 <View style={[styles.tableCol, { width: widths.grade, borderRightWidth: 0 }]}><Text style={styles.tableCell}>{s.grade}</Text></View>
                             </View>

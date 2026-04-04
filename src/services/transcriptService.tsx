@@ -5,6 +5,8 @@ import ReactPDF from "@react-pdf/renderer";
 import TranscriptDocument from "@/components/transcripts/TranscriptDocument";
 import React from "react";
 import path from "path";
+import { scaleAttendanceSummaryToPoints } from "@/lib/attendance-points";
+import { normalizeSignatureSource } from "@/lib/signature-images";
 
 const TERM_NAMES: Record<number, string> = { 1: "First Term", 2: "Second Term", 3: "Third Term" };
 
@@ -24,6 +26,7 @@ export async function generateTranscriptData(
     if (!student) throw new Error("Student not found");
     const school = student.school;
     if (!school) throw new Error("School data not found");
+    const normalizedPrincipalSignatureUrl = await normalizeSignatureSource(school.principalSignatureUrl);
 
     // 2. Fetch ALL report cards for this student
     const reportCards = await prisma.reportCard.findMany({
@@ -47,7 +50,7 @@ export async function generateTranscriptData(
     if (reportCards.length === 0) {
         return {
             student: buildStudentData(student, useAbsolutePath),
-            school: buildSchoolData(school),
+            school: buildSchoolData(school, normalizedPrincipalSignatureUrl),
             sessions: [],
             cumulativeStats: {
                 totalSessions: 0,
@@ -69,6 +72,9 @@ export async function generateTranscriptData(
         where: {
             studentId,
             termId: { in: termIds },
+            subject: {
+                subjectKind: { not: "COMPOSITE_COMPONENT" }
+            }
         },
         include: { subject: true },
     });
@@ -148,11 +154,11 @@ export async function generateTranscriptData(
                         average: Number(average.toFixed(2)),
                         subjectsCount,
                     },
-                    attendance: {
+                    attendance: scaleAttendanceSummaryToPoints({
                         daysPresent: term3Rc.daysPresent ?? 0,
                         daysAbsent: term3Rc.daysAbsent ?? 0,
                         totalSchoolDays: term3Rc.totalSchoolDays ?? 0,
-                    },
+                    }),
                     termResults: undefined,
                 };
             } else {
@@ -203,11 +209,11 @@ export async function generateTranscriptData(
                         average: Number(average.toFixed(2)),
                         subjectsCount,
                     },
-                    attendance: {
+                    attendance: scaleAttendanceSummaryToPoints({
                         daysPresent: lastRc.daysPresent ?? 0,
                         daysAbsent: lastRc.daysAbsent ?? 0,
                         totalSchoolDays: lastRc.totalSchoolDays ?? 0,
-                    },
+                    }),
                     termResults,
                 };
             }
@@ -235,7 +241,7 @@ export async function generateTranscriptData(
 
     return {
         student: buildStudentData(student, useAbsolutePath),
-        school: buildSchoolData(school),
+        school: buildSchoolData(school, normalizedPrincipalSignatureUrl),
         sessions,
         cumulativeStats: {
             totalSessions: sessions.length,
@@ -291,7 +297,7 @@ function buildStudentData(student: any, useAbsolutePath: boolean) {
     };
 }
 
-function buildSchoolData(school: any) {
+function buildSchoolData(school: any, principalSignatureUrl?: string) {
     return {
         name: school.name,
         address: school.address || "",
@@ -299,7 +305,7 @@ function buildSchoolData(school: any) {
         phone: school.phone || "",
         logoUrl: school.logoUrl || undefined,
         motto: school.motto || undefined,
-        principalSignatureUrl: school.principalSignatureUrl || undefined,
+        principalSignatureUrl: principalSignatureUrl || undefined,
         stampUrl: school.stampUrl || undefined,
     };
 }

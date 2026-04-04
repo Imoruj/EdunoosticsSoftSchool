@@ -46,6 +46,24 @@ interface Session {
     terms: Term[];
 }
 
+const RATING_SEQUENCE = [1, 2, 3, 4, 5] as const;
+
+const RATING_STYLES: Record<number, string> = {
+    1: "bg-red-100 text-red-700 ring-red-300",
+    2: "bg-orange-100 text-orange-700 ring-orange-300",
+    3: "bg-amber-100 text-amber-700 ring-amber-300",
+    4: "bg-blue-100 text-blue-700 ring-blue-300",
+    5: "bg-green-100 text-green-700 ring-green-300",
+};
+
+function getNextRating(currentRating?: number) {
+    if (!currentRating || currentRating < 1 || currentRating > 5) {
+        return 1;
+    }
+
+    return currentRating === 5 ? 1 : currentRating + 1;
+}
+
 export default function AssessmentPage() {
     const { data: sessionData } = useSession();
     const sessionUser = sessionData?.user as { roles?: string[] } | undefined;
@@ -205,17 +223,15 @@ export default function AssessmentPage() {
         }
     }, [fetchAssessments, selectedClassArmId, selectedTermId]);
 
-    const handleRatingChange = (studentId: string, key: string, value: string) => {
-        const numValue = parseInt(value);
-        if (isNaN(numValue) || numValue < 1 || numValue > 5) return; // Basic validation, though UI enforces dropdown
-
+    const handleRatingCycle = (studentId: string, key: string) => {
         setStudents(prev => prev.map(s => {
             if (s.id === studentId) {
+                const currentRating = s.ratings[key];
                 return {
                     ...s,
                     ratings: {
                         ...s.ratings,
-                        [key]: numValue
+                        [key]: getNextRating(currentRating)
                     }
                 };
             }
@@ -254,8 +270,6 @@ export default function AssessmentPage() {
             setSaving(false);
         }
     };
-
-    const ratingOptions = [1, 2, 3, 4, 5];
 
     return (
         <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
@@ -393,38 +407,45 @@ export default function AssessmentPage() {
                                         {/* Traits Inputs */}
                                         {traits.map(trait => (
                                             <td key={trait.id} className="p-2 border-r border-gray-100 last:border-r-0 bg-blue-50/10">
-                                                <select
-                                                    className="w-full h-9 text-sm text-center border-gray-200 rounded focus:ring-primary-500 focus:border-primary-500 bg-white"
-                                                    value={student.ratings[`trait_${trait.id}`] || ""}
-                                                    onChange={(e) => handleRatingChange(student.id, `trait_${trait.id}`, e.target.value)}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRatingCycle(student.id, `trait_${trait.id}`)}
+                                                    className={`mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 ${student.ratings[`trait_${trait.id}`]
+                                                        ? `${RATING_STYLES[student.ratings[`trait_${trait.id}`]]} ring-2 ring-offset-1`
+                                                        : "bg-white text-gray-400 ring-1 ring-gray-200 hover:bg-gray-50"
+                                                        }`}
+                                                    title={`${trait.name}: ${student.ratings[`trait_${trait.id}`] || "Not rated"}. Click to cycle score.`}
+                                                    aria-label={`${trait.name} rating for ${student.lastName} ${student.firstName}`}
                                                 >
-                                                    <option value="" className="text-gray-300">-</option>
-                                                    {ratingOptions.map(r => (
-                                                        <option key={r} value={r}>{r}</option>
-                                                    ))}
-                                                </select>
+                                                    {student.ratings[`trait_${trait.id}`] || "-"}
+                                                </button>
                                             </td>
                                         ))}
 
                                         {/* Skills Inputs */}
                                         {skills.map(skill => (
                                             <td key={skill.id} className="p-2 border-r border-gray-100 last:border-r-0 bg-green-50/10">
-                                                <select
-                                                    className="w-full h-9 text-sm text-center border-gray-200 rounded focus:ring-primary-500 focus:border-primary-500 bg-white"
-                                                    value={student.ratings[`skill_${skill.id}`] || ""}
-                                                    onChange={(e) => handleRatingChange(student.id, `skill_${skill.id}`, e.target.value)}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRatingCycle(student.id, `skill_${skill.id}`)}
+                                                    className={`mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 ${student.ratings[`skill_${skill.id}`]
+                                                        ? `${RATING_STYLES[student.ratings[`skill_${skill.id}`]]} ring-2 ring-offset-1`
+                                                        : "bg-white text-gray-400 ring-1 ring-gray-200 hover:bg-gray-50"
+                                                        }`}
+                                                    title={`${skill.name}: ${student.ratings[`skill_${skill.id}`] || "Not rated"}. Click to cycle score.`}
+                                                    aria-label={`${skill.name} rating for ${student.lastName} ${student.firstName}`}
                                                 >
-                                                    <option value="" className="text-gray-300">-</option>
-                                                    {ratingOptions.map(r => (
-                                                        <option key={r} value={r}>{r}</option>
-                                                    ))}
-                                                </select>
+                                                    {student.ratings[`skill_${skill.id}`] || "-"}
+                                                </button>
                                             </td>
                                         ))}
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                        Click any rating box to cycle score: 1 → 2 → 3 → 4 → 5 → 1
                     </div>
                 </div>
             ) : (

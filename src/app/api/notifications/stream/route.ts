@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { subscribeToUserNotificationStream } from "@/lib/realtimeNotifications";
+import { getSafeServerSession } from "@/lib/server-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +12,7 @@ function encodeSseEvent(event: string, data: object) {
 }
 
 export async function GET(req: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await getSafeServerSession("/api/notifications/stream");
     if (!session?.user) {
         return new Response("Unauthorized", { status: 401 });
     }

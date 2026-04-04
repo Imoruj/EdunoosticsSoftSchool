@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { generateStudentDefaultPasswordHash } from "@/lib/studentLoginCredentials";
 
 const DEFAULT_RESET_PASSWORD = "1234";
 
@@ -66,8 +67,43 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const passwordHash = await bcrypt.hash(DEFAULT_RESET_PASSWORD, 12);
-        const mustChangePassword = !targetUser.roles.includes("STUDENT");
+        let temporaryPassword = DEFAULT_RESET_PASSWORD;
+        let passwordHash = await bcrypt.hash(DEFAULT_RESET_PASSWORD, 12);
+        let mustChangePassword = !targetUser.roles.includes("STUDENT");
+
+        if (targetUser.roles.includes("STUDENT")) {
+            const studentRecord = await prisma.student.findFirst({
+                where: { userId: targetUser.id },
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    admissionNumber: true,
+                    school: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
+            });
+
+            if (!studentRecord) {
+                return NextResponse.json(
+                    { error: "Student record not found for this account." },
+                    { status: 404 }
+                );
+            }
+
+            const generated = await generateStudentDefaultPasswordHash({
+                firstName: studentRecord.firstName,
+                lastName: studentRecord.lastName,
+                admissionNumber: studentRecord.admissionNumber,
+                schoolName: studentRecord.school.name,
+            });
+
+            temporaryPassword = generated.password;
+            passwordHash = generated.passwordHash;
+            mustChangePassword = true;
+        }
 
         await prisma.user.update({
             where: { id: userId },
@@ -80,7 +116,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             success: true,
             message: `Password reset successfully for ${targetUser.firstName} ${targetUser.lastName}.`,
-            temporaryPassword: DEFAULT_RESET_PASSWORD,
+            temporaryPassword,
             mustChangePassword,
         });
     } catch (error: unknown) {

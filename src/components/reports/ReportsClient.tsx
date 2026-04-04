@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
+import { UserRole } from "@prisma/client";
 
 import ReportCardPreviewModal from "@/components/reports/ReportCardPreviewModal";
 import ReportFilters from "./ReportFilters";
@@ -11,6 +12,7 @@ import ReportDataTable from "./ReportDataTable";
 import BulkGenerateModal from "./BulkGenerateModal";
 import CommentDialog from "./CommentDialog";
 import { Card } from "@/components/ui/Card";
+import type { ReportCardData } from "./types";
 
 import { Session, ClassArm, Term } from "./types";
 
@@ -43,6 +45,16 @@ interface ScoreBroadcastStatus {
     subjectId: string;
     subjectName: string;
     status: string;
+    teacher: WorkflowUserSummary | null;
+    reviewedBy: WorkflowUserSummary | null;
+    broadcastedBy: WorkflowUserSummary | null;
+    reviewedAt: string | null;
+    broadcastedAt: string | null;
+    rejectionReason: string | null;
+    lastUpdatedAt: string | null;
+    nextAction: string;
+    hasWorkflow: boolean;
+    componentStatuses?: ScoreBroadcastComponentStatus[];
 }
 
 interface ScoreBroadcastSummary {
@@ -51,6 +63,77 @@ interface ScoreBroadcastSummary {
     allBroadcasted: boolean;
     statuses: ScoreBroadcastStatus[];
     pendingSubjects?: ScoreBroadcastStatus[];
+    classReviewer?: WorkflowUserSummary | null;
+}
+
+interface WorkflowUserSummary {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+}
+
+interface ScoreBroadcastComponentStatus {
+    subjectId: string;
+    subjectName: string;
+    status: string;
+    teacher: WorkflowUserSummary | null;
+    reviewedBy: WorkflowUserSummary | null;
+    broadcastedBy: WorkflowUserSummary | null;
+    reviewedAt: string | null;
+    broadcastedAt: string | null;
+    rejectionReason: string | null;
+    lastUpdatedAt: string | null;
+    nextAction: string;
+    hasWorkflow: boolean;
+}
+
+interface PublishedReportSummary {
+    id: string;
+    termId: string;
+    termName: string;
+    termNumber: number;
+    sessionId: string;
+    sessionName: string;
+    studentName?: string;
+    average: number | null;
+    classPosition: number | null;
+    classSize: number | null;
+    publishedAt: string;
+    className: string;
+    reportType: "halfTerm" | "endOfTerm";
+    downloadExpiresAt: string | null;
+    canDownload: boolean;
+}
+
+function readCache<T>(key: string): T | null {
+    if (typeof window === "undefined") return null;
+
+    try {
+        const value = window.localStorage.getItem(key);
+        return value ? (JSON.parse(value) as T) : null;
+    } catch {
+        return null;
+    }
+}
+
+function writeCache(key: string, value: unknown) {
+    if (typeof window === "undefined") return;
+
+    try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // Ignore quota and serialization failures for optional offline cache.
+    }
+}
+
+function getPublishedReportsCacheKey(user: { id?: string; loginProfileId?: string; loginType?: string } | null | undefined) {
+    const principalId = user?.loginProfileId || user?.id || "anonymous";
+    return `published-reports:${user?.loginType || "user"}:${principalId}`;
+}
+
+function getPublishedReportDataCacheKey(reportCardId: string) {
+    return `published-report-data:${reportCardId}`;
 }
 
 function formatWorkflowStatusLabel(status?: string | null) {
@@ -59,6 +142,49 @@ function formatWorkflowStatusLabel(status?: string | null) {
         .split("_")
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
         .join(" ");
+}
+
+function formatWorkflowDate(value?: string | null) {
+    if (!value) return "Not yet recorded";
+
+    return new Intl.DateTimeFormat("en-NG", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(value));
+}
+
+function getWorkflowStatusTone(status?: string | null) {
+    switch (status) {
+        case "BROADCASTED":
+            return {
+                pill: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                dot: "bg-emerald-500",
+            };
+        case "APPROVED":
+            return {
+                pill: "bg-blue-50 text-blue-700 border-blue-200",
+                dot: "bg-blue-500",
+            };
+        case "REJECTED":
+            return {
+                pill: "bg-rose-50 text-rose-700 border-rose-200",
+                dot: "bg-rose-500",
+            };
+        default:
+            return {
+                pill: "bg-amber-50 text-amber-700 border-amber-200",
+                dot: "bg-amber-500",
+            };
+    }
+}
+
+function getSubjectPreviewMeta(subject: ScoreBroadcastStatus) {
+    if (subject.componentStatuses?.length) {
+        const assignedComponents = subject.componentStatuses.filter((item) => item.teacher).length;
+        return `${assignedComponents}/${subject.componentStatuses.length} component teachers assigned`;
+    }
+
+    return subject.teacher?.name || "No teacher assigned";
 }
 
 export default function ReportsClient({
@@ -78,7 +204,8 @@ export default function ReportsClient({
     const isClassTeacher = userRoles.includes("CLASS_TEACHER");
     const restrictToAssignedScope = !isAdmin && isClassTeacher;
     const isParent = user?.loginType === "parent";
-    const isStudent = user?.loginType === "student";
+    const isStudent =
+        user?.loginType === "student" || userRoles.includes(UserRole.STUDENT);
 
     // State
     const [sessions] = useState<Session[]>(initialSessions);
@@ -102,10 +229,14 @@ export default function ReportsClient({
     const [classWorkflow, setClassWorkflow] = useState<any | null>(null);
     const [scoreSummary, setScoreSummary] = useState<ScoreBroadcastSummary | null>(null);
     const [workflowBusyAction, setWorkflowBusyAction] = useState<string | null>(null);
+    const [selectedWorkflowSubjectId, setSelectedWorkflowSubjectId] = useState<string | null>(null);
     const [rejectingStudent, setRejectingStudent] = useState<StudentReportSummary | null>(null);
     const [rejectReason, setRejectReason] = useState("");
-    const [publishedReports, setPublishedReports] = useState<any[]>([]);
+    const [publishedReports, setPublishedReports] = useState<PublishedReportSummary[]>([]);
     const [loadingPublishedReports, setLoadingPublishedReports] = useState(false);
+    const [loadingPublishedPreviewId, setLoadingPublishedPreviewId] = useState<string | null>(null);
+    const [previewModalTitle, setPreviewModalTitle] = useState("Report Card Preview");
+    const [adminTestMode, setAdminTestMode] = useState(false);
 
     const visibleSessionIds =
         restrictToAssignedScope && selectedClassArmId
@@ -115,6 +246,17 @@ export default function ReportsClient({
     const pendingSubjects: ScoreBroadcastStatus[] =
         scoreSummary?.pendingSubjects ??
         (scoreSummary?.statuses || []).filter((item) => item.status !== "BROADCASTED");
+    const selectedWorkflowSubject =
+        scoreSummary?.statuses.find((item) => item.subjectId === selectedWorkflowSubjectId) || null;
+    const awaitingReviewCount = (scoreSummary?.statuses || []).filter((item) =>
+        item.status === "PENDING_REVIEW" || item.status === "REJECTED"
+    ).length;
+    const readyToBroadcastCount = (scoreSummary?.statuses || []).filter((item) => item.status === "APPROVED").length;
+    const workflowStats = [
+        { label: "Awaiting review", value: awaitingReviewCount },
+        { label: "Ready to broadcast", value: readyToBroadcastCount },
+        { label: "Broadcasted", value: scoreSummary?.broadcastedSubjects ?? 0 },
+    ];
 
     const refreshReportWorkflow = async (baseStudents?: StudentReportSummary[]) => {
         if (!selectedClassArmId || !selectedTermId) {
@@ -156,6 +298,18 @@ export default function ReportsClient({
         });
     };
 
+    useEffect(() => {
+        if (!selectedWorkflowSubjectId) return;
+
+        const stillExists = (scoreSummary?.statuses || []).some(
+            (item) => item.subjectId === selectedWorkflowSubjectId
+        );
+
+        if (!stillExists) {
+            setSelectedWorkflowSubjectId(null);
+        }
+    }, [scoreSummary, selectedWorkflowSubjectId]);
+
     const runWorkflowAction = async (action: string, payload: Record<string, any> = {}) => {
         if (!selectedClassArmId || !selectedTermId) return;
 
@@ -169,6 +323,7 @@ export default function ReportsClient({
                     classArmId: selectedClassArmId,
                     termId: selectedTermId,
                     reportType,
+                    ...(adminTestMode ? { adminOverride: true } : {}),
                     ...payload,
                 }),
             });
@@ -286,6 +441,11 @@ export default function ReportsClient({
                     const studentsList = data.students || [];
                     const mappedStudents: StudentReportSummary[] = studentsList.map((s: any) => {
                         const report = s.reportCards && s.reportCards.length > 0 ? s.reportCards[0] : null;
+                        const averageValue = report ? (typeof report.average === "object" && report.average !== null && typeof report.average.toNumber === "function"
+                            ? report.average.toNumber()
+                            : Number(report.average)
+                        ) : null;
+
                         return {
                             id: s.id,
                             firstName: s.firstName,
@@ -293,8 +453,9 @@ export default function ReportsClient({
                             admissionNumber: s.admissionNumber,
                             classArmName: s.classArm?.armName || "",
                             published: report ? report.isPublished : false,
-                            average: report ? report.average : null,
-                            reportCardId: report ? report.id : null
+                            average: Number.isFinite(averageValue) ? averageValue : null,
+                            position: report ? report.classPosition ?? null : null,
+                            reportCardId: report ? report.id : null,
                         };
                     });
                     setStudents(mappedStudents);
@@ -340,6 +501,7 @@ export default function ReportsClient({
             if (res.ok) {
                 const data = await res.json();
                 setPreviewData(data.reports);
+                setPreviewModalTitle("Report Card Preview");
                 setShowPreviewModal(true);
             } else {
                 throw new Error("Failed to fetch report data");
@@ -357,30 +519,78 @@ export default function ReportsClient({
         setIsCommentDialogOpen(true);
     };
 
+    const handleOpenPublishedReport = async (report: PublishedReportSummary) => {
+        const cachedKey = getPublishedReportDataCacheKey(report.id);
+        const cachedReport = readCache<ReportCardData>(cachedKey);
+
+        setLoadingPublishedPreviewId(report.id);
+        try {
+            const response = await fetch(`/api/reports/published/data?reportCardId=${encodeURIComponent(report.id)}`, {
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch report preview");
+            }
+
+            const data = await response.json();
+            if (!data?.report) {
+                throw new Error("Report preview data is unavailable");
+            }
+
+            writeCache(cachedKey, data.report);
+            setPreviewData([data.report]);
+            setPreviewModalTitle(`${report.sessionName} ${report.termName} Report`);
+            setShowPreviewModal(true);
+        } catch (error) {
+            if (cachedReport) {
+                toast("Showing saved offline copy of this report.");
+                setPreviewData([cachedReport]);
+                setPreviewModalTitle(`${report.sessionName} ${report.termName} Report`);
+                setShowPreviewModal(true);
+            } else {
+                console.error("Failed to open published report preview", error);
+                toast.error("Unable to open this report right now.");
+            }
+        } finally {
+            setLoadingPublishedPreviewId(null);
+        }
+    };
+
     useEffect(() => {
         if (!isParent && !isStudent) return;
+
+        const studentId = searchParams.get("studentId");
+        const cacheKey = `${getPublishedReportsCacheKey(user)}:${studentId || "self"}`;
+        const cachedReports = readCache<PublishedReportSummary[]>(cacheKey);
+        if (cachedReports && cachedReports.length > 0) {
+            setPublishedReports(cachedReports);
+        }
 
         const fetchPublishedReports = async () => {
             setLoadingPublishedReports(true);
             try {
-                const studentId = searchParams.get("studentId");
                 const query = studentId ? `?studentId=${studentId}` : "";
                 const response = await fetch(`/api/reports/published${query}`);
                 if (!response.ok) {
                     throw new Error("Failed to fetch published reports");
                 }
                 const data = await response.json();
-                setPublishedReports(data.reportCards || []);
+                const reports = (data.reportCards || []) as PublishedReportSummary[];
+                setPublishedReports(reports);
+                writeCache(cacheKey, reports);
             } catch (error) {
                 console.error("Failed to fetch published reports", error);
-                setPublishedReports([]);
+                if (!cachedReports) {
+                    setPublishedReports([]);
+                }
             } finally {
                 setLoadingPublishedReports(false);
             }
         };
 
         fetchPublishedReports();
-    }, [isParent, isStudent, searchParams]);
+    }, [isParent, isStudent, searchParams, user]);
 
     if (isParent || isStudent) {
         return (
@@ -388,7 +598,9 @@ export default function ReportsClient({
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">My Reports</h1>
-                        <p className="text-slate-500">Published report cards are available here. Downloads expire after 3 days.</p>
+                        <p className="text-slate-500">
+                            All published report cards are available here. View and print inside the portal; PDF downloads remain available during the active download window.
+                        </p>
                     </div>
                 </div>
                 <Card>
@@ -396,6 +608,7 @@ export default function ReportsClient({
                         <table className="min-w-full text-sm">
                             <thead className="bg-slate-50 text-slate-600">
                                 <tr>
+                                    {isParent && <th className="px-4 py-3 text-left">Student</th>}
                                     <th className="px-4 py-3 text-left">Session</th>
                                     <th className="px-4 py-3 text-left">Term</th>
                                     <th className="px-4 py-3 text-left">Class</th>
@@ -406,44 +619,59 @@ export default function ReportsClient({
                             <tbody>
                                 {loadingPublishedReports ? (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
                                             Loading reports...
                                         </td>
                                     </tr>
                                 ) : publishedReports.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
                                             No published reports available.
                                         </td>
                                     </tr>
                                 ) : (
                                     publishedReports.map((report) => (
                                         <tr key={report.id} className="border-t border-slate-100">
+                                            {isParent && <td className="px-4 py-3">{report.studentName || "Ward"}</td>}
                                             <td className="px-4 py-3">{report.sessionName}</td>
                                             <td className="px-4 py-3">{report.termName}</td>
                                             <td className="px-4 py-3">{report.className}</td>
                                             <td className="px-4 py-3">
-                                                {report.canDownload ? (
-                                                    <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                                        Download Available
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                        View & Print Ready
                                                     </span>
-                                                ) : (
-                                                    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                                        Download Expired
-                                                    </span>
-                                                )}
+                                                    {report.canDownload ? (
+                                                        <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                                            Download Available
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                                                            Download Expired
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button
-                                                    onClick={() => window.open(`/api/reports/published/download?reportCardId=${report.id}`, "_blank")}
-                                                    disabled={!report.canDownload}
-                                                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${report.canDownload
-                                                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                                                            : "bg-slate-200 text-slate-500 cursor-not-allowed"
-                                                        }`}
-                                                >
-                                                    Download PDF
-                                                </button>
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleOpenPublishedReport(report)}
+                                                        disabled={loadingPublishedPreviewId === report.id}
+                                                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        {loadingPublishedPreviewId === report.id ? "Opening..." : "View / Print"}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => window.open(`/api/reports/published/download?reportCardId=${report.id}`, "_blank")}
+                                                        disabled={!report.canDownload}
+                                                        className={`rounded-md px-3 py-1.5 text-xs font-medium ${report.canDownload
+                                                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                                                : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                                            }`}
+                                                    >
+                                                        Download PDF
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -502,90 +730,196 @@ export default function ReportsClient({
             />
 
             {selectedClassArmId && selectedTermId && classWorkflow && (
-                <Card className="p-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-slate-800">Class Workflow</span>
-                                <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                                    {classWorkflow.status?.replaceAll("_", " ")}
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-500">
-                                Subjects broadcasted: {scoreSummary?.broadcastedSubjects ?? 0}/{scoreSummary?.expectedSubjects ?? 0}
-                            </p>
-                            {(isAdmin || isClassTeacher) && pendingSubjects.length > 0 && (
-                                <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                                    <p className="text-xs font-medium text-amber-900">
-                                        Subjects yet to broadcast ({pendingSubjects.length})
-                                    </p>
-                                    <div className="mt-1 flex flex-wrap gap-2">
-                                        {pendingSubjects.map((item) => (
-                                            <span
-                                                key={item.subjectId}
-                                                className="inline-flex items-center rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-medium text-amber-900"
-                                            >
-                                                {item.subjectName}: {formatWorkflowStatusLabel(item.status)}
-                                            </span>
-                                        ))}
+                <Card className="p-5">
+                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_240px]">
+                        <div className="space-y-5">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-semibold text-slate-900">Class Workflow</span>
+                                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                            {classWorkflow.status?.replaceAll("_", " ")}
+                                        </span>
                                     </div>
+                                    <p className="text-sm text-slate-500">
+                                        Track subject review and broadcasting before publishing the class result.
+                                    </p>
                                 </div>
-                            )}
+
+                                <div className="grid grid-cols-3 gap-3 lg:min-w-[320px]">
+                                    {workflowStats.map((item) => (
+                                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                                {item.label}
+                                            </p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900">{item.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            Subjects awaiting completion ({pendingSubjects.length})
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Click any subject to inspect assigned teacher, review status, and workflow history.
+                                        </p>
+                                    </div>
+                                    <p className="text-xs font-medium text-slate-500">
+                                        Broadcasted {scoreSummary?.broadcastedSubjects ?? 0} of {scoreSummary?.expectedSubjects ?? 0}
+                                    </p>
+                                </div>
+
+                                {pendingSubjects.length > 0 ? (
+                                    <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                                        {pendingSubjects.map((item) => {
+                                            const tone = getWorkflowStatusTone(item.status);
+
+                                            return (
+                                                <button
+                                                    key={item.subjectId}
+                                                    type="button"
+                                                    onClick={() => setSelectedWorkflowSubjectId(item.subjectId)}
+                                                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-900">{item.subjectName}</p>
+                                                            <p className="mt-1 text-xs text-slate-500">{getSubjectPreviewMeta(item)}</p>
+                                                        </div>
+                                                        <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${tone.pill}`}>
+                                                            {formatWorkflowStatusLabel(item.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-3 flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                            <span className={`h-2 w-2 rounded-full ${tone.dot}`}></span>
+                                                            <span>{item.nextAction}</span>
+                                                        </div>
+                                                        <span className="text-xs font-semibold text-primary-700">View details</span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                                        All subjects have been broadcasted for this class.
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                            {(isAdmin || isClassTeacher) && (
-                                <button
-                                    onClick={() => runWorkflowAction("broadcast_result")}
-                                    disabled={
-                                        workflowBusyAction !== null ||
-                                        classWorkflow.status !== "WAITING_SUBJECT_BROADCAST" ||
-                                        !scoreSummary?.allBroadcasted
-                                    }
-                                    className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white ${workflowBusyAction === "broadcast_result"
-                                            ? "bg-blue-400"
-                                            : "bg-blue-600 hover:bg-blue-700"
-                                        } disabled:cursor-not-allowed disabled:bg-slate-300`}
-                                >
-                                    {workflowBusyAction === "broadcast_result" ? "Broadcasting..." : "Broadcast Result"}
-                                </button>
-                            )}
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="mb-4">
+                                <p className="text-sm font-semibold text-slate-900">Workflow actions</p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Actions unlock as review and subject broadcasting progress.
+                                </p>
+                            </div>
 
-                            {(isAdmin || isClassTeacher) && (
-                                <button
-                                    onClick={() => runWorkflowAction("generate_comments")}
-                                    disabled={
-                                        workflowBusyAction !== null ||
-                                        !["RESULT_BROADCASTED", "COMMENTS_GENERATED", "READY_FOR_ADMIN_REVIEW"].includes(classWorkflow.status)
-                                    }
-                                    className={`rounded-md px-3 py-1.5 text-xs font-semibold text-white ${workflowBusyAction === "generate_comments"
-                                            ? "bg-emerald-400"
-                                            : "bg-emerald-600 hover:bg-emerald-700"
-                                        } disabled:cursor-not-allowed disabled:bg-slate-300`}
-                                >
-                                    {workflowBusyAction === "generate_comments" ? "Generating..." : "Generate Comments"}
-                                </button>
-                            )}
+                            <div className="space-y-3">
+                                {isAdmin && (
+                                    <div className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-amber-900">Admin Testing Mode</p>
+                                                <p className="mt-0.5 text-xs text-amber-700">
+                                                    Bypass workflow gates to test comments, publishing, and student visibility.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={adminTestMode}
+                                                onClick={() => setAdminTestMode((prev) => !prev)}
+                                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                                                    adminTestMode ? "bg-amber-500" : "bg-slate-300"
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                                        adminTestMode ? "translate-x-5" : "translate-x-0"
+                                                    }`}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
-                            {isAdmin && classWorkflow.status !== "PUBLISHED" && (
-                                <button
-                                    onClick={() => runWorkflowAction("publish_class")}
-                                    disabled={workflowBusyAction !== null}
-                                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                >
-                                    {workflowBusyAction === "publish_class" ? "Publishing..." : "Publish Result"}
-                                </button>
-                            )}
+                                {(isAdmin || isClassTeacher) && (
+                                    <button
+                                        onClick={() => runWorkflowAction("broadcast_result")}
+                                        disabled={
+                                            workflowBusyAction !== null ||
+                                            (!adminTestMode && (
+                                                classWorkflow.status !== "WAITING_SUBJECT_BROADCAST" ||
+                                                !scoreSummary?.allBroadcasted
+                                            ))
+                                        }
+                                        className="flex w-full flex-col rounded-xl bg-blue-600 px-4 py-3 text-left text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                        <span className="text-sm font-semibold">
+                                            {workflowBusyAction === "broadcast_result" ? "Broadcasting..." : "Broadcast Result"}
+                                        </span>
+                                        <span className="mt-1 text-xs text-blue-100">
+                                            {adminTestMode ? "Admin override: bypasses broadcast requirement." : "Available when every subject has been broadcasted."}
+                                        </span>
+                                    </button>
+                                )}
 
-                            {isAdmin && classWorkflow.status === "PUBLISHED" && (
-                                <button
-                                    onClick={() => runWorkflowAction("unpublish_class")}
-                                    disabled={workflowBusyAction !== null}
-                                    className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                >
-                                    {workflowBusyAction === "unpublish_class" ? "Unpublishing..." : "Unpublish Result"}
-                                </button>
-                            )}
+                                {(isAdmin || isClassTeacher) && (
+                                    <button
+                                        onClick={() => runWorkflowAction("generate_comments")}
+                                        disabled={
+                                            workflowBusyAction !== null ||
+                                            (!adminTestMode && !["RESULT_BROADCASTED", "COMMENTS_GENERATED", "READY_FOR_ADMIN_REVIEW"].includes(classWorkflow.status))
+                                        }
+                                        className="flex w-full flex-col rounded-xl bg-emerald-600 px-4 py-3 text-left text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                        <span className="text-sm font-semibold">
+                                            {workflowBusyAction === "generate_comments" ? "Generating..." : "Generate Comments"}
+                                        </span>
+                                        <span className="mt-1 text-xs text-emerald-100">
+                                            {adminTestMode ? "Admin override: bypasses broadcast requirement." : "Generate or refresh teacher and principal comments for the class."}
+                                        </span>
+                                    </button>
+                                )}
+
+                                {isAdmin && classWorkflow.status !== "PUBLISHED" && (
+                                    <button
+                                        onClick={() => runWorkflowAction("publish_class")}
+                                        disabled={workflowBusyAction !== null}
+                                        className="flex w-full flex-col rounded-xl bg-indigo-600 px-4 py-3 text-left text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                        <span className="text-sm font-semibold">
+                                            {workflowBusyAction === "publish_class" ? "Publishing..." : "Publish Result"}
+                                        </span>
+                                        <span className="mt-1 text-xs text-indigo-100">
+                                            {adminTestMode ? "Admin override: auto-approves and publishes all." : "Make the class result available to student and parent portals."}
+                                        </span>
+                                    </button>
+                                )}
+
+                                {isAdmin && classWorkflow.status === "PUBLISHED" && (
+                                    <button
+                                        onClick={() => runWorkflowAction("unpublish_class")}
+                                        disabled={workflowBusyAction !== null}
+                                        className="flex w-full flex-col rounded-xl bg-rose-600 px-4 py-3 text-left text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                        <span className="text-sm font-semibold">
+                                            {workflowBusyAction === "unpublish_class" ? "Unpublishing..." : "Unpublish Result"}
+                                        </span>
+                                        <span className="mt-1 text-xs text-rose-100">
+                                            Remove published access while keeping workflow history intact.
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -622,6 +956,212 @@ export default function ReportsClient({
                 <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
                     <p className="text-slate-500 font-medium">Select a Class and Term to view reports.</p>
                 </div>
+            )}
+
+            {selectedWorkflowSubject && (
+                <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/40 p-4">
+                    <div className="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
+                        <div className="flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-2xl">
+                            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        {selectedWorkflowSubject.subjectName}
+                                    </h3>
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${getWorkflowStatusTone(selectedWorkflowSubject.status).pill}`}>
+                                        {formatWorkflowStatusLabel(selectedWorkflowSubject.status)}
+                                    </span>
+                                </div>
+                                <p className="mt-2 text-sm text-slate-500">
+                                    {selectedWorkflowSubject.nextAction}
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setSelectedWorkflowSubjectId(null)}
+                                className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <div className="grid gap-5 overflow-y-auto px-6 py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+                            <div className="space-y-5">
+                                {selectedWorkflowSubject.componentStatuses?.length ? (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <div className="mb-3">
+                                            <p className="text-sm font-semibold text-slate-900">Component subjects</p>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                This parent subject is tracked through its component subject workflows.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {selectedWorkflowSubject.componentStatuses.map((component) => (
+                                                <div
+                                                    key={component.subjectId}
+                                                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-900">
+                                                                {component.subjectName}
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-slate-500">
+                                                                {component.teacher?.name || "No teacher assigned"}
+                                                            </p>
+                                                        </div>
+                                                        <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${getWorkflowStatusTone(component.status).pill}`}>
+                                                            {formatWorkflowStatusLabel(component.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                                        <div>
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                                Teacher contact
+                                                            </p>
+                                                            <p className="mt-1 text-sm text-slate-700">
+                                                                {component.teacher?.email || "No email on file"}
+                                                            </p>
+                                                            <p className="text-sm text-slate-700">
+                                                                {component.teacher?.phone || "No phone on file"}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                                Latest activity
+                                                            </p>
+                                                            <p className="mt-1 text-sm text-slate-700">
+                                                                {component.broadcastedAt
+                                                                    ? `Broadcasted ${formatWorkflowDate(component.broadcastedAt)}`
+                                                                    : component.reviewedAt
+                                                                        ? `Reviewed ${formatWorkflowDate(component.reviewedAt)}`
+                                                                        : "No workflow activity yet"}
+                                                            </p>
+                                                            <p className="text-sm text-slate-500">{component.nextAction}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {component.rejectionReason && (
+                                                        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                                                            {component.rejectionReason}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                Subject teacher
+                                            </p>
+                                            <p className="mt-2 text-base font-semibold text-slate-900">
+                                                {selectedWorkflowSubject.teacher?.name || "No teacher assigned"}
+                                            </p>
+                                            <div className="mt-3 space-y-1 text-sm text-slate-600">
+                                                <p>{selectedWorkflowSubject.teacher?.email || "No email on file"}</p>
+                                                <p>{selectedWorkflowSubject.teacher?.phone || "No phone on file"}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                Class reviewer
+                                            </p>
+                                            <p className="mt-2 text-base font-semibold text-slate-900">
+                                                {scoreSummary?.classReviewer?.name || "No class teacher assigned"}
+                                            </p>
+                                            <div className="mt-3 space-y-1 text-sm text-slate-600">
+                                                <p>{scoreSummary?.classReviewer?.email || "No email on file"}</p>
+                                                <p>{scoreSummary?.classReviewer?.phone || "No phone on file"}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <p className="text-sm font-semibold text-slate-900">Workflow activity</p>
+                                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                Reviewed by
+                                            </p>
+                                            <p className="mt-2 text-sm font-medium text-slate-900">
+                                                {selectedWorkflowSubject.reviewedBy?.name || "Not reviewed yet"}
+                                            </p>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                {formatWorkflowDate(selectedWorkflowSubject.reviewedAt)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                Broadcasted by
+                                            </p>
+                                            <p className="mt-2 text-sm font-medium text-slate-900">
+                                                {selectedWorkflowSubject.broadcastedBy?.name || "Not broadcasted yet"}
+                                            </p>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                {formatWorkflowDate(selectedWorkflowSubject.broadcastedAt)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {selectedWorkflowSubject.rejectionReason && (
+                                        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+                                                Rejection note
+                                            </p>
+                                            <p className="mt-2 text-sm text-rose-700">
+                                                {selectedWorkflowSubject.rejectionReason}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        Next action
+                                    </p>
+                                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                                        {selectedWorkflowSubject.nextAction}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        Last updated
+                                    </p>
+                                    <p className="mt-2 text-sm font-medium text-slate-900">
+                                        {formatWorkflowDate(selectedWorkflowSubject.lastUpdatedAt)}
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Workflow record {selectedWorkflowSubject.hasWorkflow ? "exists" : "has not been created yet"}.
+                                    </p>
+                                </div>
+
+                                {!selectedWorkflowSubject.componentStatuses?.length && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                            Subject workflow
+                                        </p>
+                                        <p className="mt-2 text-sm text-slate-700">
+                                            {selectedWorkflowSubject.teacher
+                                                ? "Teacher assignment is in place."
+                                                : "A teacher must be assigned before this subject can move smoothly through the workflow."}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             )}
 
             {rejectingStudent && (
@@ -675,6 +1215,7 @@ export default function ReportsClient({
                 isOpen={showPreviewModal}
                 onClose={() => setShowPreviewModal(false)}
                 reports={previewData}
+                title={previewModalTitle}
             />
 
             <BulkGenerateModal

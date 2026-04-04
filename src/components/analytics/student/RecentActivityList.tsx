@@ -25,7 +25,7 @@ export function RecentActivityList() {
                 status: attempt.completedAt ? "completed" : "in_progress",
                 date: attempt.completedAt || attempt.startedAt,
                 score: attempt.completedAt ? Math.round((attempt.earnedPoints / attempt.totalPoints) * 100) : null,
-                link: `/s/quizzes/${attempt.quizId}`
+                link: `/dashboard/quizzes/${attempt.quizId}/take`
             });
         });
 
@@ -41,7 +41,7 @@ export function RecentActivityList() {
                 score: (sub.status === 'graded' && sub.score !== undefined && assignment)
                     ? Math.round((sub.score / assignment.maxScore) * 100)
                     : null,
-                link: `/s/assignments/${sub.assignmentId}`
+                link: `/dashboard/assignments/${sub.assignmentId}`
             });
         });
 

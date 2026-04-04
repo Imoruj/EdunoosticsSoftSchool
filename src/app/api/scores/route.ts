@@ -6,8 +6,12 @@ import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { createUserNotification } from "@/lib/userNotifications";
 import { checkCsrf } from "@/lib/csrf";
-import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField } from "@/lib/assessment-types";
+import {
+    recomputeCompositeParentScores,
+    resolveCompositeSubjectContext,
+    resolveSubjectScoreProfile,
+} from "@/lib/composite-subjects";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -68,6 +72,7 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const classArmId = searchParams.get("classArmId") || searchParams.get("classId");
         const subjectId = searchParams.get("subjectId");
+        const viewerSubjectId = searchParams.get("viewerSubjectId");
         let termId = searchParams.get("termId");
 
         const user = session.user as any;
@@ -84,52 +89,6 @@ export async function GET(req: NextRequest) {
 
         if (!schoolId) {
             return NextResponse.json({ error: "School context is required" }, { status: 400 });
-        }
-
-        // RBAC CHECK
-        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
-        let isSubjectTeacherForArm = false;
-        let isClassTeacherForArm = false;
-        if (!isAdmin) {
-            if (!userId) {
-                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-            }
-
-            // Check if user is a subject teacher for this assignment
-            const isSubjectTeacher = await prisma.teacherSubject.findFirst({
-                where: {
-                    teacherId: userId,
-                    subjectId: subjectId,
-                    classArmId
-                }
-            });
-
-            // Check if user is the class teacher for this class arm
-            const isClassTeacher = await prisma.classArm.findFirst({
-                where: {
-                    id: classArmId,
-                    classTeacherId: userId
-                }
-            });
-            isSubjectTeacherForArm = !!isSubjectTeacher;
-            isClassTeacherForArm = !!isClassTeacher;
-
-            if (!isSubjectTeacherForArm && !isClassTeacherForArm) {
-                return NextResponse.json({ error: "Unauthorized: You are not assigned to this class/subject" }, { status: 403 });
-            }
-        } else if (userId) {
-            const [subjectAssignment, classAssignment] = await Promise.all([
-                prisma.teacherSubject.findFirst({
-                    where: { teacherId: userId, subjectId: subjectId, classArmId },
-                    select: { id: true },
-                }),
-                prisma.classArm.findFirst({
-                    where: { id: classArmId, classTeacherId: userId },
-                    select: { id: true },
-                }),
-            ]);
-            isSubjectTeacherForArm = !!subjectAssignment;
-            isClassTeacherForArm = !!classAssignment;
         }
 
         // Auto-sync current term based on date ranges
@@ -158,7 +117,87 @@ export async function GET(req: NextRequest) {
             where: { id: termId! },
             include: { session: { select: { id: true, isCurrent: true } } }
         });
+        const selectedSessionId = selectedTerm?.session?.id ?? null;
         const isCurrentSession = selectedTerm?.session?.isCurrent ?? true;
+
+        if (!selectedSessionId) {
+            return NextResponse.json(
+                { error: "The selected term is invalid." },
+                { status: 400 }
+            );
+        }
+
+        // RBAC CHECK
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+        let isSubjectTeacherForArm = false;
+        let isClassTeacherForArm = false;
+        let isComponentTeacherParentPreview = false;
+        if (!isAdmin) {
+            if (!userId) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
+
+            const [subjectAssignment, classAssignment, viewerAssignment] = await Promise.all([
+                prisma.teacherSubject.findFirst({
+                    where: {
+                        teacherId: userId,
+                        subjectId,
+                        classArmId,
+                    },
+                    select: { id: true },
+                }),
+                prisma.classArm.findFirst({
+                    where: {
+                        id: classArmId,
+                        classTeacherId: userId,
+                    },
+                    select: { id: true },
+                }),
+                viewerSubjectId
+                    ? prisma.teacherSubject.findFirst({
+                        where: {
+                            teacherId: userId,
+                            subjectId: viewerSubjectId,
+                            classArmId,
+                        },
+                        select: { id: true },
+                    })
+                    : Promise.resolve(null),
+            ]);
+
+            isSubjectTeacherForArm = !!subjectAssignment;
+            isClassTeacherForArm = !!classAssignment;
+
+            if (!isSubjectTeacherForArm && !isClassTeacherForArm && viewerAssignment) {
+                const viewerContext = await resolveCompositeSubjectContext(prisma, {
+                    schoolId,
+                    sessionId: selectedSessionId,
+                    subjectId: viewerSubjectId!,
+                    classArmId,
+                });
+
+                isComponentTeacherParentPreview =
+                    viewerContext.mode === "COMPOSITE_COMPONENT" &&
+                    viewerContext.parentSubjectId === subjectId;
+            }
+
+            if (!isSubjectTeacherForArm && !isClassTeacherForArm && !isComponentTeacherParentPreview) {
+                return NextResponse.json({ error: "Unauthorized: You are not assigned to this class/subject" }, { status: 403 });
+            }
+        } else if (userId) {
+            const [subjectAssignment, classAssignment] = await Promise.all([
+                prisma.teacherSubject.findFirst({
+                    where: { teacherId: userId, subjectId, classArmId },
+                    select: { id: true },
+                }),
+                prisma.classArm.findFirst({
+                    where: { id: classArmId, classTeacherId: userId },
+                    select: { id: true },
+                }),
+            ]);
+            isSubjectTeacherForArm = !!subjectAssignment;
+            isClassTeacherForArm = !!classAssignment;
+        }
 
         // For past sessions, find students who were in this class arm during that session
         let historicalStudentIds: string[] | null = null;
@@ -238,9 +277,11 @@ export async function GET(req: NextRequest) {
             orderBy: { lastName: "asc" },
         });
 
-        const [assessmentTypes, allGradingRules, classArmWithLevel] = await Promise.all([
-            getResolvedAssessmentTypesForClassContext(prisma, {
+        const [{ assessmentTypes, context: subjectContext }, allGradingRules, classArmWithLevel] = await Promise.all([
+            resolveSubjectScoreProfile(prisma, {
                 schoolId,
+                sessionId: selectedSessionId,
+                subjectId,
                 classId: searchParams.get("classId"),
                 classArmId,
             }),
@@ -253,6 +294,18 @@ export async function GET(req: NextRequest) {
                 select: { class: { select: { level: true } } },
             }),
         ]);
+
+        if (
+            subjectContext.mode === "COMPOSITE_PARENT" &&
+            !isAdmin &&
+            !isClassTeacherForArm &&
+            !isComponentTeacherParentPreview
+        ) {
+            return NextResponse.json(
+                { error: "Only class teachers and administrators can view composite parent subjects." },
+                { status: 403 }
+            );
+        }
 
         const category = classLevelToCategory(classArmWithLevel?.class?.level);
         const categoryRules = category
@@ -270,8 +323,9 @@ export async function GET(req: NextRequest) {
             const ca3 = score?.ca3 ? Number(score.ca3) : 0;
             const exam = score?.exam ? Number(score.exam) : 0;
             const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
-
-            const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
+            const { grade, remark } = shouldShowGradeAndRemark(exam, assessmentTypes)
+                ? calculateGrade(totals.adjustedTotal, gradingRules)
+                : { grade: "", remark: "" };
 
             return {
                 id: student.id,
@@ -328,15 +382,9 @@ export async function GET(req: NextRequest) {
         const canBroadcast =
             (isAdmin || isSubjectTeacherForArm) &&
             scoreWorkflow?.status === "APPROVED";
-
-        return NextResponse.json({
-            students: data,
-            assessmentTypes,
-            termId: termId,
-            hasEnrollments,
-            enrolledCount: hasEnrollments ? activeEnrollmentCount : totalClassStudents,
-            totalClassStudents,
-            workflow: {
+        const workflowPayload = subjectContext.mode === "COMPOSITE_PARENT"
+            ? null
+            : {
                 id: scoreWorkflow?.id ?? null,
                 status: scoreWorkflow?.status ?? "PENDING_REVIEW",
                 rejectionReason: scoreWorkflow?.rejectionReason ?? null,
@@ -344,7 +392,22 @@ export async function GET(req: NextRequest) {
                 broadcastedAt: scoreWorkflow?.broadcastedAt ?? null,
                 canReview,
                 canBroadcast,
-            },
+            };
+
+        return NextResponse.json({
+            students: data,
+            assessmentTypes,
+            subjectKind: subjectContext.mode,
+            parentSubjectId: subjectContext.parentSubjectId,
+            parentSubjectName: subjectContext.parentSubjectName,
+            isReadOnly: subjectContext.isReadOnly,
+            derivedFromComponents: subjectContext.derivedFromComponents,
+            componentSubjects: subjectContext.components,
+            termId: termId,
+            hasEnrollments,
+            enrolledCount: hasEnrollments ? activeEnrollmentCount : totalClassStudents,
+            totalClassStudents,
+            workflow: workflowPayload,
         });
 
     } catch (error: any) {
@@ -372,6 +435,13 @@ function calculateGrade(total: number, rules: any[]) {
         return { grade: rule.grade, remark: rule.remark };
     }
     return { grade: "-", remark: "-" };
+}
+
+function shouldShowGradeAndRemark(
+    exam: number,
+    assessmentTypes: Array<{ id: string; name: string; shortName?: string | null; maxScore: number; order: number; includeInTotal?: boolean }>
+) {
+    return Boolean(getAssessmentTypeForField(assessmentTypes, "exam")) && exam > 0;
 }
 
 // Map ClassLevel enum -> SchoolCategory enum
@@ -477,7 +547,12 @@ export async function POST(req: NextRequest) {
             where: { id: termId },
             include: { session: { select: { id: true, isCurrent: true } } }
         });
+        const selectedSessionId = selectedTerm?.session?.id ?? null;
         const isCurrentSession = selectedTerm?.session?.isCurrent ?? true;
+
+        if (!selectedSessionId) {
+            return NextResponse.json({ error: "The selected term is invalid." }, { status: 400 });
+        }
 
         if (isCurrentSession) {
             // Current session: validate students are currently in the class arm
@@ -513,13 +588,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Fetch grading rules, assessment types, and class level for this school
-        const [allGradingRules, assessmentTypes, classArmWithLevel] = await Promise.all([
+        const [allGradingRules, resolvedProfile, classArmWithLevel] = await Promise.all([
             prisma.gradingRule.findMany({
                 where: { schoolId },
                 orderBy: { minScore: "desc" }
             }),
-            getResolvedAssessmentTypesForClassContext(prisma, {
+            resolveSubjectScoreProfile(prisma, {
                 schoolId,
+                sessionId: selectedSessionId,
+                subjectId,
                 classArmId: targetClassArmId,
             }),
             prisma.classArm.findUnique({
@@ -527,6 +604,14 @@ export async function POST(req: NextRequest) {
                 select: { classTeacherId: true, class: { select: { level: true } } },
             }),
         ]);
+        const assessmentTypes = resolvedProfile.assessmentTypes;
+
+        if (resolvedProfile.context.mode === "COMPOSITE_PARENT") {
+            return NextResponse.json(
+                { error: "Composite parent subjects are calculated from component subjects and cannot be edited directly." },
+                { status: 400 }
+            );
+        }
 
         // Determine category-specific rules, falling back to school-wide (null category) rules
         const category = classLevelToCategory(classArmWithLevel?.class?.level);
@@ -547,7 +632,9 @@ export async function POST(req: NextRequest) {
             const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
 
             // Use adjusted total for grading
-            const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
+            const { grade, remark } = shouldShowGradeAndRemark(exam, assessmentTypes)
+                ? calculateGrade(totals.adjustedTotal, gradingRules)
+                : { grade: null, remark: null };
 
             return prisma.score.upsert({
                 where: {
@@ -565,6 +652,8 @@ export async function POST(req: NextRequest) {
                     total: totals.adjustedTotal,
                     grade,
                     remark,
+                    isDerived: false,
+                    derivedFromCompositeConfigId: null,
                     updatedById: userId,
                 },
                 create: {
@@ -578,6 +667,8 @@ export async function POST(req: NextRequest) {
                     total: totals.adjustedTotal,
                     grade,
                     remark,
+                    isDerived: false,
+                    derivedFromCompositeConfigId: null,
                     createdById: userId,
                     updatedById: userId,
                 },
@@ -641,6 +732,21 @@ export async function POST(req: NextRequest) {
         // Execute position updates
         if (positionOps.length > 0) {
             await prisma.$transaction(positionOps);
+        }
+
+        if (
+            resolvedProfile.context.mode === "COMPOSITE_COMPONENT" &&
+            resolvedProfile.context.config?.id
+        ) {
+            await recomputeCompositeParentScores(prisma, {
+                schoolId,
+                sessionId: selectedSessionId,
+                classArmId: targetClassArmId,
+                termId,
+                compositeConfigId: resolvedProfile.context.config.id,
+                studentIds: uniqueStudentIds,
+                actorUserId: userId,
+            });
         }
 
         const subjectTeacherAssignment = await prisma.teacherSubject.findFirst({

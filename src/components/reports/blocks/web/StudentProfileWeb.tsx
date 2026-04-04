@@ -1,6 +1,7 @@
 
 import React from "react";
 import { StudentData } from "../../types";
+import { formatStudentFullName } from "../../formatStudentFullName";
 
 interface StudentProfileWebProps {
     student: StudentData;
@@ -10,6 +11,7 @@ interface StudentProfileWebProps {
 
 export const StudentProfileWeb: React.FC<StudentProfileWebProps> = ({ student, displayOptions = {}, sectionStyle = {} }) => {
     const showOption = (key: string) => displayOptions[key] !== false;
+    const studentFullName = formatStudentFullName(student);
 
     const containerStyle = {
         borderWidth: sectionStyle.borderWidth || '2px',
@@ -33,7 +35,7 @@ export const StudentProfileWeb: React.FC<StudentProfileWebProps> = ({ student, d
             {showOption('showName') && (
                 <div className="grid grid-cols-[80px_1fr] border-b text-[10px]" style={borderStyle}>
                     <div className="p-1.5 font-bold bg-gray-50 border-r" style={borderStyle}>Name</div>
-                    <div className="p-1.5 font-bold uppercase">{student.lastName} {student.firstName} {student.otherNames || ""}</div>
+                    <div className="p-1.5 font-bold">{studentFullName}</div>
                 </div>
             )}
             {showOption('showDOB') && (

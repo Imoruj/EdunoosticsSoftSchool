@@ -201,3 +201,37 @@ body {
     animation: scaleIn 0.2s ease-out;
   }
 }
+
+/* ===== Print Styles for User Manual ===== */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background-color: white !important;
+  }
+  aside, 
+  nav, 
+  header, 
+  .no-print-layout {
+    display: none !important;
+  }
+  main, 
+  .content-wrapper {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+  }
+  .print-break-before {
+    page-break-before: always;
+  }
+  .print-no-break {
+    page-break-inside: avoid;
+  }
+}
+
+.page-break-after-always {
+  page-break-after: always;
+  break-after: page;
+}

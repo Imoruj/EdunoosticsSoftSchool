@@ -5,6 +5,14 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { SubjectKind, UserRole } from "@prisma/client";
+
+const STAFF_MANAGEMENT_ROLES: UserRole[] = [
+    UserRole.PROPRIETOR,
+    UserRole.SUBJECT_TEACHER,
+    UserRole.CLASS_TEACHER,
+    UserRole.SCHOOL_ADMIN,
+];
 
 type SubjectAssignmentInput = {
     subjectId: string;
@@ -88,7 +96,7 @@ export async function GET(req: NextRequest) {
             where: {
                 schoolId,
                 roles: {
-                    hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "SUPER_ADMIN"]
+                    hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"]
                 }
             },
             select: {
@@ -111,7 +119,15 @@ export async function GET(req: NextRequest) {
                         id: true,
                         subjectId: true,
                         classArmId: true,
-                        subject: { select: { name: true } },
+                        subject: {
+                            select: {
+                                name: true,
+                                subjectKind: true,
+                                defaultParentSubject: {
+                                    select: { name: true }
+                                }
+                            }
+                        },
                         classArm: {
                             select: {
                                 armName: true,
@@ -135,14 +151,21 @@ export async function GET(req: NextRequest) {
                 id: ca.id,
                 name: `${ca.class.name} ${ca.armName}`
             })),
-            subjects: Array.from(new Set(t.teacherSubjects.map((ts: any) => ts.subject.name))),
+            subjects: Array.from(new Set(t.teacherSubjects.map((ts: any) =>
+                ts.subject.subjectKind === "COMPOSITE_COMPONENT" && ts.subject.defaultParentSubject?.name
+                    ? `${ts.subject.name} (Component of ${ts.subject.defaultParentSubject.name})`
+                    : ts.subject.name
+            ))),
             classArmIds: t.classArms.map((ca: any) => ca.id),
             subjectIds: Array.from(new Set(t.teacherSubjects.map((ts: any) => ts.subjectId).filter(Boolean))),
             subjectAssignments: t.teacherSubjects.map((ts: any) => ({
                 id: ts.id,
                 subjectId: ts.subjectId,
                 classArmId: ts.classArmId,
-                subjectName: ts.subject.name,
+                subjectName:
+                    ts.subject.subjectKind === "COMPOSITE_COMPONENT" && ts.subject.defaultParentSubject?.name
+                        ? `${ts.subject.name} (Component of ${ts.subject.defaultParentSubject.name})`
+                        : ts.subject.name,
                 className: ts.classArm?.class?.name || "",
                 classArmName: ts.classArm?.armName || ""
             }))
@@ -162,10 +185,18 @@ export async function GET(req: NextRequest) {
         });
 
         const availableSubjects = await prisma.subject.findMany({
-            where: { schoolId, isActive: true },
+            where: {
+                schoolId,
+                isActive: true,
+                subjectKind: { not: SubjectKind.COMPOSITE_PARENT },
+            },
             select: {
                 id: true,
-                name: true
+                name: true,
+                subjectKind: true,
+                defaultParentSubject: {
+                    select: { name: true }
+                }
             },
             orderBy: {
                 name: "asc"
@@ -178,7 +209,10 @@ export async function GET(req: NextRequest) {
                 teacherName: `${t.firstName} ${t.lastName}`,
                 subjectId: ts.subjectId,
                 classArmId: ts.classArmId,
-                subjectName: ts.subject.name,
+                subjectName:
+                    ts.subject.subjectKind === "COMPOSITE_COMPONENT" && ts.subject.defaultParentSubject?.name
+                        ? `${ts.subject.name} (Component of ${ts.subject.defaultParentSubject.name})`
+                        : ts.subject.name,
                 className: ts.classArm?.class?.name || "",
                 classArmName: ts.classArm?.armName || ""
             }))
@@ -206,7 +240,15 @@ export async function GET(req: NextRequest) {
                     classTeacherId: c.classTeacherId,
                     classId: c.class.id // Keep for backwards compatibility
                 })),
-                subjects: availableSubjects,
+                subjects: availableSubjects.map((subject: any) => ({
+                    id: subject.id,
+                    name:
+                        subject.subjectKind === "COMPOSITE_COMPONENT" && subject.defaultParentSubject?.name
+                            ? `${subject.name} (Component of ${subject.defaultParentSubject.name})`
+                            : subject.name,
+                    subjectKind: subject.subjectKind,
+                    parentSubjectName: subject.defaultParentSubject?.name || null,
+                })),
                 subjectAssignments: existingSubjectAssignments,
                 subjectClassArms: subjectClassArms.map((sca: any) => ({
                     classArmId: sca.classArmId,
@@ -215,9 +257,9 @@ export async function GET(req: NextRequest) {
             }
         });
     } catch (error: any) {
-        console.error("Error fetching teachers:", error);
+        console.error("Error fetching staff:", error);
         return NextResponse.json(
-            { error: "Failed to fetch teachers" },
+            { error: "Failed to fetch staff" },
             { status: 500 }
         );
     }
@@ -259,8 +301,31 @@ export async function POST(req: NextRequest) {
             rawSubjectIds,
             rawSubjectClassArmIds
         );
+        const normalizedRoles = Array.isArray(roles)
+            ? Array.from(new Set(
+                roles
+                    .filter((role: unknown): role is string => typeof role === "string")
+                    .map((role) => role.trim().toUpperCase())
+                    .filter(Boolean)
+            ))
+            : [];
 
-        if (roles.includes("SUBJECT_TEACHER") && normalizedSubjectAssignments.length === 0) {
+        if (normalizedRoles.length === 0) {
+            return NextResponse.json(
+                { error: "At least one valid staff role is required." },
+                { status: 400 }
+            );
+        }
+
+        const invalidRoles = normalizedRoles.filter((role) => !STAFF_MANAGEMENT_ROLES.includes(role as UserRole));
+        if (invalidRoles.length > 0) {
+            return NextResponse.json(
+                { error: `Unsupported staff role(s): ${invalidRoles.join(", ")}` },
+                { status: 400 }
+            );
+        }
+
+        if (normalizedRoles.includes("SUBJECT_TEACHER") && normalizedSubjectAssignments.length === 0) {
             return NextResponse.json(
                 { error: "Subject teachers must have at least one subject-class assignment." },
                 { status: 400 }
@@ -288,7 +353,7 @@ export async function POST(req: NextRequest) {
                     lastName,
                     email,
                     phone,
-                    roles: roles as any,
+                    roles: normalizedRoles as UserRole[],
                     passwordHash,
                     schoolId,
                     isActive: true
@@ -296,7 +361,7 @@ export async function POST(req: NextRequest) {
             });
 
             // Handle Class Assignments if CLASS_TEACHER role is present
-            if (roles.includes("CLASS_TEACHER") && classArmIds?.length > 0) {
+            if (normalizedRoles.includes("CLASS_TEACHER") && classArmIds?.length > 0) {
                 await tx.classArm.updateMany({
                     where: { id: { in: classArmIds }, class: { schoolId } },
                     data: { classTeacherId: user.id }
@@ -304,14 +369,14 @@ export async function POST(req: NextRequest) {
             }
 
             // Handle Subject Assignments if SUBJECT_TEACHER role is present
-            if (roles.includes("SUBJECT_TEACHER")) {
+            if (normalizedRoles.includes("SUBJECT_TEACHER")) {
                 const subjectIds = Array.from(new Set(normalizedSubjectAssignments.map((a) => a.subjectId)));
                 const classArmAssignmentIds = Array.from(new Set(normalizedSubjectAssignments.map((a) => a.classArmId)));
 
                 const [subjects, classArms] = await Promise.all([
                     tx.subject.findMany({
                         where: { id: { in: subjectIds }, schoolId },
-                        select: { id: true, name: true }
+                        select: { id: true, name: true, subjectKind: true }
                     }),
                     tx.classArm.findMany({
                         where: { id: { in: classArmAssignmentIds }, class: { schoolId } },
@@ -325,6 +390,9 @@ export async function POST(req: NextRequest) {
 
                 if (subjects.length !== subjectIds.length) {
                     throw new Error("One or more selected subjects are invalid.");
+                }
+                if (subjects.some((subject: any) => subject.subjectKind === SubjectKind.COMPOSITE_PARENT)) {
+                    throw new Error("Composite parent subjects cannot be assigned directly to subject teachers.");
                 }
                 if (classArms.length !== classArmAssignmentIds.length) {
                     throw new Error("One or more selected classes are invalid.");
@@ -392,13 +460,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             success: true,
             teacher: newTeacher,
-            message: "Teacher account created and assigned successfully."
+            message: "Staff account created and assigned successfully."
         });
 
     } catch (error: any) {
-        console.error("Error creating teacher:", error);
+        console.error("Error creating staff member:", error);
         return NextResponse.json(
-            { error: error.message || "Failed to create teacher" },
+            { error: error.message || "Failed to create staff member" },
             { status: 500 }
         );
     }

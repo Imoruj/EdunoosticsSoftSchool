@@ -1,6 +1,7 @@
 
 import React from "react";
 import { SchoolData, Comments as CommentsData } from "../../types";
+import { formatPublishedDate } from "../../formatPublishedDate";
 
 interface CommentsWebProps {
     comments: CommentsData;
@@ -11,6 +12,7 @@ interface CommentsWebProps {
 
 export const CommentsWeb: React.FC<CommentsWebProps> = ({ comments, school, displayOptions = {}, sectionStyle = {} }) => {
     const showOption = (key: string) => displayOptions[key] !== false;
+    const publishedDateLabel = formatPublishedDate(comments.publishedAt);
 
     const containerStyle = {
         borderWidth: sectionStyle.borderWidth || '2px',
@@ -41,7 +43,7 @@ export const CommentsWeb: React.FC<CommentsWebProps> = ({ comments, school, disp
                             {showOption('showTeacherSign') && "Sign: __________"}
                         </div>
                         <div className="p-2 text-[10px] flex items-center justify-center">
-                            {showOption('showTeacherDate') && "Date: __________"}
+                            {showOption('showTeacherDate') && publishedDateLabel}
                         </div>
                     </div>
                 )}
@@ -57,7 +59,7 @@ export const CommentsWeb: React.FC<CommentsWebProps> = ({ comments, school, disp
                             )}
                         </div>
                         <div className="p-2 text-[10px] flex items-center justify-center">
-                            {showOption('showPrincipalDate') && "Date: __________"}
+                            {showOption('showPrincipalDate') && publishedDateLabel}
                         </div>
                     </div>
                 )}

@@ -68,6 +68,7 @@ export interface ReportCardData {
         classTeacher?: string;
         principal?: string;
         promotionStatus?: string;
+        publishedAt?: string | Date;
     };
     config?: {
         activeTemplate: string;

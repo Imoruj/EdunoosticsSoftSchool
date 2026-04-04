@@ -4,7 +4,9 @@ import { ReportType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, createUserNotifications } from "@/lib/userNotifications";
+import { getStudentAndParentNotificationUserIds } from "@/lib/studentAudience";
 import { generatePrincipalComment, generateTeacherComment } from "@/services/aiService";
+import { formatAttendancePoints } from "@/lib/attendance-points";
 
 type WorkflowAction =
     | "broadcast_result"
@@ -114,15 +116,163 @@ type ScoreBroadcastStatus = {
     subjectId: string;
     subjectName: string;
     status: string;
+    teacher: WorkflowUserSummary | null;
+    reviewedBy: WorkflowUserSummary | null;
+    broadcastedBy: WorkflowUserSummary | null;
+    reviewedAt: string | null;
+    broadcastedAt: string | null;
+    rejectionReason: string | null;
+    lastUpdatedAt: string | null;
+    nextAction: string;
+    hasWorkflow: boolean;
+    componentStatuses?: ScoreBroadcastComponentStatus[];
 };
+
+type WorkflowUserSummary = {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+};
+
+type ScoreBroadcastComponentStatus = {
+    subjectId: string;
+    subjectName: string;
+    status: string;
+    teacher: WorkflowUserSummary | null;
+    reviewedBy: WorkflowUserSummary | null;
+    broadcastedBy: WorkflowUserSummary | null;
+    reviewedAt: string | null;
+    broadcastedAt: string | null;
+    rejectionReason: string | null;
+    lastUpdatedAt: string | null;
+    nextAction: string;
+    hasWorkflow: boolean;
+};
+
+function toWorkflowUserSummary(
+    user?: {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email: string | null;
+        phone: string | null;
+    } | null
+): WorkflowUserSummary | null {
+    if (!user) return null;
+
+    return {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        phone: user.phone,
+    };
+}
+
+function getWorkflowNextActionLabel(params: {
+    status: string;
+    hasTeacher: boolean;
+    isComposite?: boolean;
+    componentStatuses?: ScoreBroadcastComponentStatus[];
+}) {
+    const { status, hasTeacher, isComposite = false, componentStatuses = [] } = params;
+
+    if (isComposite) {
+        if (componentStatuses.length === 0) {
+            return "Configure component subjects";
+        }
+
+        if (componentStatuses.some((item) => !item.teacher)) {
+            return "Assign missing component teacher";
+        }
+
+        if (componentStatuses.some((item) => item.status === "REJECTED")) {
+            return "Resolve rejected component scores";
+        }
+
+        if (componentStatuses.every((item) => item.status === "BROADCASTED")) {
+            return "Completed";
+        }
+
+        if (componentStatuses.every((item) => item.status === "APPROVED" || item.status === "BROADCASTED")) {
+            return "Broadcast component scores";
+        }
+
+        return "Await component review";
+    }
+
+    if (!hasTeacher) {
+        return "Assign subject teacher";
+    }
+
+    if (status === "REJECTED") {
+        return "Teacher resubmits scores";
+    }
+
+    if (status === "APPROVED") {
+        return "Broadcast approved scores";
+    }
+
+    if (status === "BROADCASTED") {
+        return "Completed";
+    }
+
+    return "Await class review";
+}
+
+async function getCompositeConfigsForWorkflow(classArmId: string, termId: string) {
+    const [classArm, term] = await Promise.all([
+        prisma.classArm.findUnique({
+            where: { id: classArmId },
+            select: { classId: true },
+        }),
+        prisma.term.findUnique({
+            where: { id: termId },
+            select: { sessionId: true },
+        }),
+    ]);
+
+    if (!classArm?.classId || !term?.sessionId) {
+        return [];
+    }
+
+    return prisma.compositeSubjectConfig.findMany({
+        where: {
+            classId: classArm.classId,
+            sessionId: term.sessionId,
+            isActive: true,
+        },
+        include: {
+            parentSubject: {
+                select: { id: true, name: true },
+            },
+            components: {
+                select: {
+                    componentSubjectId: true,
+                    componentSubject: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+}
 
 async function getExpectedSubjects(
     classArmId: string,
     termId: string
 ): Promise<Array<{ subjectId: string; subjectName: string }>> {
-    const [assigned, scored] = await Promise.all([
+    const [assigned, scored, compositeConfigs] = await Promise.all([
         prisma.subjectClassArm.findMany({
-            where: { classArmId },
+            where: {
+                classArmId,
+                subject: {
+                    subjectKind: { not: "COMPOSITE_COMPONENT" }
+                }
+            },
             select: {
                 subjectId: true,
                 subject: { select: { name: true } },
@@ -136,6 +286,7 @@ async function getExpectedSubjects(
             select: { subjectId: true },
             distinct: ["subjectId"],
         }),
+        getCompositeConfigsForWorkflow(classArmId, termId),
     ]);
 
     const scoredSubjectIds = scored.map((item) => item.subjectId);
@@ -143,13 +294,32 @@ async function getExpectedSubjects(
         scoredSubjectIds.length > 0
             ? await prisma.subject.findMany({
                 where: { id: { in: scoredSubjectIds } },
-                select: { id: true, name: true },
+                select: { id: true, name: true, subjectKind: true },
             })
             : [];
 
     const subjectMap = new Map<string, string>();
     assigned.forEach((item) => subjectMap.set(item.subjectId, item.subject.name));
-    scoredSubjects.forEach((item) => subjectMap.set(item.id, item.name));
+    const componentParentMap = new Map<string, { id: string; name: string }>();
+    compositeConfigs.forEach((config) => {
+        subjectMap.set(config.parentSubject.id, config.parentSubject.name);
+        config.components.forEach((component) => {
+            componentParentMap.set(component.componentSubjectId, {
+                id: config.parentSubject.id,
+                name: config.parentSubject.name,
+            });
+        });
+    });
+    scoredSubjects.forEach((item) => {
+        if (item.subjectKind === "COMPOSITE_COMPONENT") {
+            const parent = componentParentMap.get(item.id);
+            if (parent) {
+                subjectMap.set(parent.id, parent.name);
+            }
+            return;
+        }
+        subjectMap.set(item.id, item.name);
+    });
 
     return Array.from(subjectMap.entries())
         .map(([subjectId, subjectName]) => ({ subjectId, subjectName }))
@@ -157,7 +327,10 @@ async function getExpectedSubjects(
 }
 
 async function getScoreBroadcastSummary(schoolId: string, classArmId: string, termId: string) {
-    const expectedSubjects = await getExpectedSubjects(classArmId, termId);
+    const [expectedSubjects, compositeConfigs] = await Promise.all([
+        getExpectedSubjects(classArmId, termId),
+        getCompositeConfigsForWorkflow(classArmId, termId),
+    ]);
     if (expectedSubjects.length === 0) {
         return {
             expectedSubjects: 0,
@@ -165,28 +338,190 @@ async function getScoreBroadcastSummary(schoolId: string, classArmId: string, te
             allBroadcasted: false,
             statuses: [] as ScoreBroadcastStatus[],
             pendingSubjects: [] as ScoreBroadcastStatus[],
+            classReviewer: null as WorkflowUserSummary | null,
         };
     }
 
-    const workflows = await prisma.scoreSheetWorkflow.findMany({
-        where: {
-            schoolId,
-            classArmId,
-            termId,
-            subjectId: { in: expectedSubjects.map((item) => item.subjectId) },
-        },
-        select: {
-            subjectId: true,
-            status: true,
-        },
-    });
+    const trackedSubjectIds = Array.from(
+        new Set([
+            ...expectedSubjects.map((item) => item.subjectId),
+            ...compositeConfigs.flatMap((config) =>
+                config.components.map((component) => component.componentSubjectId)
+            ),
+        ])
+    );
 
-    const statusMap = new Map(workflows.map((workflow) => [workflow.subjectId, workflow.status]));
-    const statuses: ScoreBroadcastStatus[] = expectedSubjects.map((subject) => ({
-        subjectId: subject.subjectId,
-        subjectName: subject.subjectName,
-        status: statusMap.get(subject.subjectId) || "PENDING_REVIEW",
-    }));
+    const [workflows, teacherAssignments, classArm] = await Promise.all([
+        prisma.scoreSheetWorkflow.findMany({
+            where: {
+                schoolId,
+                classArmId,
+                termId,
+                subjectId: { in: trackedSubjectIds },
+            },
+            select: {
+                subjectId: true,
+                status: true,
+                rejectionReason: true,
+                reviewedAt: true,
+                broadcastedAt: true,
+                updatedAt: true,
+                subjectTeacher: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+                reviewedBy: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+                broadcastedBy: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+            },
+        }),
+        prisma.teacherSubject.findMany({
+            where: {
+                classArmId,
+                subjectId: { in: trackedSubjectIds },
+            },
+            select: {
+                subjectId: true,
+                teacher: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+            },
+        }),
+        prisma.classArm.findUnique({
+            where: { id: classArmId },
+            select: {
+                classTeacher: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+            },
+        }),
+    ]);
+
+    const workflowMap = new Map(workflows.map((workflow) => [workflow.subjectId, workflow]));
+    const teacherAssignmentMap = new Map(
+        teacherAssignments.map((assignment) => [
+            assignment.subjectId,
+            toWorkflowUserSummary(assignment.teacher),
+        ])
+    );
+    const compositeByParent = new Map(
+        compositeConfigs.map((config) => [config.parentSubject.id, config])
+    );
+    const buildLeafStatus = (subjectId: string, subjectName: string): ScoreBroadcastComponentStatus => {
+        const workflow = workflowMap.get(subjectId);
+        const teacher =
+            toWorkflowUserSummary(workflow?.subjectTeacher) ||
+            teacherAssignmentMap.get(subjectId) ||
+            null;
+        const status = workflow?.status || "PENDING_REVIEW";
+
+        return {
+            subjectId,
+            subjectName,
+            status,
+            teacher,
+            reviewedBy: toWorkflowUserSummary(workflow?.reviewedBy),
+            broadcastedBy: toWorkflowUserSummary(workflow?.broadcastedBy),
+            reviewedAt: workflow?.reviewedAt?.toISOString() || null,
+            broadcastedAt: workflow?.broadcastedAt?.toISOString() || null,
+            rejectionReason: workflow?.rejectionReason || null,
+            lastUpdatedAt: workflow?.updatedAt?.toISOString() || null,
+            nextAction: getWorkflowNextActionLabel({
+                status,
+                hasTeacher: Boolean(teacher),
+            }),
+            hasWorkflow: Boolean(workflow),
+        };
+    };
+
+    const statuses: ScoreBroadcastStatus[] = expectedSubjects.map((subject) => {
+        const compositeConfig = compositeByParent.get(subject.subjectId);
+        if (!compositeConfig) {
+            return {
+                ...buildLeafStatus(subject.subjectId, subject.subjectName),
+                componentStatuses: undefined,
+            };
+        }
+
+        const componentStatuses = compositeConfig.components.map((component) =>
+            buildLeafStatus(component.componentSubject.id, component.componentSubject.name)
+        );
+        const componentUpdatedAtValues = componentStatuses
+            .map((item) => item.lastUpdatedAt)
+            .filter((value): value is string => Boolean(value))
+            .sort();
+        const latestUpdatedAt =
+            componentUpdatedAtValues.length > 0
+                ? componentUpdatedAtValues[componentUpdatedAtValues.length - 1]
+                : null;
+
+        const status = (() => {
+            const leafStatuses = componentStatuses.map((item) => item.status);
+            if (leafStatuses.length > 0 && leafStatuses.every((item) => item === "BROADCASTED")) {
+                return "BROADCASTED";
+            }
+            if (leafStatuses.length > 0 && leafStatuses.every((item) => item === "APPROVED" || item === "BROADCASTED")) {
+                return "APPROVED";
+            }
+            if (leafStatuses.some((item) => item === "REJECTED")) {
+                return "REJECTED";
+            }
+            return "PENDING_REVIEW";
+        })();
+
+        return {
+            subjectId: subject.subjectId,
+            subjectName: subject.subjectName,
+            status,
+            teacher: null,
+            reviewedBy: null,
+            broadcastedBy: null,
+            reviewedAt: null,
+            broadcastedAt: null,
+            rejectionReason: null,
+            lastUpdatedAt: latestUpdatedAt,
+            nextAction: getWorkflowNextActionLabel({
+                status,
+                hasTeacher: componentStatuses.every((item) => Boolean(item.teacher)),
+                isComposite: true,
+                componentStatuses,
+            }),
+            hasWorkflow: componentStatuses.some((item) => item.hasWorkflow),
+            componentStatuses,
+        };
+    });
     const broadcastedSubjects = statuses.filter((item) => item.status === "BROADCASTED").length;
     const pendingSubjects = statuses.filter((item) => item.status !== "BROADCASTED");
 
@@ -196,6 +531,7 @@ async function getScoreBroadcastSummary(schoolId: string, classArmId: string, te
         allBroadcasted: expectedSubjects.length > 0 && broadcastedSubjects === expectedSubjects.length,
         statuses,
         pendingSubjects,
+        classReviewer: toWorkflowUserSummary(classArm?.classTeacher),
     };
 }
 
@@ -205,7 +541,7 @@ async function buildCommentContext(params: {
     termId: string;
     classArmId: string;
 }) {
-    const [student, reportCard, term] = await Promise.all([
+    const [student, reportCard, term, scores] = await Promise.all([
         prisma.student.findUnique({
             where: { id: params.studentId },
             select: {
@@ -228,6 +564,10 @@ async function buildCommentContext(params: {
             where: { id: params.termId, session: { schoolId: params.schoolId } },
             select: { name: true },
         }),
+        prisma.score.findMany({
+            where: { studentId: params.studentId, termId: params.termId },
+            include: { subject: true },
+        }),
     ]);
 
     if (!student) {
@@ -245,17 +585,96 @@ async function buildCommentContext(params: {
         ].join(", ")
         : "";
 
+    const subjectScores: Record<string, number> = {};
+    const resitSubjects: string[] = [];
+    for (const s of scores) {
+        const total = s.total.toNumber();
+        subjectScores[s.subject.name] = total;
+        if (total < 50) {
+            resitSubjects.push(s.subject.name);
+        }
+    }
+
     return {
+        id: student.id,
+        studentId: student.id,
+        termId: params.termId,
         name: `${student.firstName} ${student.lastName}`,
+        firstName: student.firstName,
+        lastName: student.lastName,
         gender: student.gender,
         term: term?.name || "",
         average: reportCard?.average?.toNumber() || 0,
         position: reportCard?.classPosition || 0,
         attendance: reportCard
-            ? `${reportCard.daysPresent || 0}/${reportCard.totalSchoolDays || 0}`
+            ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays)
             : "N/A",
         traits: traitsSummary,
+        schoolId: student.schoolId,
+        subjectScores,
+        resitSubjects,
     };
+}
+
+async function ensureReportCardAggregates(classArmId: string, termId: string) {
+    const scores = await prisma.score.groupBy({
+        by: ['studentId'],
+        where: {
+            student: { classArmId },
+            termId,
+        },
+        _sum: { total: true },
+        _count: { subjectId: true },
+    });
+
+    if (!scores.length) {
+        return;
+    }
+
+    const classSize = await prisma.student.count({ where: { classArmId, isActive: true } });
+    const sortedStudents = scores.sort((a, b) => {
+        const totalA = a._sum.total?.toNumber() || 0;
+        const totalB = b._sum.total?.toNumber() || 0;
+        return totalB - totalA;
+    });
+
+    const updateOps = sortedStudents.map((stat, index) => {
+        const studentId = stat.studentId;
+        const studentTotal = stat._sum.total?.toNumber() || 0;
+        const subjectCount = stat._count.subjectId || 0;
+
+        const obtainable = subjectCount * 100;
+        const average = subjectCount > 0 ? studentTotal / subjectCount : 0;
+        const rank = index + 1;
+
+        return prisma.reportCard.upsert({
+            where: {
+                studentId_termId: {
+                    studentId,
+                    termId,
+                },
+            },
+            update: {
+                totalScore: studentTotal,
+                totalObtainable: obtainable,
+                average,
+                classPosition: rank,
+                classSize,
+            },
+            create: {
+                studentId,
+                termId,
+                classArmId,
+                totalScore: studentTotal,
+                totalObtainable: obtainable,
+                average,
+                classPosition: rank,
+                classSize,
+            },
+        });
+    });
+
+    await prisma.$transaction(updateOps);
 }
 
 export async function GET(req: NextRequest) {
@@ -386,6 +805,7 @@ export async function POST(req: NextRequest) {
         const classArmId: string | undefined = body.classArmId;
         const termId: string | undefined = body.termId;
         const reportType = toReportType(body.reportType);
+        const adminOverride = isAdmin && body.adminOverride === true;
 
         if (!action || !classArmId || !termId) {
             return NextResponse.json({ error: "action, classArmId, and termId are required" }, { status: 400 });
@@ -424,7 +844,7 @@ export async function POST(req: NextRequest) {
 
         if (action === "broadcast_result") {
             const scoreSummary = await getScoreBroadcastSummary(schoolId, classArmId, termId);
-            if (!scoreSummary.allBroadcasted) {
+            if (!scoreSummary.allBroadcasted && !adminOverride) {
                 return NextResponse.json(
                     {
                         error: "All subject scores must be broadcasted before broadcasting class result.",
@@ -458,6 +878,7 @@ export async function POST(req: NextRequest) {
 
         if (action === "generate_comments") {
             if (
+                !adminOverride &&
                 classWorkflow.status !== "RESULT_BROADCASTED" &&
                 classWorkflow.status !== "COMMENTS_GENERATED" &&
                 classWorkflow.status !== "READY_FOR_ADMIN_REVIEW"
@@ -467,6 +888,9 @@ export async function POST(req: NextRequest) {
                     { status: 400 }
                 );
             }
+
+            // Ensure all report cards have computed averages and position before AI generation.
+            await ensureReportCardAggregates(classArmId, termId);
 
             const studentWorkflows = await prisma.studentReportWorkflow.findMany({
                 where: { classReportWorkflowId: classWorkflow.id },
@@ -828,11 +1252,26 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            if (blockers > 0) {
+            if (blockers > 0 && !adminOverride) {
                 return NextResponse.json(
                     { error: "All student reports must be admin-approved before publishing." },
                     { status: 400 }
                 );
+            }
+
+            // Admin override: auto-approve all pending student workflows before publishing
+            if (blockers > 0 && adminOverride) {
+                await prisma.studentReportWorkflow.updateMany({
+                    where: {
+                        classReportWorkflowId: classWorkflow.id,
+                        status: { notIn: ["ADMIN_APPROVED", "PUBLISHED"] },
+                    },
+                    data: {
+                        status: "ADMIN_APPROVED",
+                        adminReviewedAt: new Date(),
+                        adminReviewedById: userId,
+                    },
+                });
             }
 
             const publishedAt = new Date();
@@ -866,6 +1305,14 @@ export async function POST(req: NextRequest) {
                 }),
             ]);
 
+            const workflowStudents = await prisma.studentReportWorkflow.findMany({
+                where: { classReportWorkflowId: classWorkflow.id },
+                select: { studentId: true },
+            });
+            const { studentUserIds, parentUserIds } = await getStudentAndParentNotificationUserIds(
+                workflowStudents.map((entry) => entry.studentId)
+            );
+
             if (classArm.classTeacherId) {
                 await createUserNotification({
                     userId: classArm.classTeacherId,
@@ -877,6 +1324,24 @@ export async function POST(req: NextRequest) {
                     metadata: { classArmId, termId, reportType },
                 });
             }
+
+            await createUserNotifications(studentUserIds, {
+                schoolId,
+                type: "RESULT_PUBLISHED",
+                title: "Report Card Published",
+                message: `${className} result is now available in your portal.`,
+                href: "/dashboard/reports",
+                metadata: { classArmId, termId, reportType },
+            });
+
+            await createUserNotifications(parentUserIds, {
+                schoolId,
+                type: "RESULT_PUBLISHED",
+                title: "Ward Report Published",
+                message: `${className} result is now available in the parent portal.`,
+                href: "/dashboard/reports",
+                metadata: { classArmId, termId, reportType },
+            });
 
             return NextResponse.json({
                 message: "Class result published successfully.",
@@ -917,6 +1382,14 @@ export async function POST(req: NextRequest) {
                 }),
             ]);
 
+            const workflowStudents = await prisma.studentReportWorkflow.findMany({
+                where: { classReportWorkflowId: classWorkflow.id },
+                select: { studentId: true },
+            });
+            const { studentUserIds, parentUserIds } = await getStudentAndParentNotificationUserIds(
+                workflowStudents.map((entry) => entry.studentId)
+            );
+
             if (classArm.classTeacherId) {
                 await createUserNotification({
                     userId: classArm.classTeacherId,
@@ -928,6 +1401,24 @@ export async function POST(req: NextRequest) {
                     metadata: { classArmId, termId, reportType },
                 });
             }
+
+            await createUserNotifications(studentUserIds, {
+                schoolId,
+                type: "RESULT_UNPUBLISHED",
+                title: "Report Card Unpublished",
+                message: `${className} result has been removed from the portal.`,
+                href: "/dashboard/reports",
+                metadata: { classArmId, termId, reportType },
+            });
+
+            await createUserNotifications(parentUserIds, {
+                schoolId,
+                type: "RESULT_UNPUBLISHED",
+                title: "Ward Report Unpublished",
+                message: `${className} result has been removed from the parent portal.`,
+                href: "/dashboard/reports",
+                metadata: { classArmId, termId, reportType },
+            });
 
             return NextResponse.json({
                 message: "Class result unpublished successfully.",

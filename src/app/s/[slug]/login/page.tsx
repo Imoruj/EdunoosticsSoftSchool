@@ -4,6 +4,18 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { Eye, EyeOff } from "lucide-react";
+
+function normalizeAuthError(errorMessage: string) {
+    const trimmed = errorMessage.trim();
+    if (!trimmed) return "Sign in failed.";
+    if (trimmed === "CredentialsSignin") return "Invalid credentials.";
+    if (trimmed.includes("Callback for provider type credentials not supported")) {
+        return "Sign in request was blocked. Refresh the page and try again.";
+    }
+    if (trimmed === "Configuration") return "Authentication is not configured correctly.";
+    return trimmed;
+}
 
 export default function SchoolLoginPage() {
     const router = useRouter();
@@ -13,11 +25,12 @@ export default function SchoolLoginPage() {
     const [error, setError] = useState("");
     const [branding, setBranding] = useState<any>(null);
     const [loginType, setLoginType] = useState<"admin" | "parent" | "student">("admin");
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         const fetchBranding = async () => {
             try {
-                const res = await fetch(`/api/schools/by-slug/${slug}`);
+                const res = await fetch(`/api/schools/by-slug/${slug}`, { cache: "no-store" });
                 if (res.ok) {
                     const data = await res.json();
                     setBranding(data);
@@ -36,6 +49,11 @@ export default function SchoolLoginPage() {
         }
     }, [slug]);
 
+    const handleLoginTypeChange = (type: "admin" | "parent" | "student") => {
+        setLoginType(type);
+        setShowPassword(false);
+    };
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
@@ -46,7 +64,7 @@ export default function SchoolLoginPage() {
         const admission = formData.get("admissionNumber") as string;
         const password = (formData.get("password") || formData.get("pin")) as string;
 
-        const identifier = loginType === "student" ? (admission || "") : (email || "");
+        const identifier = loginType === "student" ? (email || admission || "") : (email || "");
 
         try {
             const result = await signIn("credentials", {
@@ -57,7 +75,7 @@ export default function SchoolLoginPage() {
             });
 
             if (result?.error) {
-                setError(result.error);
+                setError(normalizeAuthError(result.error));
             } else if (result?.ok) {
                 router.push("/dashboard");
                 router.refresh();
@@ -88,6 +106,27 @@ export default function SchoolLoginPage() {
     }
 
     const primaryColor = branding?.primaryColor || "#16a34a";
+    const allowStudentEmailLogin = branding?.allowStudentEmailLogin ?? true;
+    const allowStudentAdmissionNumberLogin = branding?.allowStudentAdmissionNumberLogin ?? true;
+    const usesCombinedStudentIdentifier = allowStudentEmailLogin && allowStudentAdmissionNumberLogin;
+    const usesStudentEmailOnly = allowStudentEmailLogin && !allowStudentAdmissionNumberLogin;
+    const studentIdentifierLabel = usesCombinedStudentIdentifier
+        ? "Student Email or Admission Number"
+        : usesStudentEmailOnly
+            ? "Student Email Address"
+            : "Admission Number";
+    const studentIdentifierName = usesStudentEmailOnly || usesCombinedStudentIdentifier ? "email" : "admissionNumber";
+    const studentIdentifierType = usesStudentEmailOnly ? "email" : "text";
+    const studentIdentifierPlaceholder = usesCombinedStudentIdentifier
+        ? "firstname.lastname@school.com or SCH/2026/0001"
+        : usesStudentEmailOnly
+            ? "firstname.lastname@school.com"
+            : "SCH/2026/0001";
+    const studentLoginHint = usesCombinedStudentIdentifier
+        ? "Students can sign in with either their school email or admission number."
+        : usesStudentEmailOnly
+            ? "Students sign in with their school email address."
+            : "Students sign in with their admission number.";
 
     return (
         <div className="min-h-screen flex transition-colors duration-500" style={{ backgroundColor: primaryColor }}>
@@ -152,7 +191,7 @@ export default function SchoolLoginPage() {
                             {(["admin", "parent", "student"] as const).map((type) => (
                                 <button
                                     key={type}
-                                    onClick={() => setLoginType(type)}
+                                    onClick={() => handleLoginTypeChange(type)}
                                     className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${loginType === type
                                         ? "bg-white text-gray-900 shadow-sm"
                                         : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
@@ -193,11 +232,21 @@ export default function SchoolLoginPage() {
                                         <input
                                             id="password"
                                             name="password"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             className="input"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium"
+                                            style={{ color: primaryColor }}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}
@@ -219,17 +268,27 @@ export default function SchoolLoginPage() {
                                     </div>
                                     <div>
                                         <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
-                                            PIN
+                                            Password
                                         </label>
                                         <input
                                             id="pin"
                                             name="pin"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             maxLength={6}
                                             className="input"
                                             placeholder="••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium"
+                                            style={{ color: primaryColor }}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}
@@ -237,31 +296,43 @@ export default function SchoolLoginPage() {
                             {loginType === "student" && (
                                 <>
                                     <div>
-                                        <label htmlFor="admission" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Admission Number
+                                        <label htmlFor="studentEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                                            {studentIdentifierLabel}
                                         </label>
                                         <input
-                                            id="admission"
-                                            name="admissionNumber"
-                                            type="text"
+                                            id="studentEmail"
+                                            name={studentIdentifierName}
+                                            type={studentIdentifierType}
                                             required
                                             className="input"
-                                            placeholder="SCH/2024/001"
+                                            placeholder={studentIdentifierPlaceholder}
                                         />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            {studentLoginHint}
+                                        </p>
                                     </div>
                                     <div>
                                         <label htmlFor="studentPin" className="block text-sm font-medium text-gray-700 mb-2">
-                                            PIN
+                                            Password
                                         </label>
                                         <input
                                             id="studentPin"
                                             name="pin"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
-                                            maxLength={4}
                                             className="input"
                                             placeholder="••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium"
+                                            style={{ color: primaryColor }}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}

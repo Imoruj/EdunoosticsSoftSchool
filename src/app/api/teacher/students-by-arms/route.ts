@@ -124,25 +124,44 @@ export async function GET(req: NextRequest) {
 
         // If subjectId is provided, check if we need to filter by enrollments
         if (subjectIdParam && effectiveTermId) {
-            // Check if there are ANY enrollment records (active or inactive)
-            const totalEnrollmentRecords = await prisma.subjectEnrollment.count({
+            const enrollmentRows = await prisma.subjectEnrollment.findMany({
                 where: { subjectId: subjectIdParam, classArmId: { in: allowedArmIds }, termId: effectiveTermId },
+                select: {
+                    studentId: true,
+                    classArmId: true,
+                    isActive: true,
+                },
             });
 
-            if (totalEnrollmentRecords > 0) {
-                // Feature is in use! Only pull the active ones.
-                const enrolledStudentIds = await prisma.subjectEnrollment.findMany({
-                    where: {
-                        subjectId: subjectIdParam,
-                        classArmId: { in: allowedArmIds },
-                        termId: effectiveTermId,
-                        isActive: true, // Only fetch actively enrolled students
-                    },
-                    select: { studentId: true },
-                });
-                // Explicitly filter to only these active students
-                // If there are 0 active, studentFilter.id will be an empty array which returns 0 students
-                studentFilter.id = { in: enrolledStudentIds.map(e => e.studentId) };
+            if (enrollmentRows.length > 0) {
+                // Enrollment usage can be mixed across arms. If one arm has enrollment rows and another
+                // doesn't, we should only enforce active-subject enrollment for the enrolled arm and
+                // fall back to the full active class list for the arm without enrollment rows.
+                const armsWithEnrollmentRecords = new Set(enrollmentRows.map((row) => row.classArmId));
+                const armsWithoutEnrollmentRecords = allowedArmIds.filter(
+                    (armId) => !armsWithEnrollmentRecords.has(armId)
+                );
+                const activeEnrolledStudentIds = Array.from(
+                    new Set(
+                        enrollmentRows
+                            .filter((row) => row.isActive)
+                            .map((row) => row.studentId)
+                    )
+                );
+
+                studentFilter = {
+                    schoolId,
+                    isActive: true,
+                    OR: [
+                        ...(armsWithoutEnrollmentRecords.length > 0
+                            ? [{ classArmId: { in: armsWithoutEnrollmentRecords } }]
+                            : []),
+                        {
+                            classArmId: { in: Array.from(armsWithEnrollmentRecords) },
+                            id: { in: activeEnrolledStudentIds },
+                        },
+                    ],
+                };
             }
         }
 

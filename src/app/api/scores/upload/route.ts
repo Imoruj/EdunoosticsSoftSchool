@@ -3,8 +3,11 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
-import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
 import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import {
+    recomputeCompositeParentScores,
+    resolveSubjectScoreProfile,
+} from "@/lib/composite-subjects";
 
 // CSV line parser that handles quoted values
 function parseCSVLine(line: string): string[] {
@@ -144,11 +147,30 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Fetch assessment types to map column headers to score fields
-        const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+        const selectedTerm = await prisma.term.findUnique({
+            where: { id: termId },
+            include: { session: { select: { id: true } } },
+        });
+
+        if (!selectedTerm?.session?.id) {
+            return NextResponse.json({ error: "Invalid term" }, { status: 400 });
+        }
+
+        const resolvedProfile = await resolveSubjectScoreProfile(prisma, {
             schoolId,
+            sessionId: selectedTerm.session.id,
+            subjectId,
             classArmId,
         });
+
+        if (resolvedProfile.context.mode === "COMPOSITE_PARENT") {
+            return NextResponse.json(
+                { error: "Composite parent subjects are calculated from component subjects and cannot receive direct uploads." },
+                { status: 400 }
+            );
+        }
+
+        const assessmentTypes = resolvedProfile.assessmentTypes;
 
         const caTypes = assessmentTypes
             .filter(t => !t.name.toLowerCase().includes("exam"))
@@ -408,6 +430,8 @@ export async function POST(req: NextRequest) {
                         total: totals.adjustedTotal,
                         grade,
                         remark,
+                        isDerived: false,
+                        derivedFromCompositeConfigId: null,
                         updatedById: userId,
                     },
                     create: {
@@ -421,6 +445,8 @@ export async function POST(req: NextRequest) {
                         total: totals.adjustedTotal,
                         grade,
                         remark,
+                        isDerived: false,
+                        derivedFromCompositeConfigId: null,
                         createdById: userId,
                         updatedById: userId,
                     },
@@ -451,6 +477,21 @@ export async function POST(req: NextRequest) {
             ...scoreOps,
             ...reportCardOps,
         ]);
+
+        if (
+            resolvedProfile.context.mode === "COMPOSITE_COMPONENT" &&
+            resolvedProfile.context.config?.id
+        ) {
+            await recomputeCompositeParentScores(prisma, {
+                schoolId,
+                sessionId: selectedTerm.session.id,
+                classArmId,
+                termId,
+                compositeConfigId: resolvedProfile.context.config.id,
+                studentIds: uniqueStudentIds,
+                actorUserId: userId,
+            });
+        }
 
         const [subjectTeacherAssignment, classArmInfo, subjectInfo] = await Promise.all([
             prisma.teacherSubject.findFirst({

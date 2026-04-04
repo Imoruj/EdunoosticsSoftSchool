@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
+import { getSafeServerSession } from "@/lib/server-session";
 
 function calculateTotalWeeks(startDate?: Date, endDate?: Date) {
     if (!startDate || !endDate) return null;
@@ -17,7 +16,7 @@ function calculateTotalWeeks(startDate?: Date, endDate?: Date) {
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSafeServerSession("/api/sessions");
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -49,7 +48,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSafeServerSession("/api/sessions");
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

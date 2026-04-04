@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { isStudentSessionUser, resolveStudentRecordIdForUser } from "@/lib/student-session";
 import { generateReportCardData, generateReportCardStream } from "@/services/reportService";
 
 function toClientReportType(reportType?: string | null): "halfTerm" | "endOfTerm" {
@@ -58,8 +59,9 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
-        if (user.loginType === "student") {
-            if (user.loginProfileId !== reportCard.studentId) {
+        if (isStudentSessionUser(user) && !isAdmin) {
+            const viewerStudentId = await resolveStudentRecordIdForUser(user);
+            if (!viewerStudentId || viewerStudentId !== reportCard.studentId) {
                 return NextResponse.json({ error: "Access denied" }, { status: 403 });
             }
         } else if (user.loginType === "parent") {
@@ -104,7 +106,11 @@ export async function GET(req: NextRequest) {
             : null;
         const downloadExpiresAt = publishedWorkflow?.downloadExpiresAt || fallbackExpiry;
 
-        if ((user.loginType === "student" || user.loginType === "parent") && downloadExpiresAt) {
+        if (
+            !isAdmin &&
+            (isStudentSessionUser(user) || user.loginType === "parent") &&
+            downloadExpiresAt
+        ) {
             if (new Date() > downloadExpiresAt) {
                 return NextResponse.json(
                     { error: "Download window has expired for this report card." },

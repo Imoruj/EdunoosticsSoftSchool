@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { formatStudentFullName } from "@/components/reports/formatStudentFullName";
 
 interface StudentProfile {
     id: string;
@@ -57,7 +58,7 @@ export default function ProfilePage() {
 
                 if (!endpoint) return;
 
-                const response = await fetch(endpoint);
+                const response = await fetch(endpoint, { cache: "no-store" });
                 if (response.ok) {
                     const data = await response.json();
                     setProfile(data);
@@ -265,7 +266,7 @@ export default function ProfilePage() {
     }
 
     const displayName = isStudent
-        ? `${profile.firstName} ${profile.lastName}`
+        ? formatStudentFullName(profile)
         : isAdmin ? `${profile.firstName} ${profile.lastName}`
             : `${profile.user.firstName} ${profile.user.lastName}`;
 

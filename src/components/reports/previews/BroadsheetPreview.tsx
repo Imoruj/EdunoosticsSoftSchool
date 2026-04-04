@@ -1,5 +1,6 @@
 import React from "react";
 import { BroadsheetData, BroadsheetDisplayOptions, SectionStyle } from "../broadsheetTypes";
+import { formatNonZeroScoreOrBlank } from "../scoreFormatting";
 
 interface BroadsheetPreviewProps {
     config: {
@@ -134,12 +135,19 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
                 : pickSummaryColumn("total", "caTotal", "ca1"))
             : pickSummaryColumn("dmat", "total", "ca1");
 
+    const formatPosition = (value: unknown) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) && numericValue > 0 ? ordinal(numericValue) : "";
+    };
+
     // Aggregate columns
     const aggCols: { key: string; label: string }[] = [];
     if (d.showGrandTotal !== false) aggCols.push({ key: "grandTotal", label: "TOTAL" });
     if (d.showAverage !== false) aggCols.push({ key: "average", label: "AVERAGE" });
     if (d.showOverallPosition !== false) aggCols.push({ key: useRealData ? "overallPosition" : "overallPos", label: "OVERALL POS" });
     if (d.showSubjectCount !== false) aggCols.push({ key: "subjectCount", label: "No. of Subject" });
+    const scoreColumnKeys = new Set(["term1", "term2", "term1Total", "term2Total", "ca1", "ca2", "ca3", "caTotal", "dmat", "exam", "total"]);
+    const aggregateScoreKeys = new Set(["grandTotal", "average"]);
 
     // Calculate ideal table width based on column count
     const subColPx = 35;
@@ -296,9 +304,13 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
                                 {student.scores.map((score: any, sIdx: number) =>
                                     subCols.map((col) => {
                                         const val = (score as any)[col.key];
-                                        let displayVal: any = (val === 0 || val === null || val === undefined || val === "-") ? "" : val;
-                                        if (displayVal && (col.key === "position" || col.key === "pos")) {
-                                            displayVal = ordinal(Number(displayVal));
+                                        let displayVal: any = "";
+                                        if (col.key === "position" || col.key === "pos") {
+                                            displayVal = formatPosition(val);
+                                        } else if (scoreColumnKeys.has(col.key)) {
+                                            displayVal = formatNonZeroScoreOrBlank(val);
+                                        } else if (val !== null && val !== undefined && val !== "" && val !== "-") {
+                                            displayVal = String(val);
                                         }
                                         return (
                                             <td
@@ -315,9 +327,13 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
                                 )}
                                 {aggCols.map((agg) => {
                                     const aggVal = (student as any)[agg.key];
-                                    let aggDisplay: any = aggVal;
-                                    if (aggVal && (agg.key === "overallPosition" || agg.key === "overallPos")) {
-                                        aggDisplay = ordinal(Number(aggVal));
+                                    let aggDisplay: any = "";
+                                    if (agg.key === "overallPosition" || agg.key === "overallPos") {
+                                        aggDisplay = formatPosition(aggVal);
+                                    } else if (aggregateScoreKeys.has(agg.key)) {
+                                        aggDisplay = formatNonZeroScoreOrBlank(aggVal);
+                                    } else if (aggVal !== null && aggVal !== undefined && aggVal !== "") {
+                                        aggDisplay = String(aggVal);
                                     }
                                     return (
                                         <td
@@ -380,7 +396,7 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
                                                     const isNumeric = numericKeys.has(subCols[cIdx].key);
                                                     return (
                                                         <td key={`h-${sIdx}-${cIdx}`} style={{ ...tdStyle, fontWeight: "bold" }}>
-                                                            {isNumeric && val > 0 ? val : ""}
+                                                            {isNumeric && val > 0 ? formatNonZeroScoreOrBlank(val) : ""}
                                                         </td>
                                                     );
                                                 })
@@ -399,7 +415,7 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
                                                     const isNumeric = numericKeys.has(subCols[cIdx].key);
                                                     return (
                                                         <td key={`l-${sIdx}-${cIdx}`} style={{ ...tdStyle, fontWeight: "bold" }}>
-                                                            {isNumeric && val > 0 ? val : ""}
+                                                            {isNumeric && val > 0 ? formatNonZeroScoreOrBlank(val) : ""}
                                                         </td>
                                                     );
                                                 })

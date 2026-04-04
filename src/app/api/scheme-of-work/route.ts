@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { clampLimit } from "@/lib/apiError";
+import { resolveVisibleSubjectIdsForStudent } from "@/lib/studentAudience";
 
 // GET /api/scheme-of-work — list SOWs
 export async function GET(req: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
         const isTeacher = roles.includes(UserRole.SUBJECT_TEACHER) || roles.includes(UserRole.CLASS_TEACHER);
-        const isStudent = roles.includes(UserRole.STUDENT);
+        const isStudent = roles.includes(UserRole.STUDENT) || user.loginType === "student";
 
         if (!schoolId) return NextResponse.json({ error: "No school associated" }, { status: 400 });
 
@@ -35,15 +36,44 @@ export async function GET(req: NextRequest) {
         if (status) where.status = status;
 
         if (isStudent) {
-            // Students see only APPROVED SOWs for subjects they're enrolled in
-            const enrollments = await prisma.subjectEnrollment.findMany({
-                where: { student: { userId: user.id } },
-                select: { subjectId: true },
-                distinct: ["subjectId"],
+            const studentProfile = await prisma.student.findUnique({
+                where: { userId: user.id },
+                select: {
+                    id: true,
+                    classArmId: true,
+                    classArm: { select: { classId: true } },
+                },
             });
-            const enrolledSubjectIds = enrollments.map((e) => e.subjectId);
+
+            if (!studentProfile?.classArmId || !studentProfile.classArm?.classId) {
+                where.id = "__no_student_scope__";
+            }
+            const visibleSubjectIds =
+                studentProfile?.id && studentProfile.classArmId
+                    ? await resolveVisibleSubjectIdsForStudent({
+                        schoolId,
+                        studentId: studentProfile.id,
+                        classArmId: studentProfile.classArmId,
+                    })
+                    : [];
             where.status = SowStatus.APPROVED;
-            where.subjectId = { in: enrolledSubjectIds };
+
+            if (subjectId) {
+                where.subjectId = visibleSubjectIds.includes(subjectId) ? subjectId : { in: [] };
+            } else {
+                where.subjectId = { in: visibleSubjectIds };
+            }
+
+            if (studentProfile?.classArm?.classId) {
+                where.classId = studentProfile.classArm.classId;
+            }
+
+            if (studentProfile?.classArmId) {
+                where.OR = [
+                    { classArms: { none: {} } },
+                    { classArms: { some: { classArmId: studentProfile.classArmId } } },
+                ];
+            }
         } else if (isTeacher && !isAdmin) {
             // Teachers see SOWs they own or collaborate on
             where.OR = [

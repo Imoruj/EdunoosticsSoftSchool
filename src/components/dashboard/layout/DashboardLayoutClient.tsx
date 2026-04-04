@@ -2,18 +2,24 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/layout/Sidebar";
 import { Header } from "@/components/dashboard/layout/Header";
 import { navigation, isGroup } from "@/components/dashboard/layout/navigation";
+import { matchPermissionKeyForPath } from "@/lib/permissions";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 export default function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession();
     const pathname = usePathname();
+    const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const topBarRef = useRef<HTMLElement>(null);
+    const { permissions, loading: permissionsLoading } = useUserPermissions();
 
     const loginType = (session?.user as any)?.loginType;
+    const userRoles: string[] = (session?.user as any)?.roles || [];
+    const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
 
     // Helper: find page title from grouped navigation
     const findPageTitle = useCallback((): string => {
@@ -49,6 +55,21 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
             resizeObserver?.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        if (permissionsLoading || isSuperAdmin) {
+            return;
+        }
+
+        const permissionKey = matchPermissionKeyForPath(pathname);
+        if (!permissionKey) {
+            return;
+        }
+
+        if (!permissions[permissionKey]) {
+            router.replace("/dashboard");
+        }
+    }, [isSuperAdmin, pathname, permissions, permissionsLoading, router]);
 
     return (
         <div className="min-h-screen bg-gray-50">

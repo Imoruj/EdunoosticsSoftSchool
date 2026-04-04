@@ -2,6 +2,8 @@ import React from "react";
 import { Text, View, Image } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./ProfessionalStyles";
+import { formatScore } from "../../scoreFormatting";
+import { formatStudentFullName } from "../../formatStudentFullName";
 
 interface StudentProfileProps {
     student: ReportCardData["student"];
@@ -17,6 +19,8 @@ const ProfessionalStudentProfile: React.FC<StudentProfileProps & { config?: any 
     summary,
     config
 }) => {
+    const studentFullName = formatStudentFullName(student);
+
     return (
         <View style={styles.gridContainer}>
             {/* 1. Student Personal Data Table (Left) */}
@@ -27,7 +31,7 @@ const ProfessionalStudentProfile: React.FC<StudentProfileProps & { config?: any 
                 <View style={styles.gridCol}>
                     <View style={styles.gridRow}>
                         <View style={styles.gridLabel}><Text>Name</Text></View>
-                        <View style={styles.gridValue}><Text style={{ textTransform: "uppercase" }}>{student.lastName} {student.firstName} {student.otherNames}</Text></View>
+                        <View style={styles.gridValue}><Text>{studentFullName}</Text></View>
                     </View>
                     <View style={styles.gridRow}>
                         <View style={styles.gridLabel}><Text>Date of Birth</Text></View>
@@ -108,15 +112,15 @@ const ProfessionalStudentProfile: React.FC<StudentProfileProps & { config?: any 
             <View style={[styles.gridBox, { flex: 1 }]}>
                 <View style={[styles.gridRow, { height: 20 }]}>
                     <View style={[styles.gridLabel, { width: "65%" }]}><Text style={{ fontSize: 5, fontWeight: "bold" }}>TOTAL SCORE OBTAINABLE</Text></View>
-                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{summary.totalObtainable}</Text></View>
+                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{formatScore(summary.totalObtainable)}</Text></View>
                 </View>
                 <View style={[styles.gridRow, { height: 20 }]}>
                     <View style={[styles.gridLabel, { width: "65%" }]}><Text style={{ fontSize: 5, fontWeight: "bold" }}>TOTAL SCORE OBTAINED</Text></View>
-                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{summary.totalScore}</Text></View>
+                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{formatScore(summary.totalScore)}</Text></View>
                 </View>
                 <View style={[styles.gridRow, { height: 20 }]}>
                     <View style={[styles.gridLabel, { width: "65%" }]}><Text style={{ fontSize: 5, fontWeight: "bold" }}>AVERAGE PERCENTAGE</Text></View>
-                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{summary.average.toFixed(1)}</Text></View>
+                    <View style={[styles.gridValue, { width: "35%" }]}><Text>{formatScore(summary.average)}</Text></View>
                 </View>
                 <View style={{ flexDirection: "row", flex: 1, borderTopWidth: 0.5, borderTopColor: "#000" }}>
                     <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: "#047857", alignItems: "center", justifyContent: "center" }}>

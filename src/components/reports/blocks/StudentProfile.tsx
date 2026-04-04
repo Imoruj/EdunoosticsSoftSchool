@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { Student } from "@prisma/client";
+import { formatStudentFullName } from "../formatStudentFullName";
 
 const styles = StyleSheet.create({
     personalDataCol: {
@@ -50,6 +51,7 @@ interface StudentProfileProps {
 export const StudentProfile: React.FC<StudentProfileProps> = ({ student, displayOptions = {}, sectionStyle = {} }) => {
     const showOption = (key: string) => displayOptions[key] !== false;
     const { container, header, borderOnly } = sectionStyle;
+    const studentFullName = formatStudentFullName(student);
 
     return (
         <View style={[styles.personalDataCol, container]}>
@@ -57,9 +59,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ student, display
             {showOption('showName') && (
                 <View style={[styles.dataRow, borderOnly]}>
                     <Text style={[styles.dataLabel, borderOnly]}>Name</Text>
-                    <Text style={[styles.dataValue, styles.bold, { textTransform: "uppercase" }]}>
-                        {student.lastName} {student.firstName}
-                    </Text>
+                    <Text style={[styles.dataValue, styles.bold]}>{studentFullName}</Text>
                 </View>
             )}
             {showOption('showDOB') && (

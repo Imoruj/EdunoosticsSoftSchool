@@ -5,14 +5,22 @@ export default withAuth(
     function middleware(req) {
         const token = req.nextauth.token;
         const pathname = req.nextUrl.pathname;
+        const host = req.headers.get("host") || "";
         const isAuthPage = pathname.startsWith("/auth");
         const isChangePasswordPage = pathname === "/auth/change-password";
         const isDashboard = pathname.startsWith("/dashboard");
         const isAdmin = pathname.startsWith("/admin");
         const isApi = pathname.startsWith("/api");
 
+        if (host === "tis.edunostics.com") {
+            const url = req.nextUrl.clone();
+            url.hostname = "www.tis.edunostics.com";
+            return NextResponse.redirect(url);
+        }
+
         const roles: string[] = (token as any)?.roles || [];
         const isSuperAdmin = roles.includes("SUPER_ADMIN");
+        const isProprietor = roles.includes("PROPRIETOR") && !roles.includes("SUPER_ADMIN") && !roles.includes("SCHOOL_ADMIN");
 
         // ── Force password change ────────────────────────────────
         if (token && (token as any).mustChangePassword) {
@@ -29,6 +37,18 @@ export default withAuth(
         // ── SUPER_ADMIN must go to /admin, not /dashboard ────────
         if (token && isDashboard && isSuperAdmin) {
             return NextResponse.redirect(new URL("/admin", req.url));
+        }
+
+        if (token && isDashboard && isProprietor) {
+            const isAllowedDashboardPath =
+                pathname === "/dashboard" ||
+                pathname === "/dashboard/" ||
+                pathname.startsWith("/dashboard/insights") ||
+                pathname.startsWith("/dashboard/profile");
+
+            if (!isAllowedDashboardPath) {
+                return NextResponse.redirect(new URL("/dashboard", req.url));
+            }
         }
 
         // ── Non-super-admins cannot access /admin ────────────────
@@ -62,5 +82,5 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: ["/dashboard/:path*", "/admin/:path*", "/auth/:path*"],
+    matcher: ["/dashboard/:path*", "/admin/:path*", "/auth/:path*", "/api/auth/:path*"],
 };

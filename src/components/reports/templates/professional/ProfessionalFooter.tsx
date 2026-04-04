@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View, Image } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./ProfessionalStyles";
+import { formatPublishedDate } from "../../formatPublishedDate";
 
 interface FooterProps {
     comments: ReportCardData["comments"];
@@ -9,6 +10,8 @@ interface FooterProps {
 }
 
 const ProfessionalFooter: React.FC<FooterProps & { config?: any }> = ({ comments, term, config }) => {
+    const publishedDateLabel = formatPublishedDate(comments.publishedAt).replace("Date: ", "");
+
     return (
         <View style={styles.footer}>
             {/* Class Teacher Comment */}
@@ -25,7 +28,7 @@ const ProfessionalFooter: React.FC<FooterProps & { config?: any }> = ({ comments
                 </View>
                 <View style={{ width: "15%", flexDirection: "row", alignItems: "center" }}>
                     <Text style={[styles.bold, { fontSize: 8 }]}>Date:</Text>
-                    <Text style={{ fontSize: 8, marginLeft: 2 }}>24/10/2021</Text>
+                    <Text style={{ fontSize: 8, marginLeft: 2 }}>{publishedDateLabel}</Text>
                 </View>
             </View>
 
@@ -47,7 +50,7 @@ const ProfessionalFooter: React.FC<FooterProps & { config?: any }> = ({ comments
                 </View>
                 <View style={{ width: "15%", flexDirection: "row", alignItems: "center" }}>
                     <Text style={[styles.bold, { fontSize: 8 }]}>Date:</Text>
-                    <Text style={{ fontSize: 8, marginLeft: 2 }}>{new Date().toLocaleDateString()}</Text>
+                    <Text style={{ fontSize: 8, marginLeft: 2 }}>{publishedDateLabel}</Text>
                 </View>
             </View>
 

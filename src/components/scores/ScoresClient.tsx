@@ -14,6 +14,7 @@ import {
     Term,
     SchoolCategory,
     ScoreWorkflowState,
+    ScoreSubjectMeta,
 } from "./types";
 
 import { Card } from "@/components/ui/Card";
@@ -29,6 +30,11 @@ interface ScoresClientProps {
     initialSessions: Session[];
 }
 
+interface ParentSubjectPreviewData {
+    students: StudentScore[];
+    assessmentTypes: AssessmentType[];
+}
+
 function areAssessmentTypesEqual(left: AssessmentType[], right: AssessmentType[]) {
     if (left.length !== right.length) return false;
 
@@ -42,6 +48,10 @@ function areAssessmentTypesEqual(left: AssessmentType[], right: AssessmentType[]
             item.order === other.order &&
             item.includeInTotal === other.includeInTotal;
     });
+}
+
+function shouldShowGradeAndRemark(exam: number, availableAssessmentTypes: AssessmentType[]) {
+    return Boolean(getAssessmentTypeForField(availableAssessmentTypes, "exam")) && exam > 0;
 }
 
 export default function ScoresClient({
@@ -71,6 +81,11 @@ export default function ScoresClient({
     const [selectedSubjectId, setSelectedSubjectId] = useState("");
     const [selectedSessionId, setSelectedSessionId] = useState("");
     const [selectedTermId, setSelectedTermId] = useState("");
+    const selectedSubject = useMemo(
+        () => subjects.find((subject) => subject.id === selectedSubjectId) || null,
+        [subjects, selectedSubjectId]
+    );
+    const selectionReady = Boolean(selectedArmId && selectedSubjectId && selectedTermId);
 
     // Data state
     const [students, setStudents] = useState<StudentScore[]>([]);
@@ -79,9 +94,26 @@ export default function ScoresClient({
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [scoreWorkflow, setScoreWorkflow] = useState<ScoreWorkflowState | null>(null);
+    const [subjectMeta, setSubjectMeta] = useState<ScoreSubjectMeta | null>(null);
+    const effectiveSubjectMeta: ScoreSubjectMeta = subjectMeta || {
+        subjectKind: selectedSubject?.subjectKind || "STANDARD",
+        parentSubjectId: selectedSubject?.parentSubjectId || null,
+        parentSubjectName: selectedSubject?.parentSubjectName || null,
+        isReadOnly: selectedSubject?.isScoreEntryEditable === false,
+        derivedFromComponents: selectedSubject?.subjectKind === "COMPOSITE_PARENT",
+        componentSubjects: [],
+    };
+    const parentPreviewSubjectId =
+        effectiveSubjectMeta.subjectKind === "COMPOSITE_COMPONENT"
+            ? effectiveSubjectMeta.parentSubjectId
+            : null;
     const [workflowActionLoading, setWorkflowActionLoading] = useState<null | "approve" | "reject" | "broadcast">(null);
     const [showRejectPrompt, setShowRejectPrompt] = useState(false);
     const [rejectionNote, setRejectionNote] = useState("");
+    const [showParentPreview, setShowParentPreview] = useState(false);
+    const [parentPreviewLoading, setParentPreviewLoading] = useState(false);
+    const [parentPreviewError, setParentPreviewError] = useState<string | null>(null);
+    const [parentPreviewData, setParentPreviewData] = useState<ParentSubjectPreviewData | null>(null);
 
     // Enrollment state
     const [hasEnrollments, setHasEnrollments] = useState(false);
@@ -161,6 +193,7 @@ export default function ScoresClient({
         setLoadingData(true);
         setError(null);
         setStudents([]); // Clear previous
+        setSubjectMeta(null);
 
         try {
             const params = new URLSearchParams({
@@ -176,6 +209,14 @@ export default function ScoresClient({
             const resolvedAssessmentTypes: AssessmentType[] = Array.isArray(data.assessmentTypes)
                 ? data.assessmentTypes
                 : initialAssessmentTypes;
+            setSubjectMeta({
+                subjectKind: data.subjectKind || selectedSubject?.subjectKind || "STANDARD",
+                parentSubjectId: data.parentSubjectId ?? selectedSubject?.parentSubjectId ?? null,
+                parentSubjectName: data.parentSubjectName ?? selectedSubject?.parentSubjectName ?? null,
+                isReadOnly: Boolean(data.isReadOnly),
+                derivedFromComponents: Boolean(data.derivedFromComponents),
+                componentSubjects: Array.isArray(data.componentSubjects) ? data.componentSubjects : [],
+            });
             const resolvedAssessmentColumns = mapAssessmentTypesToScoreFields(resolvedAssessmentTypes);
 
             setAssessmentTypes((previous) =>
@@ -213,8 +254,9 @@ export default function ScoresClient({
                 cleaned.total = totals.rawTotal;
                 cleaned.adjustedTotal = totals.adjustedTotal;
                 cleaned.isAdjusted = totals.isAdjusted;
-
-                const { grade, remark } = calculateGrade(totals.adjustedTotal);
+                const { grade, remark } = shouldShowGradeAndRemark(cleaned.exam || 0, resolvedAssessmentTypes)
+                    ? calculateGrade(totals.adjustedTotal)
+                    : { grade: "", remark: "" };
                 return { ...cleaned, grade, remark };
             });
 
@@ -225,7 +267,7 @@ export default function ScoresClient({
         } finally {
             setLoadingData(false);
         }
-    }, [selectedArmId, selectedSubjectId, selectedTermId, activeGradingRules, initialAssessmentTypes]);
+    }, [selectedArmId, selectedSubjectId, selectedTermId, activeGradingRules, initialAssessmentTypes, selectedSubject]);
 
     useEffect(() => {
         if (selectedArmId && selectedSubjectId) {
@@ -239,6 +281,64 @@ export default function ScoresClient({
         const allowedFields = new Set<string>(assessmentColumns.map((column) => column.field));
         setSelectedColumns((previous) => previous.filter((field) => allowedFields.has(field)));
     }, [assessmentColumns]);
+
+    const fetchParentPreview = useCallback(async () => {
+        if (!selectedArmId || !selectedTermId || !selectedSubjectId || !parentPreviewSubjectId) {
+            return;
+        }
+
+        setParentPreviewLoading(true);
+        setParentPreviewError(null);
+
+        try {
+            const params = new URLSearchParams({
+                classArmId: selectedArmId,
+                subjectId: parentPreviewSubjectId,
+                termId: selectedTermId,
+                viewerSubjectId: selectedSubjectId,
+            });
+
+            const response = await fetch(`/api/scores?${params.toString()}`);
+            const data = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                throw new Error(data?.error || "Failed to load parent subject preview");
+            }
+
+            setParentPreviewData({
+                students: Array.isArray(data?.students) ? data.students : [],
+                assessmentTypes: Array.isArray(data?.assessmentTypes) ? data.assessmentTypes : [],
+            });
+        } catch (err: any) {
+            setParentPreviewError(err.message || "Failed to load parent subject preview");
+            setParentPreviewData(null);
+        } finally {
+            setParentPreviewLoading(false);
+        }
+    }, [selectedArmId, selectedTermId, selectedSubjectId, parentPreviewSubjectId]);
+
+    useEffect(() => {
+        if (!showParentPreview) {
+            return;
+        }
+
+        if (!parentPreviewSubjectId) {
+            setShowParentPreview(false);
+            setParentPreviewData(null);
+            setParentPreviewError(null);
+            return;
+        }
+
+        fetchParentPreview();
+    }, [fetchParentPreview, parentPreviewSubjectId, showParentPreview]);
+
+    useEffect(() => {
+        if (!parentPreviewSubjectId) {
+            setShowParentPreview(false);
+            setParentPreviewData(null);
+            setParentPreviewError(null);
+        }
+    }, [parentPreviewSubjectId]);
 
     // Helper to calculate grade locally for immediate feedback
     const calculateGrade = (total: number) => {
@@ -269,6 +369,7 @@ export default function ScoresClient({
 
         if (numValue > max) numValue = max;
         if (numValue < 0) numValue = 0;
+        numValue = Math.round(numValue * 10) / 10;
 
         setStudents(prev => prev.map(s => {
             if (s.id === studentId) {
@@ -282,7 +383,9 @@ export default function ScoresClient({
                 updated.total = totals.rawTotal;
                 updated.adjustedTotal = totals.adjustedTotal;
                 updated.isAdjusted = totals.isAdjusted;
-                const { grade, remark } = calculateGrade(totals.adjustedTotal);
+                const { grade, remark } = shouldShowGradeAndRemark(updated.exam || 0, assessmentTypes)
+                    ? calculateGrade(totals.adjustedTotal)
+                    : { grade: "", remark: "" };
                 updated.grade = grade;
                 updated.remark = remark;
                 return updated;
@@ -337,6 +440,9 @@ export default function ScoresClient({
             }
 
             await fetchScores();
+            if (showParentPreview) {
+                await fetchParentPreview();
+            }
             setSuccessMessage(data.message || "Scores saved successfully!");
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: any) {
@@ -554,7 +660,30 @@ export default function ScoresClient({
         ? ((students.filter(s => (s.adjustedTotal ?? s.total) >= 40).length / students.length) * 100).toFixed(0)
         : "0";
 
-    const selectionReady = selectedArmId && selectedSubjectId && selectedTermId;
+    const canViewParentPreview = Boolean(selectionReady && parentPreviewSubjectId);
+    const parentPreviewColumns = useMemo(
+        () => mapAssessmentTypesToScoreFields(parentPreviewData?.assessmentTypes || []),
+        [parentPreviewData?.assessmentTypes]
+    );
+    const parentPreviewAverage = parentPreviewData && parentPreviewData.students.length > 0
+        ? (parentPreviewData.students.reduce((acc, student) => acc + (student.adjustedTotal ?? student.total), 0) / parentPreviewData.students.length).toFixed(1)
+        : "0.0";
+    const parentPreviewPassRate = parentPreviewData && parentPreviewData.students.length > 0
+        ? ((parentPreviewData.students.filter((student) => (student.adjustedTotal ?? student.total) >= 40).length / parentPreviewData.students.length) * 100).toFixed(0)
+        : "0";
+    const selectedArmLabel = useMemo(() => {
+        for (const cls of classes) {
+            const arm = cls.arms.find((item) => item.id === selectedArmId);
+            if (arm) {
+                return `${cls.name} ${arm.armName}`;
+            }
+        }
+
+        return "Selected arm";
+    }, [classes, selectedArmId]);
+    const canManageEnrollment = selectionReady && effectiveSubjectMeta.subjectKind !== "COMPOSITE_COMPONENT";
+    const canEditScores = !effectiveSubjectMeta.isReadOnly;
+    const selectedSubjectDisplayName = selectedSubject?.name || "Selected subject";
     const workflowStatusMeta = useMemo(() => {
         switch (scoreWorkflow?.status) {
             case "APPROVED":
@@ -593,7 +722,7 @@ export default function ScoresClient({
                     <p className="text-gray-500 mt-1">Record and manage assessment scores</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {selectionReady && (
+                    {canManageEnrollment && (
                         <button
                             onClick={openEnrollmentModal}
                             className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -604,7 +733,7 @@ export default function ScoresClient({
                             Manage Students
                         </button>
                     )}
-                    {selectionReady && students.length > 0 && (
+                    {selectionReady && students.length > 0 && canEditScores && (
                         <button
                             onClick={() => { setSelectedColumns([]); setShowTemplateModal(true); }}
                             className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -615,7 +744,7 @@ export default function ScoresClient({
                             Download Template
                         </button>
                     )}
-                    {selectionReady && students.length > 0 && (
+                    {selectionReady && students.length > 0 && canEditScores && (
                         <button
                             onClick={() => { setUploadFile(null); setUploadResult(null); setShowUploadModal(true); }}
                             className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -626,7 +755,7 @@ export default function ScoresClient({
                             Upload Scores
                         </button>
                     )}
-                    {students.length > 0 && (
+                    {students.length > 0 && canEditScores && (
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
@@ -728,12 +857,39 @@ export default function ScoresClient({
                                     return subj.classArmIds?.includes(selectedArmId);
                                 })
                                 .map(subj => (
-                                    <option key={subj.id} value={subj.id}>{subj.name} ({subj.code})</option>
+                                    <option key={subj.id} value={subj.id}>
+                                        {subj.name} ({subj.code}){subj.subjectKind === "COMPOSITE_PARENT" ? " [Read-only]" : ""}
+                                    </option>
                                 ))}
                         </select>
                     </div>
                 </div>
             </div>
+
+            {selectionReady && effectiveSubjectMeta.isReadOnly && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                    <div>
+                        <p className="text-sm font-semibold text-blue-900">
+                            {selectedSubjectDisplayName} is computed from component subjects
+                        </p>
+                        <p className="mt-1 text-sm text-blue-800">
+                            This parent subject is read-only here. Teachers enter scores on the component subjects, and this total is derived automatically.
+                        </p>
+                    </div>
+                    {effectiveSubjectMeta.componentSubjects.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {effectiveSubjectMeta.componentSubjects.map((component) => (
+                                <span
+                                    key={component.componentSubjectId}
+                                    className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-800 border border-blue-200"
+                                >
+                                    {component.componentSubjectName}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Score Workflow Status */}
             {selectionReady && scoreWorkflow && (
@@ -807,7 +963,7 @@ export default function ScoresClient({
             )}
 
             {/* Enrollment Info Banner */}
-            {selectionReady && !loadingData && (
+            {selectionReady && !loadingData && canManageEnrollment && (
                 <div className={`flex items-center justify-between p-3 rounded-lg border ${hasEnrollments
                         ? "bg-blue-50 border-blue-200"
                         : "bg-amber-50 border-amber-200"
@@ -844,8 +1000,21 @@ export default function ScoresClient({
                 </div>
             ) : students.length > 0 ? (
                 <div className="card overflow-hidden">
-                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-900">Student Scores</h3>
+                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-gray-900">Student Scores</h3>
+                            {canViewParentPreview && (
+                                <button
+                                    onClick={() => setShowParentPreview(true)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                                >
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-6 4h5a2 2 0 002-2V8a2 2 0 00-2-2H9m-4 12h.01M5 8h.01M5 12h.01M5 16h.01" />
+                                    </svg>
+                                    View {effectiveSubjectMeta.parentSubjectName || "Parent Subject"}
+                                </button>
+                            )}
+                        </div>
                         <div className="text-sm space-x-4">
                             <span className="text-gray-500">Avg: <span className="font-bold text-gray-900">{classAverage}</span></span>
                             <span className="text-gray-500">Pass Rate: <span className="font-bold text-green-600">{passRate}%</span></span>
@@ -871,7 +1040,10 @@ export default function ScoresClient({
                             <TableBody>
                                 {students.map((student, index) => {
                                     const displayTotal = student.adjustedTotal ?? student.total;
-                                    const { color } = calculateGrade(displayTotal);
+                                    const showGradeAndRemark = shouldShowGradeAndRemark(student.exam || 0, assessmentTypes);
+                                    const { color } = showGradeAndRemark
+                                        ? calculateGrade(displayTotal)
+                                        : { color: "bg-gray-100 text-gray-400" };
                                     return (
                                         <TableRow key={student.id} className="hover:bg-gray-50">
                                             <TableCell className="px-4 py-3 text-sm text-gray-500">{index + 1}</TableCell>
@@ -884,10 +1056,12 @@ export default function ScoresClient({
                                                     <TableCell key={type.id} className="px-2 py-3">
                                                         <input
                                                             type="number"
-                                                            className="w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm"
-                                                            value={student[type.field] === 0 ? "" : student[type.field]}
+                                                            step="0.1"
+                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
+                                                            value={student[type.field] === 0 ? "" : Number(student[type.field]).toFixed(1).replace(/\.0$/, "")}
                                                             placeholder="0"
                                                             max={type.maxScore}
+                                                            disabled={!canEditScores}
                                                             onChange={(e) => handleScoreChange(student.id, type.field, e.target.value)}
                                                         />
                                                     </TableCell>
@@ -895,21 +1069,23 @@ export default function ScoresClient({
                                             })}
                                             <TableCell className="px-4 py-3 text-center">
                                                 <div className="font-bold text-gray-900">
-                                                    {displayTotal}
+                                                    {Number(displayTotal) % 1 === 0 ? Number(displayTotal).toString() : Number(displayTotal).toFixed(1)}
                                                 </div>
                                                 {student.isAdjusted && (
                                                     <div className="text-xs text-amber-600" title={`Raw: ${student.total}, Adjusted: ${student.adjustedTotal}`}>
-                                                        *adj ({student.total})
+                                                        *adj ({Number(student.total) % 1 === 0 ? Number(student.total).toString() : Number(student.total).toFixed(1)})
                                                     </div>
                                                 )}
                                             </TableCell>
                                             <TableCell className="px-4 py-3 text-center">
-                                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
-                                                    {student.grade}
-                                                </span>
+                                                {showGradeAndRemark ? (
+                                                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
+                                                        {student.grade}
+                                                    </span>
+                                                ) : null}
                                             </TableCell>
                                             <TableCell className="px-4 py-3 text-sm text-gray-500">
-                                                {student.remark}
+                                                {showGradeAndRemark ? student.remark : ""}
                                             </TableCell>
                                         </TableRow>
                                     );
@@ -927,7 +1103,7 @@ export default function ScoresClient({
                                 : "No students found in this class."
                             }
                         </p>
-                        {hasEnrollments && (
+                        {hasEnrollments && canManageEnrollment && (
                             <button
                                 onClick={openEnrollmentModal}
                                 className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-800 underline"
@@ -949,6 +1125,137 @@ export default function ScoresClient({
                         </div>
                     </div>
                 )
+            )}
+
+            {showParentPreview && canViewParentPreview && (
+                <div className="fixed inset-x-3 bottom-3 top-24 z-40 sm:inset-x-auto sm:right-6 sm:w-[min(44rem,calc(100vw-2rem))]">
+                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0px_24px_80px_-32px_rgba(15,23,42,0.45)]">
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+                                        Parent Subject Preview
+                                    </span>
+                                    <span className="text-xs text-slate-500">{selectedArmLabel}</span>
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    {effectiveSubjectMeta.parentSubjectName || "Parent Subject"}
+                                </h3>
+                                <p className="text-sm text-slate-600">
+                                    Read-only totals for this arm. Save component scores to refresh the parent subject automatically.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => void fetchParentPreview()}
+                                    disabled={parentPreviewLoading}
+                                    className={`rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 ${parentPreviewLoading ? "cursor-not-allowed opacity-60" : ""}`}
+                                >
+                                    {parentPreviewLoading ? "Refreshing..." : "Refresh"}
+                                </button>
+                                <button
+                                    onClick={() => setShowParentPreview(false)}
+                                    className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                    aria-label="Close parent subject preview"
+                                >
+                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 text-sm">
+                            <div className="text-slate-500">
+                                Viewing <span className="font-semibold text-slate-800">{effectiveSubjectMeta.parentSubjectName || "parent subject"}</span> for <span className="font-semibold text-slate-800">{selectedArmLabel}</span>
+                            </div>
+                            <div className="space-x-4">
+                                <span className="text-slate-500">Avg: <span className="font-bold text-slate-900">{parentPreviewAverage}</span></span>
+                                <span className="text-slate-500">Pass Rate: <span className="font-bold text-emerald-600">{parentPreviewPassRate}%</span></span>
+                            </div>
+                        </div>
+
+                        <div className="min-h-0 flex-1 overflow-auto bg-white p-5">
+                            {parentPreviewError ? (
+                                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                    {parentPreviewError}
+                                </div>
+                            ) : parentPreviewLoading && !parentPreviewData ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
+                                </div>
+                            ) : parentPreviewData ? (
+                                <div className="space-y-4">
+                                    <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                                        This preview is read-only. It mirrors the computed parent subject scores for students in this arm.
+                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
+                                                {parentPreviewColumns.map((type) => (
+                                                    <TableHead key={type.id} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24">
+                                                        {type.name} ({type.maxScore})
+                                                    </TableHead>
+                                                ))}
+                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
+                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {parentPreviewData.students.map((student, index) => {
+                                                const displayTotal = student.adjustedTotal ?? student.total;
+                                                const showGradeAndRemark = shouldShowGradeAndRemark(student.exam || 0, parentPreviewData.assessmentTypes);
+                                                const { color } = showGradeAndRemark
+                                                    ? calculateGrade(displayTotal)
+                                                    : { color: "bg-gray-100 text-gray-400" };
+
+                                                return (
+                                                    <TableRow key={student.id} className="hover:bg-gray-50">
+                                                        <TableCell className="px-4 py-3 text-sm text-gray-500">{index + 1}</TableCell>
+                                                        <TableCell className="px-4 py-3">
+                                                            <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
+                                                            <div className="text-xs text-gray-400">{student.admissionNumber}</div>
+                                                        </TableCell>
+                                                        {parentPreviewColumns.map((type) => (
+                                                            <TableCell key={type.id} className="px-2 py-3 text-center text-sm font-medium text-slate-700">
+                                                                {student[type.field]}
+                                                            </TableCell>
+                                                        ))}
+                                                        <TableCell className="px-4 py-3 text-center">
+                                                            <div className="font-bold text-gray-900">{Number(displayTotal) % 1 === 0 ? Number(displayTotal).toString() : Number(displayTotal).toFixed(1)}</div>
+                                                            {student.isAdjusted && (
+                                                                <div className="text-xs text-amber-600" title={`Raw: ${student.total}, Adjusted: ${student.adjustedTotal}`}>
+                                                                    *adj ({Number(student.total) % 1 === 0 ? Number(student.total).toString() : Number(student.total).toFixed(1)})
+                                                                </div>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="px-4 py-3 text-center">
+                                                            {showGradeAndRemark ? (
+                                                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
+                                                                    {student.grade}
+                                                                </span>
+                                                            ) : null}
+                                                        </TableCell>
+                                                        <TableCell className="px-4 py-3 text-sm text-gray-500">
+                                                            {showGradeAndRemark ? student.remark : ""}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                                    Parent subject preview is not available for this selection yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Download Template Modal */}

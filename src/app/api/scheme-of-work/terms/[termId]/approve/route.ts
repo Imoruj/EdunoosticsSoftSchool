@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
-import { createUserNotification } from "@/lib/userNotifications";
+import { createUserNotification, createUserNotifications } from "@/lib/userNotifications";
+import { resolveAudienceStudents } from "@/lib/studentAudience";
 
 // POST /api/scheme-of-work/terms/[termId]/approve
 // Admin approves a term. Takes a frozen snapshot of all week data for lesson building.
@@ -28,7 +29,16 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         const term = await prisma.schemeOfWorkTerm.findFirst({
             where: { id: params.termId },
             include: {
-                schemeOfWork: { select: { id: true, schoolId: true, ownerId: true, title: true } },
+                schemeOfWork: {
+                    select: {
+                        id: true,
+                        schoolId: true,
+                        ownerId: true,
+                        title: true,
+                        subjectId: true,
+                        classArms: { select: { classArmId: true } },
+                    },
+                },
                 term: { select: { name: true } },
                 weeks: {
                     orderBy: { weekNumber: "asc" },
@@ -109,6 +119,28 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
                 },
             });
         }
+
+        const audienceStudents = await resolveAudienceStudents({
+            schoolId,
+            classArmIds: term.schemeOfWork.classArms.map((entry) => entry.classArmId),
+            subjectId: term.schemeOfWork.subjectId,
+        });
+        const studentUserIds = audienceStudents
+            .map((student) => student.userId)
+            .filter((value): value is string => Boolean(value));
+
+        await createUserNotifications(studentUserIds, {
+            schoolId,
+            type: "RESULT_PUBLISHED",
+            title: "Scheme Of Work Published",
+            message: `${term.schemeOfWork.title} (${term.term?.name || `Term ${term.termNumber}`}) is now available in your portal.`,
+            href: `/dashboard/scheme-of-work/${term.schemeOfWork.id}?term=${term.termNumber}`,
+            metadata: {
+                schemeOfWorkId: term.schemeOfWork.id,
+                termId: term.id,
+                termNumber: term.termNumber,
+            },
+        });
 
         return NextResponse.json({ term: updated });
     } catch (error) {

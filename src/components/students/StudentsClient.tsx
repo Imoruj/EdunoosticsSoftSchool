@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 
 import { Student, StudentChangeRequest, ClassOption, SessionOption, SubjectOption, Pagination } from "./types";
+import { StudentPhotoEditor } from "./StudentPhotoEditor";
 import { StudentViewModal } from "./StudentViewModal";
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
@@ -53,6 +54,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [selectedClassArm, setSelectedClassArm] = useState("");
     const [selectedGender, setSelectedGender] = useState("");
     const router = useRouter();
+    const photoInputRef = useRef<HTMLInputElement | null>(null);
 
     // UI state
     const [viewStudent, setViewStudent] = useState<Student | null>(null);
@@ -63,6 +65,11 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [photoEditorDraft, setPhotoEditorDraft] = useState<{ student: Student; file: File } | null>(null);
+    const [photoPickerTargetStudent, setPhotoPickerTargetStudent] = useState<Student | null>(null);
+    const [photoActionPromptStudent, setPhotoActionPromptStudent] = useState<Student | null>(null);
+    const [uploadingPhotoStudentId, setUploadingPhotoStudentId] = useState<string | null>(null);
+    const [loadingExistingPhotoStudentId, setLoadingExistingPhotoStudentId] = useState<string | null>(null);
     const [showImportModal, setShowImportModal] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
     const [importing, setImporting] = useState(false);
@@ -802,10 +809,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     // Photo upload handler
     const handlePhotoUpload = async (file: File, studentId: string) => {
         try {
-            // 1. Upload file
             const formData = new FormData();
             formData.append("file", file);
             formData.append("studentId", studentId);
+            formData.append("type", "student_photo");
 
             const uploadRes = await fetch("/api/upload", {
                 method: "POST",
@@ -817,28 +824,156 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 throw new Error(errData.error || "Upload failed");
             }
             const { url } = await uploadRes.json();
-
-            // 2. Update student record
-            const updateRes = await fetch("/api/students", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    id: studentId,
-                    photoUrl: url
-                }),
-            });
-
-            if (!updateRes.ok) {
-                const errData = await updateRes.json().catch(() => ({}));
-                throw new Error(errData.error || "Failed to update student photo");
-            }
-
-            // 3. Refresh list
             toast.success("Student photo updated successfully.");
-            fetchStudents();
+            setStudents((currentStudents) =>
+                currentStudents.map((student) =>
+                    student.id === studentId
+                        ? { ...student, photoUrl: url }
+                        : student
+                )
+            );
+            setViewStudent((currentStudent) =>
+                currentStudent?.id === studentId
+                    ? { ...currentStudent, photoUrl: url }
+                    : currentStudent
+            );
+            setSelectedStudent((currentStudent) =>
+                currentStudent?.id === studentId
+                    ? { ...currentStudent, photoUrl: url }
+                    : currentStudent
+            );
+            return true;
         } catch (err) {
             console.error("Photo upload error:", err);
             toast.error(err instanceof Error ? err.message : "Failed to upload photo");
+            return false;
+        }
+    };
+
+    const openPhotoPickerForStudent = (student: Student) => {
+        setPhotoPickerTargetStudent(student);
+
+        if (photoInputRef.current) {
+            photoInputRef.current.value = "";
+            photoInputRef.current.click();
+        }
+    };
+
+    const createExistingPhotoFileName = (student: Student, mimeType?: string) => {
+        const sanitizedName = `${student.firstName}-${student.lastName}`
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+        const extension = mimeType?.split("/")[1]?.toLowerCase() || "jpg";
+        const normalizedExtension = extension === "jpeg" ? "jpg" : extension;
+
+        return `${sanitizedName || "student-photo"}-current.${normalizedExtension}`;
+    };
+
+    const handlePhotoFileSelected = (file: File, student: Student) => {
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select an image file.");
+            return;
+        }
+
+        setPhotoActionPromptStudent(null);
+        setPhotoEditorDraft({ student, file });
+    };
+
+    const handlePhotoPickerChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = event.target.files?.[0];
+        const targetStudent = photoPickerTargetStudent;
+
+        event.target.value = "";
+        setPhotoPickerTargetStudent(null);
+
+        if (selectedFile && targetStudent) {
+            handlePhotoFileSelected(selectedFile, targetStudent);
+        }
+    };
+
+    const handleStudentPhotoClick = (student: Student) => {
+        if (!canManageStudentPhotos) {
+            return;
+        }
+
+        if (
+            uploadingPhotoStudentId === student.id ||
+            loadingExistingPhotoStudentId === student.id
+        ) {
+            return;
+        }
+
+        if (student.photoUrl) {
+            setPhotoActionPromptStudent(student);
+            return;
+        }
+
+        openPhotoPickerForStudent(student);
+    };
+
+    const handleReplaceExistingPhoto = () => {
+        if (!photoActionPromptStudent) {
+            return;
+        }
+
+        const student = photoActionPromptStudent;
+        setPhotoActionPromptStudent(null);
+        openPhotoPickerForStudent(student);
+    };
+
+    const handleEditExistingPhoto = async () => {
+        const student = photoActionPromptStudent;
+        const photoUrl = student?.photoUrl;
+
+        if (!student || !photoUrl) {
+            return;
+        }
+
+        setLoadingExistingPhotoStudentId(student.id);
+
+        try {
+            const response = await fetch(photoUrl, { cache: "no-store" });
+            if (!response.ok) {
+                throw new Error("Failed to open the current photo.");
+            }
+
+            const blob = await response.blob();
+            if (!blob.type.startsWith("image/")) {
+                throw new Error("The current photo could not be loaded as an image.");
+            }
+
+            const file = new File(
+                [blob],
+                createExistingPhotoFileName(student, blob.type),
+                {
+                    type: blob.type || "image/jpeg",
+                    lastModified: Date.now(),
+                },
+            );
+
+            handlePhotoFileSelected(file, student);
+        } catch (err) {
+            console.error("Existing photo load error:", err);
+            toast.error(err instanceof Error ? err.message : "Failed to open the current photo.");
+        } finally {
+            setLoadingExistingPhotoStudentId(null);
+        }
+    };
+
+    const handlePhotoEditorDone = async (file: File) => {
+        if (!photoEditorDraft) {
+            return;
+        }
+
+        setUploadingPhotoStudentId(photoEditorDraft.student.id);
+        const uploadSucceeded = await handlePhotoUpload(file, photoEditorDraft.student.id);
+        setUploadingPhotoStudentId(null);
+
+        if (uploadSucceeded) {
+            setPhotoEditorDraft(null);
         }
     };
 
@@ -902,7 +1037,12 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 throw new Error(data.error || "Failed to reset password");
             }
 
-            toast.success(`${student.firstName} ${student.lastName}'s password was reset to 1234.`);
+            const temporaryPassword = typeof data.temporaryPassword === "string" ? data.temporaryPassword : null;
+            toast.success(
+                temporaryPassword
+                    ? `${student.firstName} ${student.lastName}'s temporary password is ${temporaryPassword}.`
+                    : `${student.firstName} ${student.lastName}'s password was reset successfully.`
+            );
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to reset password";
             toast.error(message);
@@ -1307,22 +1447,27 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                     </div>
 
                                                     {canManageStudentPhotos && (
-                                                        <label className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                                                            <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                accept="image/*"
-                                                                onChange={(e) => {
-                                                                    if (e.target.files?.[0]) {
-                                                                        handlePhotoUpload(e.target.files[0], student.id);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            className={`absolute inset-0 rounded-full flex items-center justify-center transition-opacity ${
+                                                            uploadingPhotoStudentId === student.id || loadingExistingPhotoStudentId === student.id
+                                                                ? "bg-black/60 opacity-100"
+                                                                : "bg-black/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                                                            }`}
+                                                            onClick={() => handleStudentPhotoClick(student)}
+                                                            disabled={uploadingPhotoStudentId === student.id || loadingExistingPhotoStudentId === student.id}
+                                                            aria-label={student.photoUrl ? "Edit or replace student photo" : "Upload student photo"}
+                                                            title={student.photoUrl ? "Edit or replace student photo" : "Upload student photo"}
+                                                        >
+                                                            {uploadingPhotoStudentId === student.id || loadingExistingPhotoStudentId === student.id ? (
+                                                                <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                                                            ) : (
+                                                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            )}
+                                                        </button>
                                                     )}
                                                 </div>
                                                 <div className="ml-4">
@@ -2237,7 +2382,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     Reset password for <span className="font-semibold">{passwordResetTarget.firstName} {passwordResetTarget.lastName}</span>?
                                 </p>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    The new temporary password will be <span className="font-semibold">1234</span>.
+                                    A new student-specific temporary password will be generated for this account.
                                 </p>
                             </div>
                             <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
@@ -2260,6 +2405,66 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     </div>
                 </div>
             )}
+            <input
+                ref={photoInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*"
+                disabled={Boolean(uploadingPhotoStudentId || loadingExistingPhotoStudentId)}
+                onChange={handlePhotoPickerChange}
+            />
+            {photoActionPromptStudent && (
+                <div className="fixed inset-0 z-[95] overflow-y-auto">
+                    <div className="flex min-h-screen items-center justify-center p-4">
+                        <div
+                            className="fixed inset-0 bg-slate-950/45"
+                            onClick={() => {
+                                if (loadingExistingPhotoStudentId !== photoActionPromptStudent.id) {
+                                    setPhotoActionPromptStudent(null);
+                                }
+                            }}
+                        />
+
+                        <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
+                            <div className="border-b border-slate-200 px-6 py-5">
+                                <h3 className="text-lg font-semibold text-slate-900">Student photo</h3>
+                                <p className="mt-2 text-sm text-slate-600">
+                                    {photoActionPromptStudent.firstName} {photoActionPromptStudent.lastName} already has a photo.
+                                    Do you want to edit the current one or replace it with a new image?
+                                </p>
+                            </div>
+                            <div className="space-y-3 px-6 py-5">
+                                <button
+                                    type="button"
+                                    onClick={handleEditExistingPhoto}
+                                    disabled={loadingExistingPhotoStudentId === photoActionPromptStudent.id}
+                                    className="btn-primary w-full justify-center"
+                                >
+                                    {loadingExistingPhotoStudentId === photoActionPromptStudent.id ? "Opening current photo..." : "Edit current photo"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleReplaceExistingPhoto}
+                                    disabled={loadingExistingPhotoStudentId === photoActionPromptStudent.id}
+                                    className="btn-secondary w-full justify-center"
+                                >
+                                    Replace with new photo
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setPhotoActionPromptStudent(null)}
+                                    disabled={loadingExistingPhotoStudentId === photoActionPromptStudent.id}
+                                    className="btn-secondary"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Student View Modal */}
             {viewStudent && (
                 <StudentViewModal
@@ -2267,6 +2472,22 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     onClose={() => setViewStudent(null)}
                 />
             )}
+            <StudentPhotoEditor
+                file={photoEditorDraft?.file ?? null}
+                isOpen={Boolean(photoEditorDraft)}
+                isSaving={Boolean(photoEditorDraft && uploadingPhotoStudentId === photoEditorDraft.student.id)}
+                studentName={
+                    photoEditorDraft
+                        ? `${photoEditorDraft.student.firstName} ${photoEditorDraft.student.lastName}`
+                        : ""
+                }
+                onClose={() => {
+                    if (!uploadingPhotoStudentId) {
+                        setPhotoEditorDraft(null);
+                    }
+                }}
+                onDone={handlePhotoEditorDone}
+            />
         </div >
     );
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { prismaDirect } from "@/lib/prisma";
+import { getSafeServerSession } from "@/lib/server-session";
+import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 
 const USER_NOTIFICATION_TABLE_HINTS = [
     "UserNotification",
@@ -82,14 +82,7 @@ function buildScoreReviewHref(
 
 export async function GET(req: NextRequest) {
     try {
-        let session;
-        try {
-            session = await getServerSession(authOptions);
-        } catch (sessionError) {
-            console.warn("Session resolution failed for /api/notifications", sessionError);
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
+        const session = await getSafeServerSession("/api/notifications");
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -101,77 +94,103 @@ export async function GET(req: NextRequest) {
         const limitParam = Number(new URL(req.url).searchParams.get("limit") || 6);
         const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 20) : 6;
 
-        const dbNotificationsPromise = prisma.userNotification.findMany({
-            where: { userId: user.id },
-            orderBy: { createdAt: "desc" },
-            take: limit,
-            select: {
-                id: true,
-                type: true,
-                title: true,
-                message: true,
-                href: true,
-                metadata: true,
-                createdAt: true,
-                isRead: true,
-            },
-        }).catch((error) => {
-            if (isMissingPrismaRelationError(error, USER_NOTIFICATION_TABLE_HINTS)) {
-                console.warn("User notification table is missing. Falling back to system-only notifications.", error);
-                return [] as Array<{
-                    id: string;
-                    type: string;
-                    title: string;
-                    message: string;
-                    href: string | null;
-                    metadata: any;
-                    createdAt: Date;
-                    isRead: boolean;
-                }>;
-            }
-            throw error;
-        });
+        const dbNotifications = await withPrismaRetry(
+            "/api/notifications user notifications",
+            async () => {
+                try {
+                    return await prismaDirect.userNotification.findMany({
+                        where: { userId: user.id },
+                        orderBy: { createdAt: "desc" },
+                        take: limit,
+                        select: {
+                            id: true,
+                            type: true,
+                            title: true,
+                            message: true,
+                            href: true,
+                            metadata: true,
+                            createdAt: true,
+                            isRead: true,
+                        },
+                    });
+                } catch (error) {
+                    if (isMissingPrismaRelationError(error, USER_NOTIFICATION_TABLE_HINTS)) {
+                        console.warn(
+                            "User notification table is missing. Falling back to system-only notifications.",
+                            error
+                        );
+                        return [] as Array<{
+                            id: string;
+                            type: string;
+                            title: string;
+                            message: string;
+                            href: string | null;
+                            metadata: any;
+                            createdAt: Date;
+                            isRead: boolean;
+                        }>;
+                    }
 
-        const [dbNotifications, pendingUploadCount, pendingUploadRequests] = await Promise.all([
-            dbNotificationsPromise,
-            isAdmin
-                ? prisma.scoreUploadRequest.count({
-                    where: {
-                        schoolId: user.schoolId,
-                        status: "PENDING",
-                    },
-                })
-                : Promise.resolve(0),
-            isAdmin
-                ? prisma.scoreUploadRequest.findMany({
-                    where: {
-                        schoolId: user.schoolId,
-                        status: "PENDING",
-                    },
-                    orderBy: { createdAt: "desc" },
-                    take: limit,
-                    select: {
-                        id: true,
-                        createdAt: true,
-                        studentCount: true,
-                        uploader: { select: { firstName: true, lastName: true } },
-                        subject: { select: { name: true } },
-                        term: {
-                            select: {
-                                name: true,
-                                session: { select: { name: true } },
-                            },
-                        },
-                        classArm: {
-                            select: {
-                                armName: true,
-                                class: { select: { name: true } },
-                            },
-                        },
-                    },
-                })
-                : Promise.resolve([] as any[]),
-        ]);
+                    throw error;
+                }
+            }
+        );
+
+        let pendingUploadCount = 0;
+        let pendingUploadRequests: any[] = [];
+
+        if (isAdmin && user.schoolId) {
+            try {
+                [pendingUploadCount, pendingUploadRequests] = await withPrismaRetry(
+                    "/api/notifications pending uploads",
+                    () =>
+                        prismaDirect.$transaction([
+                            prismaDirect.scoreUploadRequest.count({
+                                where: {
+                                    schoolId: user.schoolId,
+                                    status: "PENDING",
+                                },
+                            }),
+                            prismaDirect.scoreUploadRequest.findMany({
+                                where: {
+                                    schoolId: user.schoolId,
+                                    status: "PENDING",
+                                },
+                                orderBy: { createdAt: "desc" },
+                                take: limit,
+                                select: {
+                                    id: true,
+                                    createdAt: true,
+                                    studentCount: true,
+                                    uploader: { select: { firstName: true, lastName: true } },
+                                    subject: { select: { name: true } },
+                                    term: {
+                                        select: {
+                                            name: true,
+                                            session: { select: { name: true } },
+                                        },
+                                    },
+                                    classArm: {
+                                        select: {
+                                            armName: true,
+                                            class: { select: { name: true } },
+                                        },
+                                    },
+                                },
+                            }),
+                        ])
+                );
+            } catch (error) {
+                if (!isTransientPrismaError(error)) {
+                    throw error;
+                }
+
+                console.warn(
+                    "Pending upload notifications are temporarily unavailable because the database is busy.",
+                    error
+                );
+            }
+        }
 
         const workflowNotifications = dbNotifications.map((entry) => ({
             id: `workflow:${entry.id}`,
@@ -220,6 +239,14 @@ export async function GET(req: NextRequest) {
             notifications,
         });
     } catch (error: any) {
+        if (isTransientPrismaError(error)) {
+            console.warn("Notifications temporarily unavailable because the database is busy.", error);
+            return NextResponse.json({
+                pendingUploadCount: 0,
+                notifications: [],
+            });
+        }
+
         console.error("Error fetching notifications:", error);
         return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
     }

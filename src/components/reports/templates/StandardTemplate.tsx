@@ -1,6 +1,9 @@
 import React from "react";
 import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { ReportCardData } from "../types";
+import { formatPublishedDate } from "../formatPublishedDate";
+import { formatScore } from "../scoreFormatting";
+import { formatStudentFullName } from "../formatStudentFullName";
 
 // Register fonts if needed, but for now we'll stick to standard Helvetica/Times.
 
@@ -390,6 +393,8 @@ interface SectionStyle {
 const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
     const { student, school, term, attendance, academic, affective, psychomotor, comments, config, reportType } = data;
     const isHalfTerm = reportType === "halfTerm";
+    const publishedDateLabel = formatPublishedDate(comments.publishedAt);
+    const studentFullName = formatStudentFullName(student);
 
     const showOption = (key: string) => {
         if (!config?.displayOptions) return true;
@@ -492,9 +497,7 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                     {showOption('showName') && (
                         <View style={[styles.dataRow, personalStyles.borderOnly]}>
                             <Text style={[styles.dataLabel, personalStyles.borderOnly]}>Name</Text>
-                            <Text style={[styles.dataValue, styles.bold, { textTransform: "uppercase" }]}>
-                                {student.lastName} {student.firstName}
-                            </Text>
+                            <Text style={[styles.dataValue, styles.bold]}>{studentFullName}</Text>
                         </View>
                     )}
                     {showOption('showDOB') && (
@@ -568,15 +571,15 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                         <Text style={[styles.statsHeader, attStyles.header, { borderBottomWidth: 1 }]}>SUMMARY</Text>
                         <View style={[styles.scoreSummaryRow, attStyles.borderOnly]}>
                             <Text style={[styles.scoreLabel, attStyles.borderOnly]}>Total Score Possible</Text>
-                            <Text style={styles.scoreValueBox}>{academic.summary.totalObtainable || (academic.subjects.length * 100)}</Text>
+                            <Text style={styles.scoreValueBox}>{formatScore(academic.summary.totalObtainable || (academic.subjects.length * 100))}</Text>
                         </View>
                         <View style={[styles.scoreSummaryRow, attStyles.borderOnly]}>
                             <Text style={[styles.scoreLabel, attStyles.borderOnly]}>Total Score Obtained</Text>
-                            <Text style={styles.scoreValueBox}>{academic.summary.totalScore}</Text>
+                            <Text style={styles.scoreValueBox}>{formatScore(academic.summary.totalScore)}</Text>
                         </View>
                         <View style={[styles.scoreSummaryRow, { borderBottomWidth: 0 }]}>
                             <Text style={[styles.scoreLabel, attStyles.borderOnly]}>Average %</Text>
-                            <Text style={styles.scoreValueBox}>{academic.summary.average.toFixed(1)}</Text>
+                            <Text style={styles.scoreValueBox}>{formatScore(academic.summary.average)}</Text>
                         </View>
                     </View>
                 </View>
@@ -674,42 +677,42 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                             {showOption('showTermHistory') && (
                                 <>
                                     <View style={[styles.tableCol, academicStyles.borderOnly, { width: 35 }]}>
-                                        <Text style={styles.tableCell}>{sub.cumulativeTotal1 || "-"}</Text>
+                                        <Text style={styles.tableCell}>{formatScore(sub.cumulativeTotal1)}</Text>
                                     </View>
                                     <View style={[styles.tableCol, academicStyles.borderOnly, { width: 35 }]}>
-                                        <Text style={styles.tableCell}>{sub.cumulativeTotal2 || "-"}</Text>
+                                        <Text style={styles.tableCell}>{formatScore(sub.cumulativeTotal2)}</Text>
                                     </View>
                                 </>
                             )}
                             {showOption('showCA1') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{sub.ca1 || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.ca1)}</Text>
                                 </View>
                             )}
                             {showOption('showCA2') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{sub.ca2 || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.ca2)}</Text>
                                 </View>
                             )}
                             {showOption('showCA3') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{sub.ca3 || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.ca3)}</Text>
                                 </View>
                             )}
                             {showOption('showCA') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 25 }]}>
-                                    <Text style={styles.tableCell}>{sub.ca}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.ca)}</Text>
                                 </View>
                             )}
                             {showOption('showExam') && !isHalfTerm && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 25 }]}>
-                                    <Text style={styles.tableCell}>{sub.exam}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.exam)}</Text>
                                 </View>
                             )}
 
                             {showOption('showSubjectTotal') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 30 }]}>
-                                    <Text style={[styles.tableCell, styles.bold]}>{sub.total}</Text>
+                                    <Text style={[styles.tableCell, styles.bold]}>{formatScore(sub.total)}</Text>
                                 </View>
                             )}
 
@@ -730,17 +733,17 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
 
                             {showOption('showSubjectAverage') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 30 }]}>
-                                    <Text style={styles.tableCell}>{sub.subjectClassAverage?.toFixed(0) || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.subjectClassAverage)}</Text>
                                 </View>
                             )}
 
                             {showOption('showSubjectLowHigh') && !isHalfTerm && (
                                 <>
                                     <View style={[styles.tableCol, academicStyles.borderOnly, { width: 30 }]}>
-                                        <Text style={styles.tableCell}>{sub.subjectLowestScore !== undefined ? sub.subjectLowestScore : "-"}</Text>
+                                        <Text style={styles.tableCell}>{formatScore(sub.subjectLowestScore)}</Text>
                                     </View>
                                     <View style={[styles.tableCol, academicStyles.borderOnly, { width: 30 }]}>
-                                        <Text style={styles.tableCell}>{sub.subjectHighestScore !== undefined ? sub.subjectHighestScore : "-"}</Text>
+                                        <Text style={styles.tableCell}>{formatScore(sub.subjectHighestScore)}</Text>
                                     </View>
                                 </>
                             )}
@@ -869,7 +872,7 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                                 {showOption('showTeacherComment') ? (comments.classTeacher || "") : ""}
                             </Text>
                             {showOption('showTeacherSign') && <Text style={[styles.footerSign, footerStyles.borderOnly]}>Sign: __________</Text>}
-                            {showOption('showTeacherDate') && <Text style={styles.footerDate}>Date: __________</Text>}
+                            {showOption('showTeacherDate') && <Text style={styles.footerDate}>{publishedDateLabel}</Text>}
                         </View>
                     )}
                     {showOption('showPrincipalSection') && (
@@ -887,7 +890,7 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                                     )}
                                 </View>
                             )}
-                            {showOption('showPrincipalDate') && <Text style={styles.footerDate}>Date: __________</Text>}
+                            {showOption('showPrincipalDate') && <Text style={styles.footerDate}>{publishedDateLabel}</Text>}
                         </View>
                     )}
                 </View>

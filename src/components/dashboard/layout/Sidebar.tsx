@@ -6,33 +6,10 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { navigation, isGroup, NavItem } from "./navigation";
 import { Avatar } from "@/components/ui/Avatar";
-import { useSchoolFeatures } from "@/hooks/useSchoolFeatures";
-import type { FeatureFlags } from "@/lib/getSchoolFeatures";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { handleUnauthorizedApiResponse } from "@/lib/client-session";
 
 // Map nav item names → feature flag keys
-const navItemFeatureKey: Partial<Record<string, keyof FeatureFlags>> = {
-    "Students": "studentsEnabled",
-    "Teachers": "teachersEnabled",
-    "Score Entry": "scoreEntryEnabled",
-    "Score Reviews": "scoreReviewsEnabled",
-    "Subjects": "subjectsEnabled",
-    "Lessons": "lessonsEnabled",
-    "Quizzes": "quizzesEnabled",
-    "Assignments": "assignmentsEnabled",
-    "Scheme of Work": "schemesOfWorkEnabled",
-    "Classes": "classesEnabled",
-    "Broadsheet": "broadsheetEnabled",
-    "Transcripts": "transcriptsEnabled",
-    "Report Cards": "reportCardsEnabled",
-    "Historical Records": "legacyRecordsEnabled",
-    "Upload Requests": "uploadRequestsEnabled",
-    "Attendance": "attendanceEnabled",
-    "Behaviour & Skills": "behaviourEnabled",
-    "Communication": "communicationEnabled",
-    "Fees": "feesEnabled",
-    "Settings": "settingsEnabled",
-};
 
 interface SidebarProps {
     sidebarOpen: boolean;
@@ -190,31 +167,15 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
     const loginType = (session?.user as any)?.loginType;
     const userRoles: string[] = (session?.user as any)?.roles || [];
-    const isTeacher = userRoles.includes("CLASS_TEACHER") || userRoles.includes("SUBJECT_TEACHER");
     const isSuperAdmin = userRoles.includes("SUPER_ADMIN");
-    const { features } = useSchoolFeatures();
+    const { permissions } = useUserPermissions();
 
     const isItemVisible = useCallback((item: NavItem): boolean => {
-        if (loginType === "parent") {
-            return ["My Wards", "Report Cards", "Fees", "My Profile"].includes(item.name);
-        }
-        if (loginType === "student") {
-            return ["Dashboard", "My Profile", "Report Cards", "Assignments", "My Progress", "Lessons", "Quizzes", "Scheme of Work"].includes(item.name);
-        }
-        if (loginType === "admin" || !loginType) {
-            if (isTeacher) {
-                if (item.name === "My Wards" || item.name === "Fees") return false;
-            }
-            if (!item.roles.some(role => userRoles.includes(role))) return false;
-            // Super admin sees everything; feature flags only apply to school users
-            if (!isSuperAdmin) {
-                const featureKey = navItemFeatureKey[item.name];
-                if (featureKey && !features[featureKey]) return false;
-            }
-            return true;
-        }
+        if (!item.roles.some((role) => userRoles.includes(role))) return false;
+        if (!isSuperAdmin && item.permissionKey && !permissions[item.permissionKey]) return false;
+        if (!loginType) return true;
         return true;
-    }, [loginType, userRoles, isTeacher, isSuperAdmin, features]);
+    }, [isSuperAdmin, loginType, permissions, userRoles]);
 
     return (
         <>

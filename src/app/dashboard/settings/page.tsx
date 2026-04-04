@@ -79,6 +79,8 @@ interface SchoolData {
     website: string | null;
     logoUrl: string | null;
     principalSignatureUrl: string | null;
+    allowStudentAdmissionNumberLogin: boolean;
+    allowStudentEmailLogin: boolean;
 }
 
 interface AssessmentTypeConfig {
@@ -175,11 +177,12 @@ export default function SettingsPage() {
                             { id: "academic", label: "Academic Settings" },
                             { id: "grading", label: "Grading System" },
                             { id: "behavior", label: "Behavior & Skills" },
+                            { id: "role-access", label: "Role Access", href: "/dashboard/settings/roles" },
                             { id: "report-cards", label: "Report Card Templates", href: "/dashboard/settings/report-cards" },
                             { id: "broadsheet", label: "Broadsheet Templates", href: "/dashboard/settings/broadsheet" },
                             { id: "notifications", label: "Notifications" },
                             { id: "term-mapping", label: "Term Mapping" },
-                            { id: "ai", label: "AI & Comments" },
+                            { id: "ai", label: "AI Comment Settings" },
                         ].map((tab) =>
                             tab.href ? (
                                 <Link
@@ -245,6 +248,8 @@ function SchoolProfileSettings() {
     const [logoBase64, setLogoBase64] = useState<string | null>(null);
     const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
     const [signatureBase64, setSignatureBase64] = useState<string | null>(null);
+    const [allowStudentAdmissionNumberLogin, setAllowStudentAdmissionNumberLogin] = useState(true);
+    const [allowStudentEmailLogin, setAllowStudentEmailLogin] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const signatureInputRef = useRef<HTMLInputElement>(null);
 
@@ -254,13 +259,15 @@ function SchoolProfileSettings() {
 
     const fetchSchool = async () => {
         try {
-            const response = await fetch("/api/school");
+            const response = await fetch("/api/school", { cache: "no-store" });
             if (await handleUnauthorizedApiResponse(response)) {
                 return;
             }
             if (response.ok) {
                 const data = await response.json();
                 setSchool(data);
+                setAllowStudentAdmissionNumberLogin(data.allowStudentAdmissionNumberLogin ?? true);
+                setAllowStudentEmailLogin(data.allowStudentEmailLogin ?? true);
             } else {
                 setError(await readApiError(response, "Failed to load school data"));
             }
@@ -279,6 +286,12 @@ function SchoolProfileSettings() {
 
         const formData = new FormData(e.currentTarget);
 
+        if (!allowStudentAdmissionNumberLogin && !allowStudentEmailLogin) {
+            setError("Enable at least one student login method.");
+            setSaving(false);
+            return;
+        }
+
         try {
             const response = await fetch("/api/school", {
                 method: "PUT",
@@ -294,6 +307,8 @@ function SchoolProfileSettings() {
                     website: formData.get("website"),
                     logoUrl: logoBase64 || school?.logoUrl,
                     principalSignatureUrl: signatureBase64 || school?.principalSignatureUrl,
+                    allowStudentAdmissionNumberLogin,
+                    allowStudentEmailLogin,
                 }),
             });
 
@@ -304,9 +319,17 @@ function SchoolProfileSettings() {
             if (response.ok) {
                 const data = await response.json();
                 setSchool(data);
+                setAllowStudentAdmissionNumberLogin(data.allowStudentAdmissionNumberLogin ?? true);
+                setAllowStudentEmailLogin(data.allowStudentEmailLogin ?? true);
 
                 // Dispatch event to update sidebar
                 window.dispatchEvent(new Event("school-updated"));
+                window.dispatchEvent(new CustomEvent("student-login-modes-updated", {
+                    detail: {
+                        allowStudentAdmissionNumberLogin: data.allowStudentAdmissionNumberLogin ?? true,
+                        allowStudentEmailLogin: data.allowStudentEmailLogin ?? true,
+                    },
+                }));
 
                 setShowSuccessModal(true);
             } else {
@@ -466,6 +489,61 @@ function SchoolProfileSettings() {
                         />
                     </div>
                 </div>
+            </div>
+
+            <div className="pt-6 border-t border-gray-200">
+                <div className="flex items-start justify-between gap-6 mb-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Student Login Settings</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Control whether students sign in with admission number, email address, or both.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                        <div className="pr-4">
+                            <p className="text-sm font-semibold text-gray-900">Admission number login</p>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Students can sign in with their admission number.
+                            </p>
+                        </div>
+                        <span className="relative inline-flex shrink-0 items-center">
+                            <input
+                                type="checkbox"
+                                name="allowStudentAdmissionNumberLogin"
+                                checked={allowStudentAdmissionNumberLogin}
+                                onChange={(e) => setAllowStudentAdmissionNumberLogin(e.target.checked)}
+                                className="peer sr-only"
+                            />
+                            <span className="h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+                        </span>
+                    </label>
+
+                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                        <div className="pr-4">
+                            <p className="text-sm font-semibold text-gray-900">Email login</p>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Students can sign in with the generated school email address.
+                            </p>
+                        </div>
+                        <span className="relative inline-flex shrink-0 items-center">
+                            <input
+                                type="checkbox"
+                                name="allowStudentEmailLogin"
+                                checked={allowStudentEmailLogin}
+                                onChange={(e) => setAllowStudentEmailLogin(e.target.checked)}
+                                className="peer sr-only"
+                            />
+                            <span className="h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+                        </span>
+                    </label>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-500">
+                    At least one student login method must remain enabled.
+                </p>
             </div>
 
             <div className="pt-6 border-t border-gray-200">
@@ -912,6 +990,147 @@ interface GradingRuleRow {
     minScore: number;
     maxScore: number;
     remark: string;
+}
+
+function AISettingsContent() {
+    const [settings, setSettings] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const response = await fetch("/api/settings/ai");
+            if (response.ok) {
+                const data = await response.json();
+                setSettings(data);
+            }
+        } catch (error) {
+            console.error("Failed to load AI settings");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const saveSettings = async () => {
+        if (!settings) return;
+
+        setSaving(true);
+        try {
+            const response = await fetch("/api/settings/ai", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    teacherPrompt: settings.teacherPrompt,
+                    principalPrompt: settings.principalPrompt,
+                    useMultiAgentComments: settings.useMultiAgentComments,
+                }),
+            });
+
+            if (response.ok) {
+                setShowSuccessModal(true);
+            }
+        } catch (error) {
+            console.error("Failed to save AI settings");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="card p-6 flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        );
+    }
+
+    if (!settings) {
+        return (
+            <div className="card p-6 text-center text-gray-500">
+                Failed to load AI settings
+            </div>
+        );
+    }
+
+    return (
+        <div className="card p-6 space-y-6">
+            <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Comment Generation System</h3>
+                <p className="text-sm text-gray-600 mb-4">Configure how AI generates teacher and principal comments for report cards.</p>
+            </div>
+
+            {/* Multi-Agent Toggle */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h4 className="font-semibold text-gray-900 mb-1">Multi-Agent AI System</h4>
+                        <p className="text-sm text-gray-600">Use specialized AI agents for data collection, analysis, generation, and validation. Provides more accurate and validated comments.</p>
+                    </div>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={settings.useMultiAgentComments || false}
+                            onChange={(e) => setSettings({ ...settings, useMultiAgentComments: e.target.checked })}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">{settings.useMultiAgentComments ? "Enabled" : "Disabled"}</span>
+                    </label>
+                </div>
+            </div>
+
+            {/* Teacher Prompt */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Teacher Comment Template</label>
+                <textarea
+                    value={settings.teacherPrompt || ""}
+                    onChange={(e) => setSettings({ ...settings, teacherPrompt: e.target.value })}
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter the prompt template for teacher comments..."
+                />
+                <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                    <strong>Available Placeholders:</strong> {"{{name}}"}name, {"{{firstName}}"}first name, {"{{gender}}"}gender, {"{{term}}"}term, {"{{average}}"}average score, {"{{position}}"}class position, {"{{attendance}}"}attendance, {"{{traits}}"}behavioral traits, {"{{behaviour}}"}behavior ratings, {"{{skills}}"}skill ratings
+                </div>
+            </div>
+
+            {/* Principal Prompt */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Principal Comment Template</label>
+                <textarea
+                    value={settings.principalPrompt || ""}
+                    onChange={(e) => setSettings({ ...settings, principalPrompt: e.target.value })}
+                    rows={5}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter the prompt template for principal comments..."
+                />
+                <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-3 rounded">
+                    <strong>Available Placeholders:</strong> {"{{name}}"}name, {"{{firstName}}"}first name, {"{{average}}"}average score, {"{{position}}"}class position, {"{{attendance}}"}attendance, {"{{traits}}"}behavioral traits
+                </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t">
+                <button
+                    onClick={saveSettings}
+                    disabled={saving}
+                    className="btn-primary"
+                >
+                    {saving ? "Saving..." : "Save Settings"}
+                </button>
+            </div>
+
+            <SuccessModal
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+                title="Settings Saved"
+                message="AI comment settings have been saved successfully."
+            />
+        </div>
+    );
 }
 
 function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCategory; categoryLabel: string }) {
@@ -1928,135 +2147,6 @@ function NotificationSettings() {
             <div className="flex justify-end pt-4 border-t border-gray-200">
                 <button className="btn-primary">Save Changes</button>
             </div>
-        </div>
-    );
-}
-
-function AISettingsContent() {
-    const [settings, setSettings] = useState({
-        teacherPrompt: "",
-        principalPrompt: ""
-    });
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
-    const fetchSettings = async () => {
-        try {
-            const res = await fetch("/api/settings/ai");
-            if (res.ok) {
-                const data = await res.json();
-                setSettings({
-                    teacherPrompt: data.teacherPrompt,
-                    principalPrompt: data.principalPrompt
-                });
-            }
-        } catch (err) {
-            setError("Failed to load AI settings");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSave = async () => {
-        setSaving(true);
-        setError("");
-        setSuccess("");
-        try {
-            const res = await fetch("/api/settings/ai", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(settings)
-            });
-            if (res.ok) {
-                setShowSuccessModal(true);
-            } else {
-                setError("Failed to save settings");
-            }
-        } catch (err) {
-            setError("Failed to save settings");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="card p-6 flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-6">
-            <div className="card p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Comment Generation</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                    Configure the criteria (prompts) used by the AI to generate student report card comments.
-                    Use placeholders like <code className="bg-gray-100 px-1 rounded">{"{{name}}"}</code>,
-                    <code className="bg-gray-100 px-1 rounded">{"{{average}}"}</code>,
-                    <code className="bg-gray-100 px-1 rounded">{"{{position}}"}</code>, etc.
-                </p>
-
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Class Teacher&apos;s Comment Criteria
-                        </label>
-                        <textarea
-                            className="input w-full h-32"
-                            value={settings.teacherPrompt}
-                            onChange={(e) => setSettings({ ...settings, teacherPrompt: e.target.value })}
-                            placeholder="Describe how the teacher's comment should be generated..."
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Available placeholders: {"{{name}}, {{gender}}, {{term}}, {{average}}, {{position}}, {{attendance}}, {{traits}}"}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Principal&apos;s Closing Remark Criteria
-                        </label>
-                        <textarea
-                            className="input w-full h-32"
-                            value={settings.principalPrompt}
-                            onChange={(e) => setSettings({ ...settings, principalPrompt: e.target.value })}
-                            placeholder="Describe how the principal's remark should be generated..."
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Available placeholders: {"{{name}}, {{average}}, {{position}}, {{attendance}}"}
-                        </p>
-                    </div>
-                </div>
-
-                {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
-                {success && <p className="text-green-600 text-sm mt-4">{success}</p>}
-
-                <div className="flex justify-end pt-6 border-t border-gray-200 mt-6">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="btn-primary"
-                    >
-                        {saving ? "Saving..." : "Save AI Settings"}
-                    </button>
-                </div>
-            </div>
-
-            <SuccessModal
-                isOpen={showSuccessModal}
-                onClose={() => setShowSuccessModal(false)}
-                title="AI Settings Updated!"
-                message="Your custom AI comment generation criteria have been saved successfully."
-            />
         </div>
     );
 }

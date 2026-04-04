@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
@@ -16,6 +15,10 @@ import {
     isPhotoOnlyUpdate,
     normalizeStudentUpdatePayload,
 } from "@/lib/students/changeRequests";
+import {
+    ensureUniqueStudentEmail,
+    generateStudentDefaultPasswordHash,
+} from "@/lib/studentLoginCredentials";
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -592,23 +595,20 @@ export async function POST(req: NextRequest) {
         }
 
         // Generate default password hash (PIN: 1234)
-        const defaultPin = "1234";
-        const passwordHash = await bcrypt.hash(defaultPin, 10);
-
-        // Generate dummy email for student user — add timestamp to avoid collisions
-        const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
-        let studentEmail = `${cleanAdmission}@student.edunostics.local`;
-
-        // Check if user email already exists (from previously deleted student, etc.)
-        const existingUser = await prisma.user.findUnique({
-            where: { email: studentEmail },
+        const studentEmail = await ensureUniqueStudentEmail(prisma, {
+            firstName,
+            lastName,
+            schoolName: user.schoolName || "",
+        });
+        const { passwordHash } = await generateStudentDefaultPasswordHash({
+            firstName,
+            lastName,
+            admissionNumber: finalAdmissionNumber,
+            schoolName: user.schoolName || "",
         });
 
-        if (existingUser) {
-            // Append a unique suffix to avoid collision
-            const suffix = Date.now().toString(36);
-            studentEmail = `${cleanAdmission}-${suffix}@student.edunostics.local`;
-        }
+        // Generate dummy email for student user — add timestamp to avoid collisions
+
 
         const student = await prisma.student.create({
             data: {
@@ -636,7 +636,8 @@ export async function POST(req: NextRequest) {
                         lastName,
                         roles: [UserRole.STUDENT],
                         school: { connect: { id: schoolId } },
-                        isActive: true
+                        isActive: true,
+                        mustChangePassword: true,
                     }
                 }
             },

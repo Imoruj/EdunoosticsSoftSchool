@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import {
+    resolveCompositeSubjectContext,
+    syncCompositeEnrollments,
+} from "@/lib/composite-subjects";
 
 // GET: Fetch enrollment status for a class arm / subject / term
 export async function GET(req: NextRequest) {
@@ -55,7 +59,19 @@ export async function GET(req: NextRequest) {
             where: { id: termId! },
             include: { session: { select: { id: true, isCurrent: true } } }
         });
+        const selectedSessionId = selectedTerm?.session?.id ?? null;
         const isCurrentSession = selectedTerm?.session?.isCurrent ?? true;
+
+        if (!selectedSessionId) {
+            return NextResponse.json({ error: "Invalid term" }, { status: 400 });
+        }
+
+        const subjectContext = await resolveCompositeSubjectContext(prisma, {
+            schoolId,
+            sessionId: selectedSessionId,
+            subjectId,
+            classArmId,
+        });
 
         let studentFilter: any = { schoolId };
 
@@ -131,6 +147,9 @@ export async function GET(req: NextRequest) {
             enrolledCount: hasEnrollments
                 ? data.filter(s => s.isEnrolled).length
                 : 0,
+            subjectKind: subjectContext.mode,
+            parentSubjectId: subjectContext.parentSubjectId,
+            parentSubjectName: subjectContext.parentSubjectName,
         });
     } catch (error: any) {
         console.error("Error fetching enrollments:", error);
@@ -190,6 +209,30 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        const selectedTerm = await prisma.term.findUnique({
+            where: { id: termId },
+            include: { session: { select: { id: true } } },
+        });
+        const selectedSessionId = selectedTerm?.session?.id ?? null;
+
+        if (!selectedSessionId) {
+            return NextResponse.json({ error: "Invalid term" }, { status: 400 });
+        }
+
+        const subjectContext = await resolveCompositeSubjectContext(prisma, {
+            schoolId,
+            sessionId: selectedSessionId,
+            subjectId,
+            classArmId,
+        });
+
+        if (subjectContext.mode === "COMPOSITE_COMPONENT") {
+            return NextResponse.json(
+                { error: "Enrollment is managed on the parent subject" },
+                { status: 400 }
+            );
+        }
+
         if (action === "enrollAll") {
             // Enroll all students in the class arm
             const allStudents = await prisma.student.findMany({
@@ -210,6 +253,16 @@ export async function POST(req: NextRequest) {
                     })
                 )
             );
+
+            if (subjectContext.mode === "COMPOSITE_PARENT") {
+                await syncCompositeEnrollments(prisma, {
+                    schoolId,
+                    sessionId: selectedSessionId,
+                    classArmId,
+                    termId,
+                    parentSubjectId: subjectId,
+                });
+            }
 
             return NextResponse.json({
                 message: `All ${ids.length} students enrolled successfully`,
@@ -237,6 +290,16 @@ export async function POST(req: NextRequest) {
                 )
             );
 
+            if (subjectContext.mode === "COMPOSITE_PARENT") {
+                await syncCompositeEnrollments(prisma, {
+                    schoolId,
+                    sessionId: selectedSessionId,
+                    classArmId,
+                    termId,
+                    parentSubjectId: subjectId,
+                });
+            }
+
             return NextResponse.json({
                 message: `${studentIds.length} student(s) enrolled successfully`,
             });
@@ -254,6 +317,16 @@ export async function POST(req: NextRequest) {
                     })
                 )
             );
+
+            if (subjectContext.mode === "COMPOSITE_PARENT") {
+                await syncCompositeEnrollments(prisma, {
+                    schoolId,
+                    sessionId: selectedSessionId,
+                    classArmId,
+                    termId,
+                    parentSubjectId: subjectId,
+                });
+            }
 
             return NextResponse.json({
                 message: `${studentIds.length} student(s) unenrolled successfully`,

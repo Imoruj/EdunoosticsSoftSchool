@@ -4,8 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, getSchoolAdminUserIds } from "@/lib/userNotifications";
 import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
-import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
 import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import {
+    recomputeCompositeParentScores,
+    resolveSubjectScoreProfile,
+} from "@/lib/composite-subjects";
 
 // Grade calculation helper
 function normalizeScoreForRuleScale(total: number, rules: any[]) {
@@ -113,13 +116,24 @@ export async function PATCH(
         const scoreData = request.scoreData as any[];
         const schoolId = user.schoolId;
 
-        const [allGradingRules, assessmentTypes, classArmWithLevel] = await Promise.all([
+        const selectedTerm = await prisma.term.findUnique({
+            where: { id: request.termId },
+            include: { session: { select: { id: true } } },
+        });
+
+        if (!selectedTerm?.session?.id) {
+            return NextResponse.json({ error: "Invalid term on upload request." }, { status: 400 });
+        }
+
+        const [allGradingRules, resolvedProfile, classArmWithLevel] = await Promise.all([
             prisma.gradingRule.findMany({
                 where: { schoolId },
                 orderBy: { minScore: "desc" },
             }),
-            getResolvedAssessmentTypesForClassContext(prisma, {
+            resolveSubjectScoreProfile(prisma, {
                 schoolId,
+                sessionId: selectedTerm.session.id,
+                subjectId: request.subjectId,
                 classArmId: request.classArmId,
             }),
             prisma.classArm.findFirst({
@@ -127,6 +141,14 @@ export async function PATCH(
                 include: { class: { select: { level: true } } },
             }),
         ]);
+        const assessmentTypes = resolvedProfile.assessmentTypes;
+
+        if (resolvedProfile.context.mode === "COMPOSITE_PARENT") {
+            return NextResponse.json(
+                { error: "Composite parent subjects are calculated from component subjects and cannot receive direct uploads." },
+                { status: 400 }
+            );
+        }
 
         if (!classArmWithLevel) {
             return NextResponse.json(
@@ -179,6 +201,8 @@ export async function PATCH(
                     total: totals.adjustedTotal,
                     grade,
                     remark,
+                    isDerived: false,
+                    derivedFromCompositeConfigId: null,
                     updatedById: user.id,
                 },
                 create: {
@@ -192,6 +216,8 @@ export async function PATCH(
                     total: totals.adjustedTotal,
                     grade,
                     remark,
+                    isDerived: false,
+                    derivedFromCompositeConfigId: null,
                     createdById: user.id,
                     updatedById: user.id,
                 },
@@ -231,6 +257,21 @@ export async function PATCH(
                 },
             }),
         ]);
+
+        if (
+            resolvedProfile.context.mode === "COMPOSITE_COMPONENT" &&
+            resolvedProfile.context.config?.id
+        ) {
+            await recomputeCompositeParentScores(prisma, {
+                schoolId,
+                sessionId: selectedTerm.session.id,
+                classArmId: request.classArmId,
+                termId: request.termId,
+                compositeConfigId: resolvedProfile.context.config.id,
+                studentIds: uniqueStudentIds,
+                actorUserId: user.id,
+            });
+        }
 
         const adminIds = await getSchoolAdminUserIds(schoolId);
 

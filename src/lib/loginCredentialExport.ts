@@ -5,6 +5,7 @@ export interface LoginCredentialRow {
     loginIdentifier: string;
     context: string;
     accountStatus: string;
+    temporaryPassword?: string;
 }
 
 export interface LoginCredentialExportPayload {
@@ -14,6 +15,7 @@ export interface LoginCredentialExportPayload {
     loginInstructions: string;
     loginIdentifierLabel: string;
     contextLabel: string;
+    temporaryPasswordLabel?: string;
     rows: LoginCredentialRow[];
 }
 
@@ -27,10 +29,12 @@ function escapeHtml(value: string): string {
 }
 
 export function downloadLoginCredentialsCsv(payload: LoginCredentialExportPayload, filename: string) {
+    const includeTemporaryPasswords = payload.rows.some((row) => Boolean(row.temporaryPassword));
     const headers = [
         "Name",
         payload.contextLabel,
         payload.loginIdentifierLabel,
+        ...(includeTemporaryPasswords ? [payload.temporaryPasswordLabel || "Temporary Password"] : []),
         "Portal URL",
         "Login Instructions",
         "Account Status",
@@ -40,6 +44,7 @@ export function downloadLoginCredentialsCsv(payload: LoginCredentialExportPayloa
         sanitizeCsv(row.name),
         sanitizeCsv(row.context),
         sanitizeCsv(row.loginIdentifier),
+        ...(includeTemporaryPasswords ? [sanitizeCsv(row.temporaryPassword || "")] : []),
         sanitizeCsv(payload.portalUrl),
         sanitizeCsv(payload.loginInstructions),
         sanitizeCsv(row.accountStatus),
@@ -68,6 +73,7 @@ export function printLoginCredentials(payload: LoginCredentialExportPayload) {
         throw new Error("Popup blocked. Please allow popups to print the credential sheet.");
     }
 
+    const includeTemporaryPasswords = payload.rows.some((row) => Boolean(row.temporaryPassword));
     const generatedAt = new Date().toLocaleString();
     const rowsHtml = payload.rows.map((row, index) => `
         <tr>
@@ -75,6 +81,7 @@ export function printLoginCredentials(payload: LoginCredentialExportPayload) {
             <td>${escapeHtml(row.name)}</td>
             <td>${escapeHtml(row.context)}</td>
             <td>${escapeHtml(row.loginIdentifier)}</td>
+            ${includeTemporaryPasswords ? `<td>${escapeHtml(row.temporaryPassword || "")}</td>` : ""}
             <td>${escapeHtml(payload.portalUrl)}</td>
             <td>${escapeHtml(row.accountStatus)}</td>
         </tr>
@@ -111,7 +118,7 @@ export function printLoginCredentials(payload: LoginCredentialExportPayload) {
     <div class="note">
         <div><strong>Portal URL:</strong> ${escapeHtml(payload.portalUrl)}</div>
         <div><strong>Login:</strong> ${escapeHtml(payload.loginInstructions)}</div>
-        <div><strong>Password:</strong> Excluded by design.</div>
+        <div><strong>Password:</strong> ${includeTemporaryPasswords ? "Temporary passwords are included below. Students should change them after first login." : "Excluded by design."}</div>
     </div>
     <table>
         <thead>
@@ -120,6 +127,7 @@ export function printLoginCredentials(payload: LoginCredentialExportPayload) {
                 <th>Name</th>
                 <th>${escapeHtml(payload.contextLabel)}</th>
                 <th>${escapeHtml(payload.loginIdentifierLabel)}</th>
+                ${includeTemporaryPasswords ? `<th>${escapeHtml(payload.temporaryPasswordLabel || "Temporary Password")}</th>` : ""}
                 <th>Portal URL</th>
                 <th>Account Status</th>
             </tr>

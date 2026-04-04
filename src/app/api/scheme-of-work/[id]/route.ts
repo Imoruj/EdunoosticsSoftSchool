@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { resolveVisibleSubjectIdsForStudent } from "@/lib/studentAudience";
 
 const SOW_FULL_INCLUDE = {
     terms: {
@@ -92,7 +93,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const schoolId = user.schoolId;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
-        const isStudent = roles.includes(UserRole.STUDENT);
+        const isStudent = roles.includes(UserRole.STUDENT) || user.loginType === "student";
         if (!schoolId) return NextResponse.json({ error: "No school associated" }, { status: 400 });
 
         const sowId = params.id?.trim();
@@ -109,9 +110,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const isOwner = full.ownerId === user.id;
         const isCollaborator = full.collaborators.some((c) => c.userId === user.id);
 
-        // Students can only see APPROVED SOWs
-        if (isStudent && full.status !== SowStatus.APPROVED) {
-            return NextResponse.json({ error: "Not found" }, { status: 404 });
+        if (isStudent) {
+            const studentProfile = await prisma.student.findUnique({
+                where: { userId: user.id },
+                select: {
+                    id: true,
+                    classArmId: true,
+                    classArm: { select: { classId: true } },
+                },
+            });
+
+            const visibleSubjectIds = new Set(
+                studentProfile?.id && studentProfile.classArmId
+                    ? await resolveVisibleSubjectIdsForStudent({
+                        schoolId,
+                        studentId: studentProfile.id,
+                        classArmId: studentProfile.classArmId,
+                    })
+                    : []
+            );
+            const hasArmRestriction = full.classArms.length > 0;
+            const matchesClass =
+                !!studentProfile?.classArm?.classId &&
+                full.class.id === studentProfile.classArm.classId;
+            const matchesArm =
+                !hasArmRestriction ||
+                full.classArms.some((entry) => entry.classArm.id === studentProfile?.classArmId);
+
+            if (
+                full.status !== SowStatus.APPROVED ||
+                !matchesClass ||
+                !matchesArm ||
+                !visibleSubjectIds.has(full.subject.id)
+            ) {
+                return NextResponse.json({ error: "Not found" }, { status: 404 });
+            }
         }
 
         // Non-admin teachers must be owner or collaborator

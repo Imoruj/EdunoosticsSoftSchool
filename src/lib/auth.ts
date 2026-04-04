@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
+import { ensureUniqueStudentEmail, getSchoolInitials } from "@/lib/studentLoginCredentials";
 
 type AuthUserRecord = {
     id: string;
@@ -20,6 +21,8 @@ type AuthUserRecord = {
         isActive?: boolean | null;
         registrationStatus?: string | null;
         registrationRejectionReason?: string | null;
+        allowStudentAdmissionNumberLogin?: boolean | null;
+        allowStudentEmailLogin?: boolean | null;
     } | null;
     // Populated via Prisma include for admin login
     classArms?: Array<{ armName: string; class: { name: string } }> | null;
@@ -28,6 +31,36 @@ type AuthUserRecord = {
     // Populated via Prisma include for parent login
     parent?: { id?: string | null } | null;
 };
+
+const ADMIN_LOGIN_ROLES = ["SUPER_ADMIN", "SCHOOL_ADMIN", "PROPRIETOR", "CLASS_TEACHER", "SUBJECT_TEACHER"];
+
+function canUseSelectedLoginType(roles: string[], loginType: "admin" | "parent" | "student") {
+    if (loginType === "admin") {
+        return roles.some((role) => ADMIN_LOGIN_ROLES.includes(role));
+    }
+
+    if (loginType === "parent") {
+        return roles.includes("PARENT");
+    }
+
+    return roles.includes("STUDENT");
+}
+
+function buildLoginTypeMismatchMessage(roles: string[]) {
+    if (roles.includes("STUDENT")) {
+        return "This account is registered as a student account. Select the Student tab to sign in.";
+    }
+
+    if (roles.includes("PARENT")) {
+        return "This account is registered as a parent account. Select the Parent tab to sign in.";
+    }
+
+    if (roles.some((role) => ADMIN_LOGIN_ROLES.includes(role))) {
+        return "This account must sign in from the Admin/Teacher tab.";
+    }
+
+    return "This account cannot sign in through the selected tab.";
+}
 
 function assertActiveAccount(user: AuthUserRecord): asserts user is AuthUserRecord & { passwordHash: string } {
     if (!user.passwordHash) {
@@ -52,6 +85,110 @@ function assertActiveAccount(user: AuthUserRecord): asserts user is AuthUserReco
         }
         throw new Error("Your school account is inactive. Please contact support.");
     }
+}
+
+function assertStudentLoginModeAllowed(
+    school: AuthUserRecord["school"],
+    mode: "email" | "admissionNumber"
+) {
+    const allowEmail = school?.allowStudentEmailLogin ?? true;
+    const allowAdmissionNumber = school?.allowStudentAdmissionNumberLogin ?? true;
+
+    if (!allowEmail && !allowAdmissionNumber) {
+        throw new Error("Student login is disabled for this school. Please contact your school administrator.");
+    }
+
+    if (mode === "email" && !allowEmail) {
+        throw new Error("Student email login is disabled for this school. Use your admission number instead.");
+    }
+
+    if (mode === "admissionNumber" && !allowAdmissionNumber) {
+        throw new Error("Student admission number login is disabled for this school. Use your email address instead.");
+    }
+}
+
+async function resolveStudentUserByCanonicalEmail(identifier: string) {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const [localPart, rawDomainPart] = normalizedIdentifier.split("@");
+
+    if (!localPart || !rawDomainPart) {
+        return null;
+    }
+
+    const domainPart = rawDomainPart.replace(/\.com$/i, "");
+
+    const schools = await prisma.school.findMany({
+        where: {
+            allowStudentEmailLogin: true,
+        },
+        select: {
+            id: true,
+            name: true,
+        },
+    });
+
+    const candidateSchoolIds = schools
+        .filter((school) => getSchoolInitials(school.name).toLowerCase() === domainPart)
+        .map((school) => school.id);
+
+    if (candidateSchoolIds.length === 0) {
+        return null;
+    }
+
+    const students = await prisma.student.findMany({
+        where: {
+            schoolId: { in: candidateSchoolIds },
+            userId: { not: null },
+        },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            admissionNumber: true,
+            photoUrl: true,
+            userId: true,
+            user: {
+                include: {
+                    school: true,
+                },
+            },
+        },
+    });
+
+    for (const student of students) {
+        if (!student.user || !student.userId) {
+            continue;
+        }
+
+        const canonicalEmail = await ensureUniqueStudentEmail(prisma, {
+            firstName: student.firstName,
+            lastName: student.lastName,
+            schoolName: student.user.school?.name || "",
+            excludeUserId: student.userId,
+        });
+
+        if (canonicalEmail.toLowerCase() !== normalizedIdentifier) {
+            continue;
+        }
+
+        if (student.user.email.toLowerCase() !== canonicalEmail) {
+            await prisma.user.update({
+                where: { id: student.userId },
+                data: { email: canonicalEmail },
+            });
+            student.user.email = canonicalEmail;
+        }
+
+        return {
+            user: {
+                ...student.user,
+                student: { photoUrl: student.photoUrl },
+            } as AuthUserRecord,
+            studentId: student.id,
+        };
+    }
+
+    return null;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -83,8 +220,13 @@ export const authOptions: NextAuthOptions = {
 
                 try {
                     if (loginType === "admin") {
-                        user = await prisma.user.findUnique({
-                            where: { email: identifier.toLowerCase() },
+                        user = await prisma.user.findFirst({
+                            where: {
+                                email: {
+                                    equals: identifier.toLowerCase(),
+                                    mode: "insensitive",
+                                },
+                            },
                             include: {
                                 school: true,
                                 classArms: {
@@ -92,6 +234,10 @@ export const authOptions: NextAuthOptions = {
                                 },
                             },
                         }) as AuthUserRecord | null;
+
+                        if (user && !canUseSelectedLoginType(user.roles, "admin")) {
+                            throw new Error(buildLoginTypeMismatchMessage(user.roles));
+                        }
                     } else if (loginType === "parent") {
                         user = await prisma.user.findFirst({
                             where: {
@@ -99,33 +245,74 @@ export const authOptions: NextAuthOptions = {
                                     equals: identifier.toLowerCase(),
                                     mode: "insensitive",
                                 },
-                                roles: { has: "PARENT" },
                             },
                             include: { school: true, parent: true },
                         }) as AuthUserRecord | null;
 
+                        if (user && !canUseSelectedLoginType(user.roles, "parent")) {
+                            throw new Error(buildLoginTypeMismatchMessage(user.roles));
+                        }
+
                         loginProfileId = user?.parent?.id || null;
                     } else if (loginType === "student") {
-                        const student = await prisma.student.findFirst({
-                            where: {
-                                admissionNumber: {
-                                    equals: identifier,
-                                    mode: "insensitive",
+                        if (identifier.includes("@")) {
+                            const matchedUser = await prisma.user.findFirst({
+                                where: {
+                                    email: {
+                                        equals: identifier.toLowerCase(),
+                                        mode: "insensitive",
+                                    },
                                 },
-                            },
-                            include: { user: { include: { school: true } } },
-                        });
+                                include: {
+                                    school: true,
+                                    studentAccount: true,
+                                },
+                            });
 
-                        if (student) {
-                            if (!student.user) {
-                                throw new Error("Your account is not set up yet. Please contact your school administrator.");
+                            if (matchedUser && !canUseSelectedLoginType(matchedUser.roles, "student")) {
+                                throw new Error(buildLoginTypeMismatchMessage(matchedUser.roles));
                             }
 
-                            user = {
-                                ...student.user,
-                                student,
-                            } as AuthUserRecord;
-                            loginProfileId = student.id;
+                            if (matchedUser) {
+                                assertStudentLoginModeAllowed(matchedUser.school, "email");
+                                user = {
+                                    ...matchedUser,
+                                    student: matchedUser.studentAccount || null,
+                                } as AuthUserRecord;
+                                loginProfileId = matchedUser.studentAccount?.id || null;
+                            }
+
+                            if (!user) {
+                                const resolvedStudent = await resolveStudentUserByCanonicalEmail(identifier);
+                                if (resolvedStudent) {
+                                    assertStudentLoginModeAllowed(resolvedStudent.user.school, "email");
+                                    user = resolvedStudent.user;
+                                    loginProfileId = resolvedStudent.studentId;
+                                }
+                            }
+                        } else {
+                            const student = await prisma.student.findFirst({
+                                where: {
+                                    admissionNumber: {
+                                        equals: identifier,
+                                        mode: "insensitive",
+                                    },
+                                },
+                                include: { user: { include: { school: true } } },
+                            });
+
+                            if (student) {
+                                if (!student.user) {
+                                    throw new Error("Your account is not set up yet. Please contact your school administrator.");
+                                }
+
+                                assertStudentLoginModeAllowed(student.user.school, "admissionNumber");
+                                user = {
+                                    ...student.user,
+                                    student,
+                                } as AuthUserRecord;
+                                loginProfileId = student.id;
+                            }
                         }
                     }
 
@@ -222,5 +409,6 @@ export const authOptions: NextAuthOptions = {
     },
     debug: process.env.NODE_ENV === "development",
     secret: process.env.NEXTAUTH_SECRET,
+    trustHost: true,
 };
 

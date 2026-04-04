@@ -6,10 +6,10 @@ import bcrypt from "bcryptjs";
 import { UserRole } from "@prisma/client";
 
 const VALID_ROLES: UserRole[] = [
+    UserRole.PROPRIETOR,
     UserRole.SUBJECT_TEACHER,
     UserRole.CLASS_TEACHER,
-    UserRole.SCHOOL_ADMIN,
-    UserRole.SUPER_ADMIN
+    UserRole.SCHOOL_ADMIN
 ];
 
 interface ImportResult {
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
             } catch (error: any) {
                 result.failed++;
                 result.errors.push(
-                    `Row ${i + 1}: Failed to create teacher "${firstName} ${lastName}" - ${error.message}`
+                    `Row ${i + 1}: Failed to create staff member "${firstName} ${lastName}" - ${error.message}`
                 );
             }
         }

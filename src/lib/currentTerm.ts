@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withPrismaRetry } from "@/lib/prisma-transient";
 
 /**
  * Automatically sync the `isCurrent` flag on Term (and AcademicSession)
@@ -11,10 +12,12 @@ export async function syncCurrentTerm(schoolId: string): Promise<void> {
     const now = new Date();
 
     // Fetch all sessions with their terms for this school
-    const sessions = await prisma.academicSession.findMany({
-        where: { schoolId },
-        include: { terms: { orderBy: { termNumber: "asc" } } },
-    });
+    const sessions = await withPrismaRetry("syncCurrentTerm sessions", () =>
+        prisma.academicSession.findMany({
+            where: { schoolId },
+            include: { terms: { orderBy: { termNumber: "asc" } } },
+        })
+    );
 
     // Respect admin-configured current session/term if already set.
     // Only fall back to date-based auto-selection when current flags are missing/invalid.
@@ -61,29 +64,31 @@ export async function syncCurrentTerm(schoolId: string): Promise<void> {
     }
 
     // Update in a transaction
-    await prisma.$transaction(async (tx) => {
-        // Set correct session as current, unset others
-        await tx.academicSession.updateMany({
-            where: { schoolId, id: { not: matchedSessionId! } },
-            data: { isCurrent: false },
-        });
-        await tx.academicSession.update({
-            where: { id: matchedSessionId! },
-            data: { isCurrent: true },
-        });
+    await withPrismaRetry("syncCurrentTerm transaction", () =>
+        prisma.$transaction(async (tx) => {
+            // Set correct session as current, unset others
+            await tx.academicSession.updateMany({
+                where: { schoolId, id: { not: matchedSessionId! } },
+                data: { isCurrent: false },
+            });
+            await tx.academicSession.update({
+                where: { id: matchedSessionId! },
+                data: { isCurrent: true },
+            });
 
-        // Unset all terms in this school's sessions
-        const allSessionIds = sessions.map((s) => s.id);
-        await tx.term.updateMany({
-            where: { sessionId: { in: allSessionIds } },
-            data: { isCurrent: false },
-        });
+            // Unset all terms in this school's sessions
+            const allSessionIds = sessions.map((s) => s.id);
+            await tx.term.updateMany({
+                where: { sessionId: { in: allSessionIds } },
+                data: { isCurrent: false },
+            });
 
-        // Set the matched term as current
-        await tx.term.update({
-            where: { id: matchedTermId! },
-            data: { isCurrent: true },
-        });
-    });
+            // Set the matched term as current
+            await tx.term.update({
+                where: { id: matchedTermId! },
+                data: { isCurrent: true },
+            });
+        })
+    );
 }
 

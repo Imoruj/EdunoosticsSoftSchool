@@ -4,6 +4,14 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { SubjectKind, UserRole } from "@prisma/client";
+
+const STAFF_MANAGEMENT_ROLES: UserRole[] = [
+    UserRole.PROPRIETOR,
+    UserRole.SUBJECT_TEACHER,
+    UserRole.CLASS_TEACHER,
+    UserRole.SCHOOL_ADMIN,
+];
 
 type SubjectAssignmentInput = {
     subjectId: string;
@@ -95,6 +103,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             rawSubjectIds,
             rawSubjectClassArmIds
         );
+        const normalizedRoles = Array.isArray(roles)
+            ? Array.from(new Set(
+                roles
+                    .filter((role: unknown): role is string => typeof role === "string")
+                    .map((role) => role.trim().toUpperCase())
+                    .filter(Boolean)
+            ))
+            : null;
         const shouldSyncSubjectAssignments =
             Array.isArray(rawSubjectAssignments) ||
             Array.isArray(rawSubjectIds) ||
@@ -106,10 +122,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         });
 
         if (!existingTeacher) {
-            return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+            return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
         }
 
-        const effectiveRoles: string[] = roles || existingTeacher.roles || [];
+        if (normalizedRoles) {
+            const invalidRoles = normalizedRoles.filter((role) => !STAFF_MANAGEMENT_ROLES.includes(role as UserRole));
+            if (invalidRoles.length > 0) {
+                return NextResponse.json(
+                    { error: `Unsupported staff role(s): ${invalidRoles.join(", ")}` },
+                    { status: 400 }
+                );
+            }
+        }
+
+        const effectiveRoles: string[] = normalizedRoles || existingTeacher.roles || [];
         if (effectiveRoles.includes("SUBJECT_TEACHER") && shouldSyncSubjectAssignments && normalizedSubjectAssignments.length === 0) {
             return NextResponse.json(
                 { error: "Subject teachers must have at least one subject-class assignment." },
@@ -125,7 +151,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
                     lastName: lastName ?? undefined,
                     email: email ?? undefined,
                     phone: phone ?? undefined,
-                    roles: roles ? (roles as any) : undefined,
+                    roles: normalizedRoles ? (normalizedRoles as UserRole[]) : undefined,
                     isActive: isActive !== undefined ? isActive : undefined
                 },
                 select: {
@@ -139,7 +165,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             });
 
             // If CLASS_TEACHER role is removed, unassign class teacher records.
-            if (roles && !roles.includes("CLASS_TEACHER")) {
+            if (normalizedRoles && !normalizedRoles.includes("CLASS_TEACHER")) {
                 await tx.classArm.updateMany({
                     where: { classTeacherId: user.id },
                     data: { classTeacherId: null }
@@ -161,7 +187,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             }
 
             // If SUBJECT_TEACHER role is removed, clear all subject assignments.
-            if (roles && !roles.includes("SUBJECT_TEACHER")) {
+            if (normalizedRoles && !normalizedRoles.includes("SUBJECT_TEACHER")) {
                 await tx.teacherSubject.deleteMany({
                     where: { teacherId: user.id }
                 });
@@ -175,7 +201,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
                 const [subjects, classArms] = await Promise.all([
                     tx.subject.findMany({
                         where: { id: { in: subjectIds }, schoolId },
-                        select: { id: true, name: true }
+                        select: { id: true, name: true, subjectKind: true }
                     }),
                     tx.classArm.findMany({
                         where: { id: { in: classArmAssignmentIds }, class: { schoolId } },
@@ -189,6 +215,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
                 if (subjects.length !== subjectIds.length) {
                     throw new Error("One or more selected subjects are invalid.");
+                }
+                if (subjects.some((subject: any) => subject.subjectKind === SubjectKind.COMPOSITE_PARENT)) {
+                    throw new Error("Composite parent subjects cannot be assigned directly to subject teachers.");
                 }
                 if (classArms.length !== classArmAssignmentIds.length) {
                     throw new Error("One or more selected classes are invalid.");
@@ -262,13 +291,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         return NextResponse.json({
             success: true,
             teacher: updatedTeacher,
-            message: "Teacher updated successfully"
+            message: "Staff member updated successfully"
         });
 
     } catch (error: any) {
-        console.error("Error updating teacher:", error);
+        console.error("Error updating staff member:", error);
         return NextResponse.json(
-            { error: error.message || "Failed to update teacher" },
+            { error: error.message || "Failed to update staff member" },
             { status: 500 }
         );
     }
@@ -293,7 +322,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         });
 
         if (!existingTeacher) {
-            return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+            return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
         }
 
         // Instead of hard delete, we usually deactivate
@@ -304,12 +333,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         return NextResponse.json({
             success: true,
-            message: "Teacher deactivated successfully"
+            message: "Staff member deactivated successfully"
         });
     } catch (error: any) {
-        console.error("Error deleting teacher:", error);
+        console.error("Error deactivating staff member:", error);
         return NextResponse.json(
-            { error: "Failed to deactivate teacher" },
+            { error: "Failed to deactivate staff member" },
             { status: 500 }
         );
     }

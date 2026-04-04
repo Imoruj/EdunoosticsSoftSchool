@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { sanitizeCsv } from "@/lib/csvUtils";
-import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { resolveSubjectScoreProfile } from "@/lib/composite-subjects";
 
 export async function GET(req: NextRequest) {
     try {
@@ -52,11 +52,28 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Fetch assessment types for column headers
-        const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+        const selectedTerm = await prisma.term.findUnique({
+            where: { id: termId },
+            include: { session: { select: { id: true, isCurrent: true } } },
+        });
+
+        if (!selectedTerm?.session?.id) {
+            return NextResponse.json({ error: "Invalid term" }, { status: 400 });
+        }
+
+        const { assessmentTypes, context } = await resolveSubjectScoreProfile(prisma, {
             schoolId,
+            sessionId: selectedTerm.session.id,
+            subjectId,
             classArmId,
         });
+
+        if (context.mode === "COMPOSITE_PARENT") {
+            return NextResponse.json(
+                { error: "Templates cannot be generated for composite parent subjects. Enter scores on the component subjects instead." },
+                { status: 400 }
+            );
+        }
 
         // Map assessment types to score field names
         const caTypes = assessmentTypes
@@ -89,11 +106,6 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Determine if the selected term belongs to the current session
-        const selectedTerm = await prisma.term.findUnique({
-            where: { id: termId! },
-            include: { session: { select: { id: true, isCurrent: true } } }
-        });
         const isCurrentSession = selectedTerm?.session?.isCurrent ?? true;
 
         // Fetch enrolled students (same logic as scores API)

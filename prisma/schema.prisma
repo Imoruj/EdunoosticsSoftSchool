@@ -23,6 +23,8 @@ model School {
   slug                        String?                  @unique // URL-friendly name for branded login
   principalSignatureUrl       String?
   stampUrl                    String?
+  allowStudentAdmissionNumberLogin Boolean            @default(true)
+  allowStudentEmailLogin      Boolean                  @default(true)
   isActive                    Boolean                  @default(true)
   registrationStatus          SchoolRegistrationStatus @default(APPROVED)
   registrationRejectionReason String?
@@ -45,6 +47,7 @@ model School {
   communicationConfig         CommunicationConfig?
   broadsheetConfig            BroadsheetConfig?
   featureControls             SchoolFeatureControl?
+  rolePermissionControls      RolePermissionControl[]
   backgroundJobs              BackgroundJob[]
   scoreSheetWorkflows         ScoreSheetWorkflow[]
   classReportWorkflows        ClassReportWorkflow[]
@@ -246,10 +249,10 @@ model CompositeSubjectComponent {
   compositeConfigId  String
   componentSubjectId String
   orderIndex         Int                    @default(0)
-  ca1Max             Int                    @default(0)
-  ca2Max             Int                    @default(0)
-  ca3Max             Int                    @default(0)
-  examMax            Int                    @default(0)
+  ca1Max             Decimal                @default(0) @db.Decimal(5, 2)
+  ca2Max             Decimal                @default(0) @db.Decimal(5, 2)
+  ca3Max             Decimal                @default(0) @db.Decimal(5, 2)
+  examMax            Decimal                @default(0) @db.Decimal(5, 2)
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   compositeConfig    CompositeSubjectConfig @relation(fields: [compositeConfigId], references: [id], onDelete: Cascade)
@@ -587,7 +590,9 @@ model AiSettings {
   id              String   @id @default(cuid())
   schoolId        String   @unique
   teacherPrompt   String   @default("Generate a professional and encouraging class teacher's comment for a student based on these details:\nName: {{name}}\nGender: {{gender}}\nTerm: {{term}}\nAverage Score: {{average}}%\nClass Position: {{position}}\nAttendance: {{attendance}}\nTraits: {{traits}}\n\nThe comment should be around 2-3 sentences.")
-  principalPrompt String   @default("Generate a concise principal's closing remark for a student based on their overall performance:\nAverage Score: {{average}}%\nClass Position: {{position}}\nAttendance: {{attendance}}.\n\nKeep it professional and focused on growth.")
+  principalPrompt        String   @default("Generate a concise principal's closing remark for a student based on their overall performance:\nAverage Score: {{average}}%\nClass Position: {{position}}\nAttendance: {{attendance}}.\n\nKeep it professional and focused on growth.")
+  useMultiAgentComments Boolean  @default(false)
+  commentConfig   Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -608,6 +613,7 @@ enum SchoolCategory {
 enum UserRole {
   SUPER_ADMIN
   SCHOOL_ADMIN
+  PROPRIETOR
   CLASS_TEACHER
   SUBJECT_TEACHER
   PARENT
@@ -956,6 +962,19 @@ model SchoolFeatureControl {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model RolePermissionControl {
+  id          String   @id @default(cuid())
+  schoolId    String
+  role        UserRole
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, role])
+  @@index([schoolId])
 }
 
 model BroadsheetConfig {

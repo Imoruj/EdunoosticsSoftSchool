@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Academic } from "../../types";
+import { formatScore } from "../../scoreFormatting";
 
 interface AcademicTableWebProps {
     academic: Academic;
@@ -67,23 +68,23 @@ export const AcademicTableWeb: React.FC<AcademicTableWebProps> = ({ academic, di
                             <td className="border p-2 font-bold bg-gray-50 text-left whitespace-nowrap" style={borderStyle}>{sub.name}</td>
                             {showOption('showTermHistory') && (
                                 <>
-                                    <td className="border p-1 text-center" style={borderStyle}>{sub.cumulativeTotal1 || "-"}</td>
-                                    <td className="border p-1 text-center" style={borderStyle}>{sub.cumulativeTotal2 || "-"}</td>
+                                    <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.cumulativeTotal1)}</td>
+                                    <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.cumulativeTotal2)}</td>
                                 </>
                             )}
-                            {showOption('showCA1') && <td className="border p-1 text-center" style={borderStyle}>{sub.ca1}</td>}
-                            {showOption('showCA2') && <td className="border p-1 text-center" style={borderStyle}>{sub.ca2}</td>}
-                            {showOption('showCA3') && <td className="border p-1 text-center" style={borderStyle}>{sub.ca3}</td>}
-                            {showOption('showCA') && <td className="border p-1 text-center" style={borderStyle}>{sub.ca}</td>}
-                            {showOption('showExam') && <td className="border p-1 text-center" style={borderStyle}>{sub.exam}</td>}
-                            {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={borderStyle}>{sub.total}</td>}
+                            {showOption('showCA1') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca1)}</td>}
+                            {showOption('showCA2') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca2)}</td>}
+                            {showOption('showCA3') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca3)}</td>}
+                            {showOption('showCA') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca)}</td>}
+                            {showOption('showExam') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.exam)}</td>}
+                            {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={borderStyle}>{formatScore(sub.total)}</td>}
                             {showOption('showGrade') && <td className="border p-1 text-center font-bold" style={borderStyle}>{sub.grade}</td>}
                             {showOption('showSubjectPosition') && <td className="border p-1 text-center text-[9px]" style={borderStyle}>{sub.subjectPosition}</td>}
-                            {showOption('showSubjectAverage') && <td className="border p-1 text-center text-[9px]" style={borderStyle}>{sub.subjectClassAverage}</td>}
+                            {showOption('showSubjectAverage') && <td className="border p-1 text-center text-[9px]" style={borderStyle}>{formatScore(sub.subjectClassAverage)}</td>}
                             {showOption('showSubjectLowHigh') && (
                                 <>
-                                    <td className="border p-1 text-center text-[9px]" style={borderStyle}>{sub.subjectLowestScore}</td>
-                                    <td className="border p-1 text-center text-[9px]" style={borderStyle}>{sub.subjectHighestScore}</td>
+                                    <td className="border p-1 text-center text-[9px]" style={borderStyle}>{formatScore(sub.subjectLowestScore)}</td>
+                                    <td className="border p-1 text-center text-[9px]" style={borderStyle}>{formatScore(sub.subjectHighestScore)}</td>
                                 </>
                             )}
                             {showOption('showRemarks') && <td className="border p-2 text-center text-[9px] whitespace-nowrap" style={borderStyle}>{sub.remark}</td>}

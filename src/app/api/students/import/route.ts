@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import {
+    ensureUniqueStudentEmail,
+    generateStudentDefaultPasswordHash,
+    syncStudentTemporaryLoginCredentials,
+} from "@/lib/studentLoginCredentials";
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -644,11 +649,17 @@ export async function POST(req: NextRequest) {
                     let studentUserId = existingStudent?.userId || null;
 
                     if (!studentUserId && createLoginAccounts) {
-                        const defaultPin = "1234";
-                        const passwordHash = await bcrypt.hash(defaultPin, 10);
-                        const cleanAdmission = finalAdmissionNumber.replace(/[^a-zA-Z0-9]/g, "-");
-                        const studentEmailSeed = `${cleanAdmission}@student.edunostics.local`;
-                        const studentEmailFinal = await ensureUniqueUserEmail(tx, studentEmailSeed);
+                        const studentEmailFinal = await ensureUniqueStudentEmail(tx, {
+                            firstName: trimmedFirstName,
+                            lastName: trimmedLastName,
+                            schoolName: school?.name || "",
+                        });
+                        const { passwordHash } = await generateStudentDefaultPasswordHash({
+                            firstName: trimmedFirstName,
+                            lastName: trimmedLastName,
+                            admissionNumber: finalAdmissionNumber,
+                            schoolName: school?.name || "",
+                        });
 
                         const createdStudentUser = await tx.user.create({
                             data: {
@@ -659,20 +670,38 @@ export async function POST(req: NextRequest) {
                                 roles: [UserRole.STUDENT],
                                 schoolId,
                                 isActive,
+                                mustChangePassword: true,
                             },
                             select: { id: true },
                         });
 
                         studentUserId = createdStudentUser.id;
                     } else if (studentUserId) {
-                        await tx.user.update({
+                        const existingUser = await tx.user.findUnique({
                             where: { id: studentUserId },
-                            data: {
+                            select: { mustChangePassword: true },
+                        });
+
+                        if (school?.name && existingUser) {
+                            await syncStudentTemporaryLoginCredentials(tx, {
+                                userId: studentUserId,
                                 firstName: trimmedFirstName,
                                 lastName: trimmedLastName,
+                                admissionNumber: finalAdmissionNumber,
+                                schoolName: school.name,
+                                mustChangePassword: existingUser.mustChangePassword,
                                 isActive,
-                            },
-                        });
+                            });
+                        } else {
+                            await tx.user.update({
+                                where: { id: studentUserId },
+                                data: {
+                                    firstName: trimmedFirstName,
+                                    lastName: trimmedLastName,
+                                    isActive,
+                                },
+                            });
+                        }
                     }
 
                     const studentData: any = {

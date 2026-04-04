@@ -37,6 +37,7 @@ const roleLabels: Record<string, { label: string; color: string }> = {
     CLASS_TEACHER: { label: "Class Teacher", color: "bg-blue-100 text-blue-800" },
     SUBJECT_TEACHER: { label: "Subject Teacher", color: "bg-indigo-100 text-indigo-800" },
     SCHOOL_ADMIN: { label: "Admin", color: "bg-green-100 text-green-800" },
+    PROPRIETOR: { label: "Proprietor", color: "bg-amber-100 text-amber-800" },
 };
 
 export default function TeachersPage() {
@@ -130,7 +131,7 @@ export default function TeachersPage() {
         setLoading(true);
         try {
             const response = await fetch("/api/teachers");
-            if (!response.ok) throw new Error("Failed to fetch teachers");
+            if (!response.ok) throw new Error("Failed to fetch staff");
             const data = await response.json();
             setTeachers(data.teachers || []);
             setMetadata(data.metadata || { classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
@@ -180,7 +181,7 @@ export default function TeachersPage() {
     const totalTeachers = teachers.length;
     const activeTeachers = teachers.filter(t => t.isActive).length;
     const classTeachersCount = teachers.filter(t => t.roles.includes("CLASS_TEACHER")).length;
-    const adminsCount = teachers.filter(t => t.roles.includes("SCHOOL_ADMIN")).length;
+    const executiveCount = teachers.filter(t => t.roles.includes("SCHOOL_ADMIN") || t.roles.includes("PROPRIETOR")).length;
 
     const handleToggleStatus = async (teacherId: string, currentStatus: boolean) => {
         try {
@@ -193,7 +194,7 @@ export default function TeachersPage() {
 
             // Optimistic update
             setTeachers(prev => prev.map(t => t.id === teacherId ? { ...t, isActive: !currentStatus } : t));
-            setSuccessMessage(`Teacher ${!currentStatus ? "activated" : "deactivated"} successfully`);
+            setSuccessMessage(`Staff member ${!currentStatus ? "activated" : "deactivated"} successfully`);
             setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err: any) {
             setError(err.message || "Failed to toggle status");
@@ -355,9 +356,9 @@ export default function TeachersPage() {
             });
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Failed to save teacher");
+            if (!response.ok) throw new Error(data.error || "Failed to save staff member");
 
-            setSuccessMessage(data.message || `Teacher ${editingTeacher ? "updated" : "added"} successfully`);
+            setSuccessMessage(data.message || `Staff member ${editingTeacher ? "updated" : "added"} successfully`);
             setShowAddModal(false);
             setEditingTeacher(null);
             fetchTeachers(); // Refresh list
@@ -383,7 +384,7 @@ export default function TeachersPage() {
             "Doe",
             "john.doe@school.com",
             "08012345678",
-            "SUBJECT_TEACHER;CLASS_TEACHER",
+            "PROPRIETOR",
         ];
 
         const instructionRow = [
@@ -391,7 +392,7 @@ export default function TeachersPage() {
             "Required",
             "Required (must be unique)",
             "Optional",
-            "Required: SUBJECT_TEACHER, CLASS_TEACHER, SCHOOL_ADMIN, or SUPER_ADMIN (semicolon-separated for multiple)",
+            "Required: PROPRIETOR, SUBJECT_TEACHER, CLASS_TEACHER, or SCHOOL_ADMIN (semicolon-separated for multiple)",
         ];
 
         const csvContent = [
@@ -408,7 +409,7 @@ export default function TeachersPage() {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "teachers_import_template.csv");
+        link.setAttribute("download", "staff_import_template.csv");
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
@@ -439,7 +440,7 @@ export default function TeachersPage() {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || "Failed to import teachers");
+                throw new Error(result.error || "Failed to import staff");
             }
 
             setImportResults(result);
@@ -465,19 +466,19 @@ export default function TeachersPage() {
             const payload = await response.json() as LoginCredentialExportPayload & { error?: string };
 
             if (!response.ok) {
-                throw new Error(payload.error || "Failed to fetch teacher login credentials");
+                throw new Error(payload.error || "Failed to fetch staff login credentials");
             }
 
             if (action === "download") {
                 const timestamp = new Date().toISOString().split("T")[0];
-                downloadLoginCredentialsCsv(payload, `teacher_login_credentials_${timestamp}.csv`);
-                setSuccessMessage("Teacher login credentials downloaded.");
+                downloadLoginCredentialsCsv(payload, `staff_login_credentials_${timestamp}.csv`);
+                setSuccessMessage("Staff login credentials downloaded.");
                 setTimeout(() => setSuccessMessage(null), 3000);
             } else {
                 printLoginCredentials(payload);
             }
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to fetch teacher login credentials";
+            const message = err instanceof Error ? err.message : "Failed to fetch staff login credentials";
             setError(message);
         } finally {
             setCredentialAction(null);
@@ -489,14 +490,14 @@ export default function TeachersPage() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Teachers</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Manage teaching staff and assignments</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff</h1>
+                    <p className="text-slate-500 mt-1 font-medium">Manage teachers, executives, and school-level staff accounts</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <Button
                         variant="secondary"
                         onClick={downloadCSVTemplate}
-                        title="Download CSV template for bulk teacher upload"
+                        title="Download CSV template for bulk staff upload"
                     >
                         <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -538,7 +539,7 @@ export default function TeachersPage() {
                         <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Add Teacher
+                        Add Staff
                     </Button>
                 </div>
             </div>
@@ -597,8 +598,8 @@ export default function TeachersPage() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{adminsCount}</p>
-                            <p className="text-sm font-medium text-slate-500 mt-1">Administrators</p>
+                            <p className="text-2xl font-bold text-slate-900 leading-none">{executiveCount}</p>
+                            <p className="text-sm font-medium text-slate-500 mt-1">Executives</p>
                         </div>
                     </div>
                 </Card>
@@ -623,7 +624,7 @@ export default function TeachersPage() {
                     {/* Search */}
                     <div className="flex-1 relative">
                         <Input
-                            placeholder="Search teachers..."
+                            placeholder="Search staff..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 h-10"
@@ -656,7 +657,7 @@ export default function TeachersPage() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-                    <p className="text-slate-500 font-medium animate-pulse">Loading teachers...</p>
+                    <p className="text-slate-500 font-medium animate-pulse">Loading staff...</p>
                 </div>
             ) : filteredTeachers.length === 0 ? (
                 <Card className="text-center py-16 border-dashed border-2 border-slate-200 bg-slate-50/50 rounded-2xl">
@@ -666,7 +667,7 @@ export default function TeachersPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">No teachers found</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">No staff found</h3>
                         <p className="text-slate-500 mt-1">Try adjusting your search or filters to find what you're looking for.</p>
                         <Button
                             variant="primary"
@@ -711,7 +712,7 @@ export default function TeachersPage() {
                                     <button
                                         onClick={() => setEditingTeacher(teacher)}
                                         className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-                                        title="Edit Teacher"
+                                        title="Edit Staff Member"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -734,7 +735,7 @@ export default function TeachersPage() {
                                     <button
                                         onClick={() => handleToggleStatus(teacher.id, teacher.isActive)}
                                         className={`p-2 rounded-xl transition-all ${teacher.isActive ? 'text-red-400 hover:text-red-600 hover:bg-red-50' : 'text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                                        title={teacher.isActive ? "Deactivate Teacher" : "Activate Teacher"}
+                                        title={teacher.isActive ? "Deactivate Staff Member" : "Activate Staff Member"}
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             {teacher.isActive ? (
@@ -828,10 +829,10 @@ export default function TeachersPage() {
                         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900">
-                                    {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
+                                    {editingTeacher ? "Edit Staff Member" : "Add New Staff Member"}
                                 </h3>
                                 <p className="text-sm text-slate-500 font-medium">
-                                    {editingTeacher ? "Update staff information and permissions" : "Register a new teaching staff member"}
+                                    {editingTeacher ? "Update staff information and permissions" : "Register a new staff member account"}
                                 </p>
                             </div>
                             <button
@@ -1123,7 +1124,7 @@ export default function TeachersPage() {
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         <span>Saving staff...</span>
                                     </div>
-                                ) : (editingTeacher ? "Save Changes" : "Confirm & Add Teacher")}
+                                ) : (editingTeacher ? "Save Changes" : "Confirm & Add Staff")}
                             </Button>
                         </div>
                     </Card>
@@ -1193,7 +1194,7 @@ export default function TeachersPage() {
 
                         <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
                             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">Import Teachers from CSV</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">Import Staff from CSV</h3>
                                 <button
                                     onClick={() => {
                                         if (!importing) {
@@ -1224,7 +1225,7 @@ export default function TeachersPage() {
                                         </div>
                                         <div className="ml-3">
                                             <p className="text-sm text-blue-700">
-                                                Download the teacher template, fill registration data, then upload.
+                                                Download the staff template, fill registration data, then upload.
                                             </p>
                                         </div>
                                     </div>
@@ -1278,7 +1279,7 @@ export default function TeachersPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             <span className="font-medium">
-                                                {importResults.success} teachers {importResults.dryRun ? "validated" : "imported"} successfully
+                                                {importResults.success} staff account(s) {importResults.dryRun ? "validated" : "imported"} successfully
                                             </span>
                                         </div>
 
@@ -1288,7 +1289,7 @@ export default function TeachersPage() {
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
-                                                    <span className="font-medium">{importResults.failed} teachers failed</span>
+                                                    <span className="font-medium">{importResults.failed} staff account(s) failed</span>
                                                 </div>
                                                 <div className="bg-red-50 rounded-md p-3 max-h-40 overflow-y-auto">
                                                     <ul className="text-sm text-red-700 space-y-1">

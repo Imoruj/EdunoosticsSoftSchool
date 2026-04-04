@@ -3,11 +3,38 @@ import { getServerSession } from 'next-auth';
 import { UserRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import {
+  ensureUniqueStudentEmail,
+  generateStudentDefaultPassword,
+  syncStudentTemporaryLoginCredentials,
+} from '@/lib/studentLoginCredentials';
 
 export const dynamic = 'force-dynamic';
 
+function buildPortalUrl(req: NextRequest, slug?: string | null) {
+  const origin = new URL(req.url).origin;
+  return slug ? `${origin}/s/${slug}/login` : `${origin}/auth/login`;
+}
+
+function resolveLoginInstructions(params: {
+  allowStudentEmailLogin: boolean;
+  allowStudentAdmissionNumberLogin: boolean;
+}) {
+  const { allowStudentEmailLogin, allowStudentAdmissionNumberLogin } = params;
+
+  if (allowStudentEmailLogin && allowStudentAdmissionNumberLogin) {
+    return 'Student can sign in with either the school email address or admission number below.';
+  }
+
+  if (allowStudentEmailLogin) {
+    return 'Student can sign in with the school email address below.';
+  }
+
+  return 'Student can sign in with the admission number below.';
+}
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -45,7 +72,7 @@ export async function GET(
       },
       include: {
         classArm: { include: { class: true } },
-        user: { select: { email: true, isActive: true, createdAt: true } },
+        user: { select: { email: true, isActive: true, createdAt: true, mustChangePassword: true } },
       },
     });
 
@@ -53,7 +80,75 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ student });
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: {
+        name: true,
+        slug: true,
+        allowStudentAdmissionNumberLogin: true,
+        allowStudentEmailLogin: true,
+      },
+    });
+
+    const allowStudentEmailLogin = school?.allowStudentEmailLogin ?? true;
+    const allowStudentAdmissionNumberLogin = school?.allowStudentAdmissionNumberLogin ?? true;
+    let canonicalEmail = allowStudentEmailLogin
+      ? await ensureUniqueStudentEmail(prisma, {
+          firstName: student.firstName,
+          lastName: student.lastName,
+          schoolName: school?.name || '',
+          excludeUserId: student.userId,
+        })
+      : null;
+
+    if (school?.name && student.userId && student.user) {
+      const syncedCredentials = await syncStudentTemporaryLoginCredentials(prisma, {
+        userId: student.userId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        admissionNumber: student.admissionNumber,
+        schoolName: school.name,
+        mustChangePassword: student.user.mustChangePassword,
+        isActive: student.user.isActive,
+      });
+
+      canonicalEmail = allowStudentEmailLogin ? syncedCredentials.email : null;
+      student.user.email = syncedCredentials.email;
+    }
+
+    const defaultPassword = school
+      ? generateStudentDefaultPassword({
+          firstName: student.firstName,
+          lastName: student.lastName,
+          admissionNumber: student.admissionNumber,
+          schoolName: school.name,
+        })
+      : null;
+
+    return NextResponse.json(
+      {
+        student,
+        loginCredentials: {
+          portalUrl: buildPortalUrl(req, school?.slug),
+          allowStudentEmailLogin,
+          allowStudentAdmissionNumberLogin,
+          email: allowStudentEmailLogin ? canonicalEmail : null,
+          admissionNumber: allowStudentAdmissionNumberLogin ? student.admissionNumber : null,
+          defaultPassword,
+          defaultPasswordActive: Boolean(student.userId && student.user?.mustChangePassword),
+          loginInstructions: resolveLoginInstructions({
+            allowStudentEmailLogin,
+            allowStudentAdmissionNumberLogin,
+          }),
+          isProvisioned: Boolean(student.userId),
+        },
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      }
+    );
   } catch (err) {
     console.error('[API] GET /api/students/[id]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

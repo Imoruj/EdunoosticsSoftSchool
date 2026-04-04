@@ -5,6 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { generateTeacherComment, generatePrincipalComment } from "@/services/aiService";
+import { formatAttendancePoints } from "@/lib/attendance-points";
+import { buildReportCommentPayload } from "@/lib/reportPayloadBuilder";
 
 const bodySchema = z.object({
     studentId:  z.string().trim().min(1).max(100),
@@ -86,21 +88,54 @@ export async function POST(req: NextRequest) {
             ...reportCard.psychomotorRatings.map(r => `${r.skill.name}: ${r.rating}`)
         ].join(", ") : "";
 
-        const data = {
-            name: `${student.firstName} ${student.lastName}`,
-            gender: student.gender,
-            term: term?.name || "",
-            average: reportCard?.average || 0,
-            position: reportCard?.classPosition || 0,
-            attendance: reportCard ? `${reportCard.daysPresent || 0}/${reportCard.totalSchoolDays || 0}` : "N/A",
-            traits: traitsSummary
-        };
+        const scores = await prisma.score.findMany({
+            where: { studentId, termId },
+            include: { subject: true }
+        });
+
+        // Get AI settings for comment config
+        const aiSettings = await prisma.aiSettings.findUnique({
+            where: { schoolId }
+        });
+
+        const payload = await buildReportCommentPayload({
+            prisma,
+            studentData: {
+                id: student.id,
+                studentId: student.id,
+                termId,
+                name: `${student.firstName} ${student.lastName}`,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                gender: student.gender,
+                term: term?.name || "",
+                schoolId,
+                reportType: "endOfTerm", // Default to end of term for now
+                termNumber: term?.termNumber || 1,
+                attendance: reportCard ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays) : "N/A",
+                traits: traitsSummary,
+                average: reportCard?.average || 0,
+                position: reportCard?.classPosition || 0,
+            },
+            reportCard,
+            term: { termNumber: term?.termNumber || 1, name: term?.name || "" },
+            scores: scores.map(s => ({
+                ca1: s.ca1,
+                ca2: s.ca2,
+                ca3: s.ca3,
+                exam: s.exam,
+                total: s.total,
+                subject: s.subject,
+            })),
+            classArmId: student.classArmId,
+            commentConfig: aiSettings?.commentConfig as any,
+        });
 
         let comment = "";
         if (type === "teacher") {
-            comment = await generateTeacherComment(schoolId, data);
+            comment = await generateTeacherComment(schoolId, payload);
         } else {
-            comment = await generatePrincipalComment(schoolId, data);
+            comment = await generatePrincipalComment(schoolId, payload);
         }
 
         return NextResponse.json({ comment });

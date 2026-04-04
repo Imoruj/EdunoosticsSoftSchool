@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ReportCardData } from "./types";
 import ReportCardPreview from "./ReportCardPreview";
 
@@ -6,12 +6,18 @@ interface ReportCardPreviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     reports: ReportCardData[];
+    title?: string;
 }
 
-const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen, onClose, reports }) => {
+const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen, onClose, reports, title }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const previewRef = useRef<HTMLDivElement | null>(null);
 
     const validReports = reports.filter((r): r is ReportCardData => r != null);
+
+    useEffect(() => {
+        setCurrentIndex(0);
+    }, [isOpen, reports]);
 
     if (!isOpen || validReports.length === 0) return null;
 
@@ -29,6 +35,40 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
         }
     };
 
+    const handlePrint = () => {
+        if (!previewRef.current) return;
+
+        const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
+        if (!printWindow) return;
+
+        const styleMarkup = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map((node) => node.outerHTML)
+            .join("\n");
+
+        printWindow.document.open();
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>${title || "Report Card Preview"}</title>
+                    ${styleMarkup}
+                    <style>
+                        body { margin: 0; padding: 24px; background: white; }
+                    </style>
+                </head>
+                <body>
+                    ${previewRef.current.outerHTML}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        window.setTimeout(() => {
+            printWindow.print();
+        }, 400);
+    };
+
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -40,11 +80,17 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
 
                 <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
                     {/* Toolbar */}
-                    <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b">
+                    <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-between items-center border-b no-print">
                         <h3 className="text-lg leading-6 font-medium text-gray-900">
-                            Report Card Preview ({currentIndex + 1} of {validReports.length})
+                            {title || "Report Card Preview"} ({currentIndex + 1} of {validReports.length})
                         </h3>
                         <div className="flex items-center gap-2">
+                            <button
+                                onClick={handlePrint}
+                                className="btn-secondary text-sm"
+                            >
+                                Print
+                            </button>
                             <button
                                 onClick={prevReport}
                                 disabled={currentIndex === 0}
@@ -73,7 +119,9 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
 
                     {/* Content */}
                     <div className="bg-gray-100 p-4 sm:p-8 max-h-[80vh] overflow-y-auto">
-                        <ReportCardPreview data={currentReport} />
+                        <div ref={previewRef}>
+                            <ReportCardPreview data={currentReport} />
+                        </div>
                     </div>
                 </div>
             </div>

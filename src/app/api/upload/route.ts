@@ -5,8 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prismaDirect } from "@/lib/prisma";
 import { validateMagicBytes } from "@/lib/magicBytes";
+import { makeTransparentSignature } from "@/lib/signature-images";
+import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for student/user photos
 const MAX_RICH_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for lesson and quiz images
@@ -127,6 +129,13 @@ function getUploadErrorMessage(error: unknown) {
     return error instanceof Error && error.message ? error.message : "Upload failed";
 }
 
+function uploadBusyResponse() {
+    return NextResponse.json(
+        { error: "Upload is temporarily unavailable because the database is busy. Please retry." },
+        { status: 503 }
+    );
+}
+
 export async function POST(req: NextRequest) {
     let uploadType: UploadType | null = null;
     let uploadContext: Record<string, string | number | null> = {};
@@ -159,6 +168,8 @@ export async function POST(req: NextRequest) {
             uploadType = "avatar";
         }
 
+        const resolvedUploadType = uploadType;
+
         uploadContext = {
             userId: user.id,
             schoolId: user.schoolId ?? null,
@@ -167,17 +178,17 @@ export async function POST(req: NextRequest) {
             fileSize: file.size,
         };
 
-        const allowedTypes = getAllowedTypes(uploadType);
+        const allowedTypes = getAllowedTypes(resolvedUploadType);
         const ext = allowedTypes[file.type];
         if (!ext) {
             return NextResponse.json(
-                { error: `Unsupported file type. Use ${getAllowedTypesLabel(uploadType)}.` },
+                { error: `Unsupported file type. Use ${getAllowedTypesLabel(resolvedUploadType)}.` },
                 { status: 400 }
             );
         }
 
         // Check file size limits
-        const maxSize = getMaxUploadSize(uploadType);
+        const maxSize = getMaxUploadSize(resolvedUploadType);
         if (file.size > maxSize) {
             const maxSizeMB = maxSize / (1024 * 1024);
             return NextResponse.json({ error: `File size must be ${maxSizeMB}MB or less.` }, { status: 400 });
@@ -194,7 +205,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate permissions
-        if (uploadType === "student_photo") {
+        if (resolvedUploadType === "student_photo") {
             const canUploadStudentPhoto = roles.some((role) => STUDENT_PHOTO_UPLOAD_ROLES.has(role));
             if (!canUploadStudentPhoto) {
                 return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -204,18 +215,7 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "Valid student ID is required for student photo upload" }, { status: 400 });
             }
 
-            const student = await prisma.student.findFirst({
-                where: {
-                    id: studentId,
-                    schoolId: user.schoolId,
-                },
-                select: { id: true },
-            });
-
-            if (!student) {
-                return NextResponse.json({ error: "Student not found" }, { status: 404 });
-            }
-        } else if (uploadType === "signature") {
+        } else if (resolvedUploadType === "signature") {
             const canUploadSignature = roles.some((role) => STAFF_SIGNATURE_ROLES.has(role));
             if (!canUploadSignature) {
                 return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -224,23 +224,76 @@ export async function POST(req: NextRequest) {
 
         // Convert file to buffer
         const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const storedName = buildStoredFileName(uploadType, user.id, ext, studentId || undefined);
+        const byteView = new Uint8Array(bytes);
+        const buffer: Buffer = Buffer.from(byteView);
 
-        const uploadedFile = await prisma.uploadedFile.create({
-            data: {
-                schoolId: user.schoolId ?? null,
-                uploadedById: user.id,
-                uploadType,
-                originalName: file.name || storedName,
-                storedName,
-                mimeType: file.type,
-                extension: ext,
-                size: file.size,
-                data: buffer,
-            },
-            select: { id: true },
-        });
+        let storedBuffer: Buffer = buffer;
+        let storedMimeType = file.type;
+        let storedExt = ext;
+
+        if (resolvedUploadType === "signature") {
+            const processedSignature = await makeTransparentSignature(buffer);
+            storedBuffer = Buffer.from(processedSignature.buffer);
+            storedMimeType = processedSignature.mimeType;
+            storedExt = processedSignature.extension;
+        }
+
+        const storedName = buildStoredFileName(resolvedUploadType, user.id, storedExt, studentId || undefined);
+
+        if (resolvedUploadType === "student_photo") {
+            const savedStudentPhoto = await withPrismaRetry("/api/upload student photo save", () =>
+                prismaDirect.$transaction(async (tx) => {
+                    const uploadedFile = await tx.uploadedFile.create({
+                        data: {
+                            schoolId: user.schoolId ?? null,
+                            uploadedById: user.id,
+                            uploadType: resolvedUploadType,
+                            originalName: file.name || storedName,
+                            storedName,
+                            mimeType: storedMimeType,
+                            extension: storedExt,
+                            size: storedBuffer.length,
+                            data: storedBuffer,
+                        },
+                        select: { id: true },
+                    });
+
+                    const url = `/api/uploads/${uploadedFile.id}`;
+                    const updatedStudents = await tx.student.updateMany({
+                        where: {
+                            id: studentId,
+                            schoolId: user.schoolId,
+                        },
+                        data: { photoUrl: url },
+                    });
+
+                    if (updatedStudents.count === 0) {
+                        throw new Error("Student not found");
+                    }
+
+                    return { id: uploadedFile.id, url };
+                })
+            );
+
+            return NextResponse.json(savedStudentPhoto);
+        }
+
+        const uploadedFile = await withPrismaRetry("/api/upload file create", () =>
+            prismaDirect.uploadedFile.create({
+                data: {
+                    schoolId: user.schoolId ?? null,
+                    uploadedById: user.id,
+                    uploadType: resolvedUploadType,
+                    originalName: file.name || storedName,
+                    storedName,
+                    mimeType: storedMimeType,
+                    extension: storedExt,
+                    size: storedBuffer.length,
+                    data: storedBuffer,
+                },
+                select: { id: true },
+            })
+        );
 
         return NextResponse.json({ id: uploadedFile.id, url: `/api/uploads/${uploadedFile.id}` });
     } catch (error) {
@@ -251,6 +304,11 @@ export async function POST(req: NextRequest) {
             ...uploadContext,
             error,
         });
+
+        if (isTransientPrismaError(error)) {
+            return uploadBusyResponse();
+        }
+
         return NextResponse.json(
             { error: process.env.NODE_ENV === "development" ? message : "Upload failed" },
             { status: 500 }

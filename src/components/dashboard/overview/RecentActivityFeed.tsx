@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 
 interface RecentActivityFeedProps {
     activities: {
-        type: "student" | "report" | "score";
+        type: "attendance" | "report" | "score";
         title: string;
         desc: string;
         time: Date;
@@ -15,9 +15,13 @@ interface RecentActivityFeedProps {
         iconColor: string;
         link: string;
     }[];
+    emptyMessage?: string;
 }
 
-export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
+export function RecentActivityFeed({
+    activities,
+    emptyMessage = "No recent activity for your account yet.",
+}: RecentActivityFeedProps) {
     return (
         <Card className="h-full">
             <CardHeader className="pb-2 border-b-0">
@@ -26,7 +30,7 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
             <CardContent className="px-6 pb-6 pt-2">
                 {activities.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                        No recent activity for your account yet.
+                        {emptyMessage}
                     </div>
                 ) : (
                     <div className="flow-root">

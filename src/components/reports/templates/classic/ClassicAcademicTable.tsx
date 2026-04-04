@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./ClassicStyles";
+import { formatScore } from "../../scoreFormatting";
 
 interface AcademicTableProps {
     subjects: ReportCardData["academic"]["subjects"];
@@ -28,13 +29,13 @@ const AcademicTable: React.FC<AcademicTableProps & { config?: any, reportType?: 
             {subjects.map((sub) => (
                 <View style={styles.tableRow} key={sub.id}>
                     <View style={[styles.tableCol, { width: isHalfTerm ? "50%" : "34%" }]}><Text style={[styles.tableCell, { textAlign: "left", paddingLeft: 5 }]}>{sub.name}</Text></View>
-                    <View style={[styles.tableCol, { width: isHalfTerm ? "25%" : "12%" }]}><Text style={styles.tableCell}>{sub.ca}</Text></View>
-                    {!isHalfTerm && <View style={[styles.tableCol, { width: "12%" }]}><Text style={styles.tableCell}>{sub.exam}</Text></View>}
-                    <View style={[styles.tableCol, { width: isHalfTerm ? "25%" : "12%", borderRightWidth: isHalfTerm ? 0 : 1 }]}><Text style={styles.tableCell}>{sub.total}</Text></View>
+                    <View style={[styles.tableCol, { width: isHalfTerm ? "25%" : "12%" }]}><Text style={styles.tableCell}>{formatScore(sub.ca)}</Text></View>
+                    {!isHalfTerm && <View style={[styles.tableCol, { width: "12%" }]}><Text style={styles.tableCell}>{formatScore(sub.exam)}</Text></View>}
+                    <View style={[styles.tableCol, { width: isHalfTerm ? "25%" : "12%", borderRightWidth: isHalfTerm ? 0 : 1 }]}><Text style={styles.tableCell}>{formatScore(sub.total)}</Text></View>
                     {!isHalfTerm && (
                         <>
-                            <View style={[styles.tableCol, { width: "10%" }]}><Text style={styles.tableCell}>{sub.subjectLowestScore !== undefined ? sub.subjectLowestScore : "-"}</Text></View>
-                            <View style={[styles.tableCol, { width: "10%" }]}><Text style={styles.tableCell}>{sub.subjectHighestScore !== undefined ? sub.subjectHighestScore : "-"}</Text></View>
+                            <View style={[styles.tableCol, { width: "10%" }]}><Text style={styles.tableCell}>{formatScore(sub.subjectLowestScore)}</Text></View>
+                            <View style={[styles.tableCol, { width: "10%" }]}><Text style={styles.tableCell}>{formatScore(sub.subjectHighestScore)}</Text></View>
                             <View style={[styles.tableCol, { width: "10%", borderRightWidth: 0 }]}><Text style={styles.tableCell}>{sub.grade}</Text></View>
                         </>
                     )}

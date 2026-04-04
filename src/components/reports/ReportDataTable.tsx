@@ -1,6 +1,7 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Card } from "@/components/ui/Card";
+import { formatScore } from "./scoreFormatting";
 
 interface StudentReportSummary {
     id: string;
@@ -88,7 +89,7 @@ export default function ReportDataTable({
                                     {student.admissionNumber}
                                 </TableCell>
                                 <TableCell className="text-slate-500 font-mono">
-                                    {student.average ? `${student.average}%` : "-"}
+                                    {student.average !== undefined ? `${formatScore(student.average)}%` : "-"}
                                 </TableCell>
                                 <TableCell>
                                     {student.published ? (

@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { Academic, ReportConfig, SectionStyle } from "../types";
+import { formatScore } from "../scoreFormatting";
 
 const styles = StyleSheet.create({
     tableSection: {
@@ -154,41 +155,41 @@ export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayO
                         {showOption('showTermHistory') && (
                             <>
                                 <View style={[styles.tableCol, borderOnly, { width: 35 }]}>
-                                    <Text style={styles.tableCell}>{sub.cumulativeTotal1 || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.cumulativeTotal1)}</Text>
                                 </View>
                                 <View style={[styles.tableCol, borderOnly, { width: 35 }]}>
-                                    <Text style={styles.tableCell}>{sub.cumulativeTotal2 || "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.cumulativeTotal2)}</Text>
                                 </View>
                             </>
                         )}
                         {showOption('showCA1') && (
                             <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{sub.ca1 || "-"}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.ca1)}</Text>
                             </View>
                         )}
                         {showOption('showCA2') && (
                             <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{sub.ca2 || "-"}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.ca2)}</Text>
                             </View>
                         )}
                         {showOption('showCA3') && (
                             <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{sub.ca3 || "-"}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.ca3)}</Text>
                             </View>
                         )}
                         {showOption('showCA') && (
                             <View style={[styles.tableCol, borderOnly, { width: 25 }]}>
-                                <Text style={styles.tableCell}>{sub.ca}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.ca)}</Text>
                             </View>
                         )}
                         {showOption('showExam') && (
                             <View style={[styles.tableCol, borderOnly, { width: 25 }]}>
-                                <Text style={styles.tableCell}>{sub.exam}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.exam)}</Text>
                             </View>
                         )}
                         {showOption('showSubjectTotal') && (
                             <View style={[styles.tableCol, borderOnly, { width: 30 }]}>
-                                <Text style={[styles.tableCell, styles.bold]}>{sub.total}</Text>
+                                <Text style={[styles.tableCell, styles.bold]}>{formatScore(sub.total)}</Text>
                             </View>
                         )}
                         {showOption('showGrade') && (
@@ -206,16 +207,16 @@ export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayO
                         )}
                         {showOption('showSubjectAverage') && (
                             <View style={[styles.tableCol, borderOnly, { width: 30 }]}>
-                                <Text style={styles.tableCell}>{sub.subjectClassAverage?.toFixed(0) || "-"}</Text>
+                                <Text style={styles.tableCell}>{formatScore(sub.subjectClassAverage)}</Text>
                             </View>
                         )}
                         {showOption('showSubjectLowHigh') && (
                             <>
                                 <View style={[styles.tableCol, borderOnly, { width: 30 }]}>
-                                    <Text style={styles.tableCell}>{sub.subjectLowestScore !== undefined ? sub.subjectLowestScore : "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.subjectLowestScore)}</Text>
                                 </View>
                                 <View style={[styles.tableCol, borderOnly, { width: 30 }]}>
-                                    <Text style={styles.tableCell}>{sub.subjectHighestScore !== undefined ? sub.subjectHighestScore : "-"}</Text>
+                                    <Text style={styles.tableCell}>{formatScore(sub.subjectHighestScore)}</Text>
                                 </View>
                             </>
                         )}

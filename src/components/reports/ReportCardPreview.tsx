@@ -1,6 +1,9 @@
 import React from "react";
 import { ReportCardData } from "./types";
 import { WebDynamicReportTemplate } from "./templates/WebDynamicReportTemplate";
+import { formatPublishedDate } from "./formatPublishedDate";
+import { formatScore, formatScoreOrBlank } from "./scoreFormatting";
+import { formatStudentFullName } from "./formatStudentFullName";
 
 import StandardReportPreview from "./previews/StandardReportPreview";
 
@@ -10,6 +13,8 @@ interface ReportCardPreviewProps {
 
 const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
     const isHalfTerm = data.reportType === "halfTerm";
+    const publishedDateLabel = formatPublishedDate(data.comments.publishedAt);
+    const studentFullName = formatStudentFullName(data.student);
 
     return (
         <div className="bg-white p-6 max-w-5xl mx-auto shadow-sm border-2 border-emerald-600">
@@ -40,7 +45,7 @@ const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
                 <div className="col-span-1 border border-black">
                     <div className="bg-emerald-50 border-b border-black p-1 text-[10px] font-bold text-center uppercase">STUDENT PERSONAL DATA</div>
                     <div className="p-1 space-y-1 text-[10px]">
-                        <div className="flex"><span className="w-16 font-semibold">Name:</span> <span className="font-bold">{data.student.lastName} {data.student.firstName}</span></div>
+                        <div className="flex"><span className="w-16 font-semibold">Name:</span> <span className="font-bold">{studentFullName}</span></div>
                         <div className="flex"><span className="w-16 font-semibold">DOB:</span> <span>02/06/1999</span></div>
                         <div className="flex"><span className="w-16 font-semibold">Sex:</span> <span>FEMALE</span></div>
                         <div className="flex"><span className="w-16 font-semibold">Class:</span> <span>{data.student.className}</span></div>
@@ -77,9 +82,9 @@ const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
 
                 <div className="col-span-1 border border-black">
                     <div className="p-1 space-y-1 text-[10px]">
-                        <div className="flex justify-between border-b pb-1 font-bold"><span>MAX SCORE</span> <span>{data.academic.summary.totalObtainable}</span></div>
-                        <div className="flex justify-between border-b pb-1 font-bold"><span>SCORE OBTAINED</span> <span>{data.academic.summary.totalScore}</span></div>
-                        <div className="flex justify-between border-b pb-1 font-bold"><span>AVERAGE %</span> <span>{data.academic.summary.average.toFixed(1)}</span></div>
+                        <div className="flex justify-between border-b pb-1 font-bold"><span>MAX SCORE</span> <span>{formatScore(data.academic.summary.totalObtainable)}</span></div>
+                        <div className="flex justify-between border-b pb-1 font-bold"><span>SCORE OBTAINED</span> <span>{formatScore(data.academic.summary.totalScore)}</span></div>
+                        <div className="flex justify-between border-b pb-1 font-bold"><span>AVERAGE %</span> <span>{formatScore(data.academic.summary.average)}</span></div>
                         <div className="grid grid-cols-2 text-center pt-1">
                             <div className="border-r">
                                 <p className="text-[8px] font-bold uppercase">Class Size</p>
@@ -117,16 +122,16 @@ const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
                     {data.academic.subjects.map((sub: any) => (
                         <tr key={sub.id} className="border-b border-black h-8">
                             <td className="border border-black p-1 font-semibold">{sub.name}</td>
-                            {!isHalfTerm && <td className="border border-black p-1 text-center">{sub.cumulativeTotal1 || ""}</td>}
-                            {!isHalfTerm && <td className="border border-black p-1 text-center">{sub.cumulativeTotal2 || ""}</td>}
-                            <td className="border border-black p-1 text-center">{sub.ca1 ?? (sub.ca / 2)}</td>
-                            <td className="border border-black p-1 text-center">{sub.ca2 ?? (sub.ca / 2)}</td>
-                            {!isHalfTerm && <td className="border border-black p-1 text-center">{sub.exam}</td>}
-                            <td className="border border-black p-1 text-center font-bold">{sub.total}</td>
+                            {!isHalfTerm && <td className="border border-black p-1 text-center">{formatScoreOrBlank(sub.cumulativeTotal1)}</td>}
+                            {!isHalfTerm && <td className="border border-black p-1 text-center">{formatScoreOrBlank(sub.cumulativeTotal2)}</td>}
+                            <td className="border border-black p-1 text-center">{formatScore(sub.ca1 ?? (sub.ca / 2))}</td>
+                            <td className="border border-black p-1 text-center">{formatScore(sub.ca2 ?? (sub.ca / 2))}</td>
+                            {!isHalfTerm && <td className="border border-black p-1 text-center">{formatScore(sub.exam)}</td>}
+                            <td className="border border-black p-1 text-center font-bold">{formatScore(sub.total)}</td>
                             <td className="border border-black p-1 text-center">{sub.subjectPosition || "-"}</td>
-                            <td className="border border-black p-1 text-center">{sub.subjectClassAverage || "-"}</td>
-                            {!isHalfTerm && <td className="border border-black p-1 text-center">{sub.total.toFixed(0)}</td>}
-                            {!isHalfTerm && <td className="border border-black p-1 text-center">{(sub.cumulativeTotal1 || 0) + (sub.cumulativeTotal2 || 0) + sub.total}</td>}
+                            <td className="border border-black p-1 text-center">{formatScore(sub.subjectClassAverage)}</td>
+                            {!isHalfTerm && <td className="border border-black p-1 text-center">{formatScore(sub.total)}</td>}
+                            {!isHalfTerm && <td className="border border-black p-1 text-center">{formatScore((sub.cumulativeTotal1 || 0) + (sub.cumulativeTotal2 || 0) + sub.total)}</td>}
                             {!isHalfTerm && <td className="border border-black p-1 text-center font-bold">{sub.grade}</td>}
                         </tr>
                     ))}
@@ -196,6 +201,7 @@ const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
                         <span>{data.comments.classTeacher || "God bless your efforts"}</span>
                         <div className="text-right flex flex-col items-center">
                             <span className="text-[8px] font-bold border-b border-black pt-2 px-4">Signature</span>
+                            <span className="text-[8px] mt-1">{publishedDateLabel}</span>
                         </div>
                     </div>
                 </div>
@@ -205,6 +211,7 @@ const ProfessionalPreview: React.FC<{ data: ReportCardData }> = ({ data }) => {
                         <span>{data.comments.principal || "A wonderful performance"}</span>
                         <div className="text-right flex flex-col items-center">
                             <span className="text-[8px] font-bold border-b border-black pt-2 px-4">Signature</span>
+                            <span className="text-[8px] mt-1">{publishedDateLabel}</span>
                         </div>
                     </div>
                 </div>

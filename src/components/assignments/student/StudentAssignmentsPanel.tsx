@@ -22,18 +22,31 @@ interface StudentAssignmentsPanelProps {
 function isAssignmentAssignedToStudent(
     assignment: Assignment,
     studentProfileId: string,
+    studentUserId: string,
     studentClassArmId?: string | null
 ) {
     if (!assignment.isPublished) {
         return false;
     }
 
-    if (assignment.assignedTo.includes("all") || assignment.assignedTo.includes(studentProfileId)) {
+    if (
+        assignment.assignedTo.includes("all") ||
+        assignment.assignedTo.includes(studentProfileId) ||
+        assignment.assignedTo.includes(studentUserId)
+    ) {
         return true;
     }
 
     // Backward compatibility for older assignments created before explicit student targeting.
-    return assignment.assignedTo.length === 0 && !!studentClassArmId && assignment.classArmIds.includes(studentClassArmId);
+    if (assignment.assignedTo.length === 0) {
+        if (!studentClassArmId) {
+            return true;
+        }
+
+        return assignment.classArmIds.includes(studentClassArmId);
+    }
+
+    return false;
 }
 
 function getAssignmentStatus(
@@ -106,11 +119,11 @@ export function StudentAssignmentsPanel({
 
     const visibleAssignments = useMemo(() => {
         const filteredAssignments = assignments
-            .filter((assignment) => isAssignmentAssignedToStudent(assignment, studentProfileId, studentClassArmId))
+            .filter((assignment) => isAssignmentAssignedToStudent(assignment, studentProfileId, studentUserId, studentClassArmId))
             .sort((a, b) => a.dueDate - b.dueDate);
 
         return typeof limit === "number" ? filteredAssignments.slice(0, limit) : filteredAssignments;
-    }, [assignments, studentProfileId, studentClassArmId, limit]);
+    }, [assignments, studentProfileId, studentUserId, studentClassArmId, limit]);
 
     if (loading || submissionsLoading) {
         return (

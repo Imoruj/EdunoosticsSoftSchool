@@ -5,6 +5,7 @@ import { requireSchoolAdmin } from "@/lib/rbac";
 const ROLE_LABELS: Record<string, string> = {
     SUPER_ADMIN: "Platform Admin",
     SCHOOL_ADMIN: "School Admin",
+    PROPRIETOR: "Proprietor",
     CLASS_TEACHER: "Class Teacher",
     SUBJECT_TEACHER: "Subject Teacher",
 };
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
             where: {
                 schoolId,
                 roles: {
-                    hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "SUPER_ADMIN"],
+                    hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"],
                 },
             },
             select: {
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
             .sort((left, right) => left.name.localeCompare(right.name));
 
         return NextResponse.json({
-            title: "Teacher Login Credentials",
+            title: "Staff Login Credentials",
             schoolName: school.name,
             portalUrl: buildPortalUrl(req, school.slug),
             loginInstructions: "Use the Admin tab and sign in with the email address below.",
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
     } catch (error: any) {
         console.error("Error fetching teacher login credentials:", error);
         return NextResponse.json(
-            { error: "Failed to fetch teacher login credentials" },
+            { error: "Failed to fetch staff login credentials" },
             { status: 500 }
         );
     }

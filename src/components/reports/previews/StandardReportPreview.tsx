@@ -1,6 +1,9 @@
 import React from "react";
 import { WebDynamicReportTemplate } from "../templates/WebDynamicReportTemplate";
 import { ReportCardData } from "../types";
+import { formatPublishedDate } from "../formatPublishedDate";
+import { formatScore } from "../scoreFormatting";
+import { formatStudentFullName } from "../formatStudentFullName";
 // Props
 interface StandardReportPreviewProps {
     config: {
@@ -223,6 +226,8 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
         comments: comments as any,
         config: config as any
     };
+    const publishedDateLabel = formatPublishedDate(reportData.comments.publishedAt);
+    const studentFullName = formatStudentFullName(reportData.student);
 
     if (config.displayOptions?.customLayout) {
         return <WebDynamicReportTemplate data={reportData} />;
@@ -269,7 +274,7 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                     {showOption('showName') && (
                         <div className="grid grid-cols-[80px_1fr] border-b text-[10px]" style={personalStyles.borderOnly}>
                             <div className="p-1.5 font-bold bg-gray-50 border-r" style={personalStyles.borderOnly}>Name</div>
-                            <div className="p-1.5 font-bold uppercase">{reportData.student.lastName} {reportData.student.firstName}</div>
+                            <div className="p-1.5 font-bold">{studentFullName}</div>
                         </div>
                     )}
                     {showOption('showDOB') && (
@@ -333,15 +338,15 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                         <div className="p-1.5 font-bold text-center text-[10px] uppercase tracking-wide" style={attStyles.header}>Summary</div>
                         <div className="grid grid-cols-[2fr_1fr] border-b text-[10px]" style={attStyles.borderOnly}>
                             <div className="p-1.5 font-bold bg-gray-50 border-r" style={attStyles.borderOnly}>Total Score Possible</div>
-                            <div className="p-1.5 text-center font-bold">{reportData.academic.summary.totalObtainable || (reportData.academic.subjects.length * 100)}</div>
+                            <div className="p-1.5 text-center font-bold">{formatScore(reportData.academic.summary.totalObtainable || (reportData.academic.subjects.length * 100))}</div>
                         </div>
                         <div className="grid grid-cols-[2fr_1fr] border-b text-[10px]" style={attStyles.borderOnly}>
                             <div className="p-1.5 font-bold bg-gray-50 border-r" style={attStyles.borderOnly}>Total Score Obtained</div>
-                            <div className="p-1.5 text-center font-bold">{reportData.academic.summary.totalScore}</div>
+                            <div className="p-1.5 text-center font-bold">{formatScore(reportData.academic.summary.totalScore)}</div>
                         </div>
                         <div className="grid grid-cols-[2fr_1fr] text-[10px]">
                             <div className="p-1.5 font-bold bg-gray-50 border-r" style={attStyles.borderOnly}>Average %</div>
-                            <div className="p-1.5 text-center font-bold">{reportData.academic.summary.average.toFixed(1)}</div>
+                            <div className="p-1.5 text-center font-bold">{formatScore(reportData.academic.summary.average)}</div>
                         </div>
                     </div>
                 </div>
@@ -387,23 +392,23 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                 <td className="border p-2 font-bold bg-gray-50 text-left whitespace-nowrap" style={academicStyles.borderOnly}>{sub.name}</td>
                                 {showOption('showTermHistory') && (
                                     <>
-                                        <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.cumulativeTotal1 || "-"}</td>
-                                        <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.cumulativeTotal2 || "-"}</td>
+                                        <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.cumulativeTotal1)}</td>
+                                        <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.cumulativeTotal2)}</td>
                                     </>
                                 )}
-                                {showOption('showCA1') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.ca1 || "-"}</td>}
-                                {showOption('showCA2') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.ca2 || "-"}</td>}
-                                {showOption('showCA3') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.ca3 || "-"}</td>}
-                                {showOption('showCA') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.ca || "-"}</td>}
-                                {showOption('showExam') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{sub.exam || "-"}</td>}
-                                {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{sub.total || "-"}</td>}
+                                {showOption('showCA1') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca1)}</td>}
+                                {showOption('showCA2') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca2)}</td>}
+                                {showOption('showCA3') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca3)}</td>}
+                                {showOption('showCA') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca)}</td>}
+                                {showOption('showExam') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.exam)}</td>}
+                                {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{formatScore(sub.total)}</td>}
                                 {showOption('showGrade') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{sub.grade || "-"}</td>}
                                 {showOption('showSubjectPosition') && <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{sub.subjectPosition || "-"}</td>}
-                                {showOption('showSubjectAverage') && <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{sub.subjectClassAverage?.toFixed(0) || "-"}</td>}
+                                {showOption('showSubjectAverage') && <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{formatScore(sub.subjectClassAverage)}</td>}
                                 {showOption('showSubjectLowHigh') && (
                                     <>
-                                        <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{sub.subjectLowestScore !== undefined ? sub.subjectLowestScore : "-"}</td>
-                                        <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{sub.subjectHighestScore !== undefined ? sub.subjectHighestScore : "-"}</td>
+                                        <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{formatScore(sub.subjectLowestScore)}</td>
+                                        <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{formatScore(sub.subjectHighestScore)}</td>
                                     </>
                                 )}
                                 {showOption('showRemarks') && <td className="border p-2 text-center text-[9px] whitespace-nowrap" style={academicStyles.borderOnly}>{sub.remark}</td>}
@@ -516,11 +521,7 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                 )}
                             </div>
                             <div className="p-2 text-[10px] flex items-center justify-center">
-                                {showOption('showTeacherDate') && (
-                                    reportData.comments.publishedAt
-                                        ? `Date: ${new Date(reportData.comments.publishedAt).toLocaleDateString()}`
-                                        : "Date: __________"
-                                )}
+                                {showOption('showTeacherDate') && publishedDateLabel}
                             </div>
                         </div>
                     )}
@@ -536,11 +537,7 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                 )}
                             </div>
                             <div className="p-2 text-[10px] flex items-center justify-center">
-                                {showOption('showPrincipalDate') && (
-                                    reportData.comments.publishedAt
-                                        ? `Date: ${new Date(reportData.comments.publishedAt).toLocaleDateString()}`
-                                        : "Date: __________"
-                                )}
+                                {showOption('showPrincipalDate') && publishedDateLabel}
                             </div>
                         </div>
                     )}

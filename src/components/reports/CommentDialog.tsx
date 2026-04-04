@@ -32,6 +32,12 @@ export default function CommentDialog({
     const [saving, setSaving] = useState(false);
     const [regenerating, setRegenerating] = useState<null | "classTeacher" | "principal">(null);
 
+    const normalizeComment = (value: unknown) => {
+        if (typeof value !== "string") return "";
+        // Strip legacy error suffixes that may have been persisted in DB.
+        return value.replace(/\s*\(Error:[^)]+\)\s*$/i, "").trim();
+    };
+
     useEffect(() => {
         if (isOpen && studentId && termId) {
             fetchComments();
@@ -44,8 +50,8 @@ export default function CommentDialog({
             const res = await fetch(`/api/reports/comment?studentId=${studentId}&termId=${termId}&reportType=${reportType}`);
             if (res.ok) {
                 const data = await res.json();
-                setTeacherComment(data.teacherComment || data.classTeacherComment || "");
-                setPrincipalComment(data.principalComment || "");
+                setTeacherComment(normalizeComment(data.teacherComment || data.classTeacherComment));
+                setPrincipalComment(normalizeComment(data.principalComment));
             }
         } catch (err) {
             console.error("Failed to fetch comments", err);
@@ -108,9 +114,9 @@ export default function CommentDialog({
             }
 
             if (target === "classTeacher") {
-                setTeacherComment(data.generatedComment || "");
+                setTeacherComment(normalizeComment(data.generatedComment));
             } else {
-                setPrincipalComment(data.generatedComment || "");
+                setPrincipalComment(normalizeComment(data.generatedComment));
             }
 
             if (onSaved) {

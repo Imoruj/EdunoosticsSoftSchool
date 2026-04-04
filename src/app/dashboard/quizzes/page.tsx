@@ -25,7 +25,12 @@ export default function QuizzesPage() {
     return quizzes.filter(
       (q) =>
         q.isPublished &&
-        (q.assignedTo?.includes("all") || (sid && q.assignedTo?.includes(sid)))
+        (
+          !Array.isArray(q.assignedTo) ||
+          q.assignedTo.length === 0 ||
+          q.assignedTo.includes("all") ||
+          (sid && q.assignedTo.includes(sid))
+        )
     );
   }, [quizzes, isStudent, studentProfileId, studentUserId]);
 

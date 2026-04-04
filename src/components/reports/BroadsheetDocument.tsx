@@ -1,6 +1,7 @@
 import React from "react";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { BroadsheetData, BroadsheetDisplayOptions, SectionStyle } from "./broadsheetTypes";
+import { formatNonZeroScoreOrBlank } from "./scoreFormatting";
 
 interface BroadsheetDocumentProps {
     data: BroadsheetData;
@@ -51,6 +52,8 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
     if (d.showAverage !== false) aggCols.push({ key: "average", label: "AVG" });
     if (d.showOverallPosition !== false) aggCols.push({ key: "overallPosition", label: "POS" });
     if (d.showSubjectCount !== false) aggCols.push({ key: "subjectCount", label: "SUBJ" });
+    const scoreColumnKeys = new Set(["term1Total", "term2Total", "ca1", "ca2", "ca3", "caTotal", "exam", "total"]);
+    const aggregateScoreKeys = new Set(["grandTotal", "average"]);
 
     const availableSubCols = new Set(subCols.map((col) => col.key));
     const pickSummaryColumn = (...keys: string[]) => keys.find((key) => availableSubCols.has(key)) || "";
@@ -58,6 +61,11 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
         data.reportType === "halfTerm"
             ? pickSummaryColumn("caTotal", "ca1", "total")
             : pickSummaryColumn("total", "caTotal", "ca1");
+
+    const formatPosition = (value: unknown) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) && numericValue > 0 ? ordinal(numericValue) : "";
+    };
 
     // Calculate dynamic column widths
     // A4 landscape usable width: 842 - 2*15 = 812 points
@@ -346,9 +354,13 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
                                 const score = student.scores.find(s => s.subjectId === sub.id);
                                 return subCols.map((col) => {
                                     const val = score ? (score as any)[col.key] : "";
-                                    let displayVal = (val === 0 || val === null || val === undefined || val === "" || val === "-") ? "" : String(val);
-                                    if (displayVal && col.key === "position") {
-                                        displayVal = ordinal(Number(displayVal));
+                                    let displayVal = "";
+                                    if (col.key === "position") {
+                                        displayVal = formatPosition(val);
+                                    } else if (scoreColumnKeys.has(col.key)) {
+                                        displayVal = formatNonZeroScoreOrBlank(val);
+                                    } else if (val !== null && val !== undefined && val !== "" && val !== "-") {
+                                        displayVal = String(val);
                                     }
                                     return (
                                         <View key={`${student.id}-${sub.id}-${col.key}`} style={styles.dataCell}>
@@ -362,9 +374,13 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
                             {/* Aggregate columns */}
                             {aggCols.map((agg) => {
                                 const aggVal = (student as any)[agg.key];
-                                let aggDisplay = (aggVal === 0 || aggVal === null || aggVal === undefined) ? "" : String(aggVal);
-                                if (aggDisplay && agg.key === "overallPosition") {
-                                    aggDisplay = ordinal(Number(aggDisplay));
+                                let aggDisplay = "";
+                                if (agg.key === "overallPosition") {
+                                    aggDisplay = formatPosition(aggVal);
+                                } else if (aggregateScoreKeys.has(agg.key)) {
+                                    aggDisplay = formatNonZeroScoreOrBlank(aggVal);
+                                } else if (aggVal !== null && aggVal !== undefined && aggVal !== "") {
+                                    aggDisplay = String(aggVal);
                                 }
                                 return (
                                     <View key={`${student.id}-${agg.key}`} style={styles.aggCell}>
@@ -389,7 +405,7 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
                                 subCols.map((col, cIdx) => (
                                     <View key={`h-${sub.id}-${cIdx}`} style={styles.dataCell}>
                                         <Text style={styles.boldText}>
-                                            {col.key === summaryCol ? String(data.summary.highest[sub.id] || "") : ""}
+                                            {col.key === summaryCol ? formatNonZeroScoreOrBlank(data.summary.highest[sub.id]) : ""}
                                         </Text>
                                     </View>
                                 ))
@@ -412,7 +428,7 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
                                 subCols.map((col, cIdx) => (
                                     <View key={`l-${sub.id}-${cIdx}`} style={styles.dataCell}>
                                         <Text style={styles.boldText}>
-                                            {col.key === summaryCol ? String(data.summary.lowest[sub.id] || "") : ""}
+                                            {col.key === summaryCol ? formatNonZeroScoreOrBlank(data.summary.lowest[sub.id]) : ""}
                                         </Text>
                                     </View>
                                 ))

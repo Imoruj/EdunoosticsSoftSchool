@@ -1,8 +1,10 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
-    req: NextRequest,
+    _req: NextRequest,
     { params }: { params: { slug: string } }
 ) {
     try {
@@ -23,6 +25,8 @@ export async function GET(
                 logoUrl: true,
                 primaryColor: true,
                 motto: true,
+                allowStudentAdmissionNumberLogin: true,
+                allowStudentEmailLogin: true,
             },
         });
 
@@ -33,7 +37,11 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(school);
+        return NextResponse.json(school, {
+            headers: {
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+        });
     } catch (error: any) {
         console.error("Error fetching school branding by slug:", error);
         return NextResponse.json(

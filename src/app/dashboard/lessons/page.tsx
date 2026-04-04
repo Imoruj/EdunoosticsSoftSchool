@@ -26,7 +26,12 @@ export default function LessonsPage() {
     return lessons.filter(
       (l) =>
         l.isPublished &&
-        (l.assignedTo?.includes('all') || (sid && l.assignedTo?.includes(sid)))
+        (
+          !Array.isArray(l.assignedTo) ||
+          l.assignedTo.length === 0 ||
+          l.assignedTo.includes('all') ||
+          (sid && l.assignedTo.includes(sid))
+        )
     );
   }, [lessons, isStudent, studentProfileId, studentUserId]);
 

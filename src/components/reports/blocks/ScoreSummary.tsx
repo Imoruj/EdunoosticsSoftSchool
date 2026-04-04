@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { Academic } from "../types";
+import { formatScore } from "../scoreFormatting";
 
 const styles = StyleSheet.create({
     statsCol: {
@@ -44,15 +45,15 @@ export const ScoreSummary: React.FC<ScoreSummaryProps> = ({ academic, sectionSty
         <View style={[styles.statsCol, container]}>
             <View style={[styles.scoreSummaryRow, borderOnly]}>
                 <Text style={[styles.scoreLabel, borderOnly]}>TOTAL SCORE OBTAINABLE</Text>
-                <Text style={styles.scoreValueBox}>{academic.summary.totalObtainable || (academic.subjects.length * 100)}</Text>
+                <Text style={styles.scoreValueBox}>{formatScore(academic.summary.totalObtainable || (academic.subjects.length * 100))}</Text>
             </View>
             <View style={[styles.scoreSummaryRow, borderOnly]}>
                 <Text style={[styles.scoreLabel, borderOnly]}>TOTAL SCORE OBTAINED</Text>
-                <Text style={styles.scoreValueBox}>{academic.summary.totalScore}</Text>
+                <Text style={styles.scoreValueBox}>{formatScore(academic.summary.totalScore)}</Text>
             </View>
             <View style={[styles.scoreSummaryRow, { borderBottomWidth: 0 }]}>
                 <Text style={[styles.scoreLabel, borderOnly]}>AVERAGE PERCENTAGE</Text>
-                <Text style={styles.scoreValueBox}>{academic.summary.average.toFixed(1)}%</Text>
+                <Text style={styles.scoreValueBox}>{formatScore(academic.summary.average)}%</Text>
             </View>
         </View>
     );

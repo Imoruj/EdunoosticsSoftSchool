@@ -8,6 +8,13 @@ import React from "react";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
 import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
 
+function resolveSchoolCategory(level: string | null | undefined): "PRIMARY" | "JUNIOR_SECONDARY" | "SENIOR_SECONDARY" | null {
+    if (level === "PRIMARY" || level === "NURSERY") return "PRIMARY";
+    if (level === "JUNIOR_SECONDARY") return "JUNIOR_SECONDARY";
+    if (level === "SENIOR_SECONDARY") return "SENIOR_SECONDARY";
+    return null;
+}
+
 function getScoreFieldNumber(value: { toNumber?: () => number } | number | null | undefined) {
     if (typeof value === "number") return value;
     if (value && typeof value === "object" && typeof value.toNumber === "function") {
@@ -158,19 +165,33 @@ export async function generateBroadsheetData(
     // 5. Fetch subjects/scores/enrollments for this class context
     const [subjectClassArms, allScores, enrollments] = await Promise.all([
         prisma.subjectClassArm.findMany({
-            where: { classArmId },
+            where: {
+                classArmId,
+                subject: {
+                    subjectKind: { not: "COMPOSITE_COMPONENT" }
+                }
+            },
             include: { subject: true },
             orderBy: { subject: { name: "asc" } }
         }),
         prisma.score.findMany({
             where: {
                 termId,
-                studentId: { in: studentIds }
+                studentId: { in: studentIds },
+                subject: {
+                    subjectKind: { not: "COMPOSITE_COMPONENT" }
+                }
             },
             include: { subject: true }
         }),
         prisma.subjectEnrollment.findMany({
-            where: { classArmId, termId },
+            where: {
+                classArmId,
+                termId,
+                subject: {
+                    subjectKind: { not: "COMPOSITE_COMPONENT" }
+                }
+            },
             include: { subject: true }
         })
     ]);
@@ -217,7 +238,10 @@ export async function generateBroadsheetData(
     const prevScores = reportType === "endOfTerm" ? await prisma.score.findMany({
         where: {
             studentId: { in: studentIds },
-            termId: { in: previousTerms.map(t => t.id) }
+            termId: { in: previousTerms.map(t => t.id) },
+            subject: {
+                subjectKind: { not: "COMPOSITE_COMPONENT" }
+            }
         }
     }) : [];
 
@@ -227,10 +251,18 @@ export async function generateBroadsheetData(
         classArmId,
     });
 
-    const gradingRules = await prisma.gradingRule.findMany({
+    const allGradingRules = await prisma.gradingRule.findMany({
         where: { schoolId: school.id },
         orderBy: { maxScore: "desc" }
     });
+
+    const schoolCategory = resolveSchoolCategory(classArm.class.level);
+    const categorySpecificRules = schoolCategory
+        ? allGradingRules.filter((rule) => rule.schoolCategory === schoolCategory)
+        : [];
+    const gradingRules = categorySpecificRules.length > 0
+        ? categorySpecificRules
+        : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
     // Helper: get grade from total
     const getGrade = (total: number): string => {

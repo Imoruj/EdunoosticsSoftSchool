@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./ProfessionalStyles";
+import { formatScore, formatScoreOrBlank } from "../../scoreFormatting";
 
 interface AcademicTableProps {
     subjects: ReportCardData["academic"]["subjects"];
@@ -102,18 +103,18 @@ const ProfessionalAcademicTable: React.FC<AcademicTableProps & { config?: any }>
                             return (
                                 <View key={sub.id} style={[styles.tableRow, idx === items.length - 1 ? { borderBottomWidth: 1 } : {}]}>
                                     <View style={[styles.tableCol, { width: colWidths.subject, alignItems: "flex-start", paddingLeft: 5 }]}><Text style={styles.tableCellLeft}>{sub.name}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.bf }]}><Text style={styles.tableCell}>{sub.cumulativeTotal1 || ""}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.bf }]}><Text style={styles.tableCell}>{sub.cumulativeTotal2 || ""}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.ca }]}><Text style={styles.tableCell}>{Math.floor(sub.ca / 2)}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.ca }]}><Text style={styles.tableCell}>{Math.ceil(sub.ca / 2)}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.exam }]}><Text style={styles.tableCell}>{sub.exam}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.total }]}><Text style={[styles.tableCell, styles.bold]}>{sub.total}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.bf }]}><Text style={styles.tableCell}>{formatScoreOrBlank(sub.cumulativeTotal1)}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.bf }]}><Text style={styles.tableCell}>{formatScoreOrBlank(sub.cumulativeTotal2)}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.ca }]}><Text style={styles.tableCell}>{formatScore(Math.floor(sub.ca / 2))}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.ca }]}><Text style={styles.tableCell}>{formatScore(Math.ceil(sub.ca / 2))}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.exam }]}><Text style={styles.tableCell}>{formatScore(sub.exam)}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.total }]}><Text style={[styles.tableCell, styles.bold]}>{formatScore(sub.total)}</Text></View>
                                     <View style={[styles.tableCol, { width: colWidths.percent }]}><Text style={styles.tableCell}>{percentage}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.cum }]}><Text style={styles.tableCell}>{cumTotal > sub.total ? cumTotal : ""}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.cum }]}><Text style={styles.tableCell}>{cumTotal > sub.total ? formatScore(cumTotal) : ""}</Text></View>
                                     <View style={[styles.tableCol, { width: colWidths.pos }]}><Text style={styles.tableCell}>{sub.subjectPosition || "-"}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.pos }]}><Text style={styles.tableCell}>{sub.subjectLowestScore !== undefined ? sub.subjectLowestScore : "-"}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.pos }]}><Text style={styles.tableCell}>{sub.subjectHighestScore !== undefined ? sub.subjectHighestScore : "-"}</Text></View>
-                                    <View style={[styles.tableCol, { width: colWidths.avg }]}><Text style={styles.tableCell}>{sub.subjectClassAverage || "-"}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.pos }]}><Text style={styles.tableCell}>{formatScore(sub.subjectLowestScore)}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.pos }]}><Text style={styles.tableCell}>{formatScore(sub.subjectHighestScore)}</Text></View>
+                                    <View style={[styles.tableCol, { width: colWidths.avg }]}><Text style={styles.tableCell}>{formatScore(sub.subjectClassAverage)}</Text></View>
                                     <View style={[styles.tableCol, { width: colWidths.remark }]}><Text style={[styles.tableCell, { fontSize: 6 }]}>{sub.remark}</Text></View>
                                     <View style={[styles.tableCol, { width: colWidths.grade }]}><Text style={[styles.tableCell, styles.bold]}>{sub.grade}</Text></View>
                                     <View style={[styles.tableCol, { width: colWidths.sign, borderRightWidth: 0 }]} />

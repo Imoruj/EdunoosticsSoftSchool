@@ -4,12 +4,47 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { Eye, EyeOff } from "lucide-react";
+
+function getSuggestedLoginTypeFromError(errorMessage: string) {
+    if (errorMessage.includes("Student tab")) {
+        return "student" as const;
+    }
+
+    if (errorMessage.includes("Parent tab")) {
+        return "parent" as const;
+    }
+
+    if (errorMessage.includes("Admin/Teacher tab")) {
+        return "admin" as const;
+    }
+
+    return null;
+}
+
+function normalizeAuthError(errorMessage: string) {
+    const trimmed = errorMessage.trim();
+    if (!trimmed) return "Sign in failed.";
+    if (trimmed === "CredentialsSignin") return "Invalid credentials.";
+    if (trimmed.includes("Callback for provider type credentials not supported")) {
+        return "Sign in request was blocked. Refresh the page and try again.";
+    }
+    if (trimmed === "Configuration") return "Authentication is not configured correctly.";
+    return trimmed;
+}
 
 export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const [loginType, setLoginType] = useState<"admin" | "parent" | "student">("admin");
+    const [showPassword, setShowPassword] = useState(false);
+
+    const handleLoginTypeChange = (type: "admin" | "parent" | "student") => {
+        setLoginType(type);
+        setError("");
+        setShowPassword(false);
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -23,7 +58,7 @@ export default function LoginPage() {
 
         const identifier =
             loginType === "student"
-                ? (admission || "")
+                ? (email || admission || "")
                 : (email || "");
 
         try {
@@ -35,7 +70,11 @@ export default function LoginPage() {
             });
 
             if (result?.error) {
-                setError(result.error);
+                setError(normalizeAuthError(result.error));
+                const suggestedLoginType = getSuggestedLoginTypeFromError(result.error);
+                if (suggestedLoginType && suggestedLoginType !== loginType) {
+                    setLoginType(suggestedLoginType);
+                }
             } else if (result?.ok) {
                 // Fetch session to route super admin to /admin, others to /dashboard
                 const sessionRes = await fetch("/api/auth/session");
@@ -112,7 +151,7 @@ export default function LoginPage() {
                         {/* Login Type Tabs */}
                         <div className="flex bg-gray-100 rounded-lg p-1 mb-2">
                             <button
-                                onClick={() => setLoginType("admin")}
+                                onClick={() => handleLoginTypeChange("admin")}
                                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "admin"
                                     ? "bg-white text-gray-900 shadow"
                                     : "text-gray-500 hover:text-gray-700"
@@ -121,7 +160,7 @@ export default function LoginPage() {
                                 Admin/Teacher
                             </button>
                             <button
-                                onClick={() => setLoginType("parent")}
+                                onClick={() => handleLoginTypeChange("parent")}
                                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "parent"
                                     ? "bg-white text-gray-900 shadow"
                                     : "text-gray-500 hover:text-gray-700"
@@ -130,7 +169,7 @@ export default function LoginPage() {
                                 Parent
                             </button>
                             <button
-                                onClick={() => setLoginType("student")}
+                                onClick={() => handleLoginTypeChange("student")}
                                 className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "student"
                                     ? "bg-white text-gray-900 shadow"
                                     : "text-gray-500 hover:text-gray-700"
@@ -139,6 +178,10 @@ export default function LoginPage() {
                                 Student
                             </button>
                         </div>
+
+                        <p className="mb-6 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
+                            Choose the tab that matches the account you are signing into. Student and parent accounts are blocked from the Admin/Teacher tab.
+                        </p>
 
                         {/* Super Admin hint — shown on Admin/Teacher tab */}
                         {loginType === "admin" && (
@@ -179,13 +222,22 @@ export default function LoginPage() {
                                         <input
                                             id="password"
                                             name="password"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             autoComplete="current-password"
                                             suppressHydrationWarning
                                             className="input"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}
@@ -214,7 +266,7 @@ export default function LoginPage() {
                                         <input
                                             id="pin"
                                             name="pin"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             maxLength={6}
                                             autoComplete="current-password"
@@ -222,6 +274,15 @@ export default function LoginPage() {
                                             className="input"
                                             placeholder="••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}
@@ -229,19 +290,22 @@ export default function LoginPage() {
                             {loginType === "student" && (
                                 <>
                                     <div>
-                                        <label htmlFor="admission" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Admission Number
+                                        <label htmlFor="studentEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Student Email or Admission Number
                                         </label>
                                         <input
-                                            id="admission"
-                                            name="admissionNumber"
+                                            id="studentEmail"
+                                            name="email"
                                             type="text"
                                             required
                                             autoComplete="username"
                                             suppressHydrationWarning
                                             className="input"
-                                            placeholder="SCH/2024/001"
+                                            placeholder="firstname.lastname@school.com or SCH/2026/0001"
                                         />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Your school decides which student login method is allowed.
+                                        </p>
                                     </div>
                                     <div>
                                         <label htmlFor="studentPin" className="block text-sm font-medium text-gray-700 mb-2">
@@ -250,13 +314,22 @@ export default function LoginPage() {
                                         <input
                                             id="studentPin"
                                             name="pin"
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
                                             required
                                             autoComplete="current-password"
                                             suppressHydrationWarning
                                             className="input"
                                             placeholder="••••••••"
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((value) => !value)}
+                                            className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            {showPassword ? "Hide password" : "Show password"}
+                                        </button>
                                     </div>
                                 </>
                             )}

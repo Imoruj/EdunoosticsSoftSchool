@@ -27,6 +27,17 @@ export async function GET(req: NextRequest) {
                     include: {
                         class: true
                     }
+                },
+                user: {
+                    select: {
+                        email: true,
+                        phone: true,
+                        school: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
                 }
             }
         });
@@ -35,7 +46,11 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Student profile not found" }, { status: 404 });
         }
 
-        return NextResponse.json(student);
+        return NextResponse.json(student, {
+            headers: {
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+        });
 
     } catch (error: any) {
         console.error("Error fetching student profile:", error);

@@ -19,14 +19,134 @@ import {
 } from './indexeddb';
 import type { Lesson, Quiz, QuizAttempt, Assignment, AssignmentSubmission, LessonProgress, ChatMessage } from './types';
 
+type PublishedEntityType = 'lesson' | 'quiz' | 'assignment';
+
+function mergeEntitiesById<T extends { id: string }>(primary: T[], secondary: T[]): T[] {
+  const merged = new Map<string, T>();
+
+  secondary.forEach((item) => {
+    merged.set(item.id, item);
+  });
+
+  primary.forEach((item) => {
+    merged.set(item.id, item);
+  });
+
+  return Array.from(merged.values());
+}
+
+function isPublishedItemVisibleToStudent(
+  item: { isPublished: boolean; assignedTo?: string[] },
+  profileId?: string,
+  userId?: string
+) {
+  if (!item.isPublished) {
+    return false;
+  }
+
+  const assignedTo = Array.isArray(item.assignedTo) ? item.assignedTo : [];
+  if (assignedTo.length === 0) {
+    return true;
+  }
+
+  return (
+    assignedTo.includes('all') ||
+    (!!profileId && assignedTo.includes(profileId)) ||
+    (!!userId && assignedTo.includes(userId))
+  );
+}
+
+async function fetchPublishedEntities<T>(type: PublishedEntityType): Promise<T[]> {
+  const response = await fetch(`/api/lms/published?type=${type}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || `Failed to fetch published ${type}s`);
+  }
+
+  const data = await response.json();
+
+  if (type === 'lesson') return (data.lessons || []) as T[];
+  if (type === 'quiz') return (data.quizzes || []) as T[];
+  return (data.assignments || []) as T[];
+}
+
+async function fetchPublishedEntityById<T>(type: PublishedEntityType, id: string): Promise<T | null> {
+  const response = await fetch(`/api/lms/published?type=${type}&id=${encodeURIComponent(id)}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || `Failed to fetch published ${type}`);
+  }
+
+  const data = await response.json();
+  const items =
+    type === 'lesson'
+      ? (data.lessons || [])
+      : type === 'quiz'
+        ? (data.quizzes || [])
+        : (data.assignments || []);
+
+  return (items.find((item: { id: string }) => item.id === id) || null) as T | null;
+}
+
+async function syncPublishedEntities<T extends { id: string }>(type: PublishedEntityType, items: T[]) {
+  if (items.length === 0) {
+    return;
+  }
+
+  const response = await fetch('/api/lms/published', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      items: items.map((payload) => ({
+        type,
+        payload,
+      })),
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || `Failed to sync published ${type}s`);
+  }
+}
+
+async function deletePublishedEntity(type: PublishedEntityType, id: string) {
+  const response = await fetch('/api/lms/published', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ type, id }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || `Failed to delete published ${type}`);
+  }
+}
+
 /**
  * Get current user IDs from session (both user ID and student profile ID)
  */
 function useUserIds() {
   const { data: session } = useSession();
+  const user = session?.user as any;
+  const roles = Array.isArray(user?.roles) ? (user.roles as string[]) : [];
+
   return {
     userId: session?.user?.id,
-    profileId: (session?.user as any)?.loginProfileId as string | undefined,
+    profileId: user?.loginProfileId as string | undefined,
+    isStudent: user?.loginType === 'student' || roles.includes('STUDENT'),
   };
 }
 
@@ -45,7 +165,7 @@ export function useLessons() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { userId, profileId } = useUserIds();
+  const { userId, profileId, isStudent } = useUserIds();
 
   const loadLessons = useCallback(async () => {
     if (!userId) return;
@@ -70,6 +190,23 @@ export function useLessons() {
 
         db.close();
       }
+
+      if (isStudent) {
+        try {
+          const remoteLessons = await fetchPublishedEntities<Lesson>('lesson');
+          const cachedRemoteLessons = data.filter((lesson) => remoteLessons.some((remoteLesson) => remoteLesson.id === lesson.id));
+          setLessons(mergeEntitiesById(remoteLessons, cachedRemoteLessons));
+          setError(null);
+          return;
+        } catch (remoteError) {
+          console.debug('Failed to fetch published lessons from server, using local cache:', remoteError);
+        }
+
+        setLessons(data.filter((lesson) => isPublishedItemVisibleToStudent(lesson, profileId, userId)));
+        setError(null);
+        return;
+      }
+
       setLessons(data.filter(l =>
         l.createdById === userId ||
         (l.isPublished && (
@@ -79,12 +216,17 @@ export function useLessons() {
         ))
       ));
       setError(null);
+
+      const ownedLessons = data.filter((lesson) => lesson.createdById === userId);
+      void syncPublishedEntities('lesson', ownedLessons).catch((syncError) => {
+        console.error('Failed to sync lessons to published feed:', syncError);
+      });
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [userId, profileId]);
+  }, [isStudent, profileId, userId]);
 
   useEffect(() => {
     loadLessons();
@@ -101,6 +243,7 @@ export function useLessons() {
         console.debug('Encryption failed, using unencrypted storage:', error);
         await saveUnencrypted(STORES.LESSONS, lesson);
       }
+      await syncPublishedEntities('lesson', [lesson]);
       await loadLessons();
     },
     [userId, loadLessons]
@@ -109,6 +252,7 @@ export function useLessons() {
   const deleteLesson = useCallback(
     async (lessonId: string) => {
       await deleteItem(STORES.LESSONS, lessonId);
+      await deletePublishedEntity('lesson', lessonId);
       await loadLessons();
     },
     [loadLessons]
@@ -140,7 +284,7 @@ export function useLesson(lessonId: string | null) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const userId = useUserId();
+  const { userId, profileId, isStudent } = useUserIds();
 
   const loadLesson = useCallback(async () => {
     if (!userId || !lessonId) {
@@ -150,6 +294,20 @@ export function useLesson(lessonId: string | null) {
 
     try {
       setLoading(true);
+
+      if (isStudent) {
+        try {
+          const publishedLesson = await fetchPublishedEntityById<Lesson>('lesson', lessonId);
+          if (publishedLesson) {
+            setLesson(publishedLesson);
+            setError(null);
+            return;
+          }
+        } catch (remoteError) {
+          console.debug('Failed to fetch published lesson from server, using local cache:', remoteError);
+        }
+      }
+
       let data: Lesson | null = null;
       try {
         data = await getEncrypted<Lesson>(STORES.LESSONS, lessonId, userId);
@@ -158,14 +316,18 @@ export function useLesson(lessonId: string | null) {
         console.debug('Master key not set up, loading unencrypted lesson:', encryptionError);
         data = await getUnencrypted<Lesson>(STORES.LESSONS, lessonId);
       }
-      setLesson(data);
+      if (isStudent && data && !isPublishedItemVisibleToStudent(data, profileId, userId)) {
+        setLesson(null);
+      } else {
+        setLesson(data);
+      }
       setError(null);
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [userId, lessonId]);
+  }, [isStudent, lessonId, profileId, userId]);
 
   useEffect(() => {
     loadLesson();
@@ -183,6 +345,7 @@ export function useLesson(lessonId: string | null) {
         console.debug('Encryption failed, using unencrypted storage:', error);
         await saveUnencrypted(STORES.LESSONS, updated);
       }
+      await syncPublishedEntities('lesson', [updated]);
       setLesson(updated);
     },
     [userId, lesson]
@@ -204,7 +367,7 @@ export function useQuizzes() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const userId = useUserId();
+  const { userId, profileId, isStudent } = useUserIds();
 
   const loadQuizzes = useCallback(async () => {
     if (!userId) return;
@@ -229,14 +392,36 @@ export function useQuizzes() {
 
         db.close();
       }
+
+      if (isStudent) {
+        try {
+          const remoteQuizzes = await fetchPublishedEntities<Quiz>('quiz');
+          const cachedRemoteQuizzes = data.filter((quiz) => remoteQuizzes.some((remoteQuiz) => remoteQuiz.id === quiz.id));
+          setQuizzes(mergeEntitiesById(remoteQuizzes, cachedRemoteQuizzes));
+          setError(null);
+          return;
+        } catch (remoteError) {
+          console.debug('Failed to fetch published quizzes from server, using local cache:', remoteError);
+        }
+
+        setQuizzes(data.filter((quiz) => isPublishedItemVisibleToStudent(quiz, profileId, userId)));
+        setError(null);
+        return;
+      }
+
       setQuizzes(data);
       setError(null);
+
+      const ownedQuizzes = data.filter((quiz) => quiz.createdById === userId);
+      void syncPublishedEntities('quiz', ownedQuizzes).catch((syncError) => {
+        console.error('Failed to sync quizzes to published feed:', syncError);
+      });
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [isStudent, profileId, userId]);
 
   useEffect(() => {
     loadQuizzes();
@@ -253,6 +438,7 @@ export function useQuizzes() {
         console.debug('Encryption failed, using unencrypted storage:', error);
         await saveUnencrypted(STORES.QUIZZES, quiz);
       }
+      await syncPublishedEntities('quiz', [quiz]);
       await loadQuizzes();
     },
     [userId, loadQuizzes]
@@ -261,6 +447,7 @@ export function useQuizzes() {
   const deleteQuiz = useCallback(
     async (quizId: string) => {
       await deleteItem(STORES.QUIZZES, quizId);
+      await deletePublishedEntity('quiz', quizId);
       await loadQuizzes();
     },
     [loadQuizzes]
@@ -365,7 +552,7 @@ export function useAssignments() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const userId = useUserId();
+  const { userId, profileId, isStudent } = useUserIds();
 
   const loadAssignments = useCallback(async () => {
     if (!userId) return;
@@ -389,14 +576,38 @@ export function useAssignments() {
 
         db.close();
       }
+
+      if (isStudent) {
+        try {
+          const remoteAssignments = await fetchPublishedEntities<Assignment>('assignment');
+          const cachedRemoteAssignments = data.filter((assignment) =>
+            remoteAssignments.some((remoteAssignment) => remoteAssignment.id === assignment.id)
+          );
+          setAssignments(mergeEntitiesById(remoteAssignments, cachedRemoteAssignments));
+          setError(null);
+          return;
+        } catch (remoteError) {
+          console.debug('Failed to fetch published assignments from server, using local cache:', remoteError);
+        }
+
+        setAssignments(data.filter((assignment) => isPublishedItemVisibleToStudent(assignment, profileId, userId)));
+        setError(null);
+        return;
+      }
+
       setAssignments(data);
       setError(null);
+
+      const ownedAssignments = data.filter((assignment) => assignment.createdById === userId);
+      void syncPublishedEntities('assignment', ownedAssignments).catch((syncError) => {
+        console.error('Failed to sync assignments to published feed:', syncError);
+      });
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [isStudent, profileId, userId]);
 
   useEffect(() => {
     loadAssignments();
@@ -412,6 +623,7 @@ export function useAssignments() {
         console.debug('Encryption failed, using unencrypted storage:', error);
         await saveUnencrypted(STORES.ASSIGNMENTS, assignment);
       }
+      await syncPublishedEntities('assignment', [assignment]);
       await loadAssignments();
     },
     [userId, loadAssignments]
@@ -420,6 +632,7 @@ export function useAssignments() {
   const deleteAssignment = useCallback(
     async (assignmentId: string) => {
       await deleteItem(STORES.ASSIGNMENTS, assignmentId);
+      await deletePublishedEntity('assignment', assignmentId);
       await loadAssignments();
     },
     [loadAssignments]

@@ -2,6 +2,8 @@ import React from "react";
 import { Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { ReportCardData } from "./types";
 import { styles } from "./styles";
+import { formatScore } from "./scoreFormatting";
+import { formatStudentFullName } from "./formatStudentFullName";
 
 interface StudentProfileProps {
     student: ReportCardData["student"];
@@ -70,13 +72,15 @@ const customStyles = StyleSheet.create({
 });
 
 const StudentProfile: React.FC<StudentProfileProps & { config?: any }> = ({ student, term, attendance, summary, config }) => {
+    const studentFullName = formatStudentFullName(student);
+
     return (
         <View style={customStyles.container}>
             {/* Personal Data */}
             <View style={[customStyles.box, { flex: 2 }]}>
                 <Text style={customStyles.boxTitle}>Student Personal Data</Text>
                 {[
-                    { label: "Name", value: `${student.lastName} ${student.firstName}` },
+                    { label: "Name", value: studentFullName },
                     { label: "Date of Birth", value: "N/A" },
                     { label: "Sex", value: "N/A" },
                     { label: "Class", value: student.className },
@@ -137,15 +141,15 @@ const StudentProfile: React.FC<StudentProfileProps & { config?: any }> = ({ stud
             <View style={[customStyles.box, { flex: 1 }]}>
                 <View style={customStyles.gridRow}>
                     <View style={[customStyles.labelCol, { width: "70%" }]}><Text style={customStyles.labelText}>OBTAINABLE</Text></View>
-                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{summary.totalObtainable}</Text></View>
+                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{formatScore(summary.totalObtainable)}</Text></View>
                 </View>
                 <View style={customStyles.gridRow}>
                     <View style={[customStyles.labelCol, { width: "70%" }]}><Text style={customStyles.labelText}>OBTAINED</Text></View>
-                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{summary.totalScore}</Text></View>
+                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{formatScore(summary.totalScore)}</Text></View>
                 </View>
                 <View style={customStyles.gridRow}>
                     <View style={[customStyles.labelCol, { width: "70%" }]}><Text style={customStyles.labelText}>AVERAGE %</Text></View>
-                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{summary.average.toFixed(1)}</Text></View>
+                    <View style={[customStyles.valueCol, { width: "30%" }]}><Text style={customStyles.valueText}>{formatScore(summary.average)}</Text></View>
                 </View>
                 <View style={[customStyles.gridRow, styles.borderBottomNone]}>
                     <View style={[customStyles.labelCol, { width: "50%" }]}><Text style={customStyles.labelText}>POSITION</Text></View>

@@ -6,6 +6,34 @@ import ScoresClient from "@/components/scores/ScoresClient";
 import { AssessmentType, ClassLink, GradingRule, Subject, Session } from "@/components/scores/types";
 import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
 
+function toScoreSubject(subject: {
+    id: string;
+    name: string;
+    code: string | null;
+    subjectKind: "STANDARD" | "COMPOSITE_PARENT" | "COMPOSITE_COMPONENT";
+    defaultParentSubject?: { id: string; name: string } | null;
+    subjectClassArms?: Array<{ classArmId: string }>;
+}, classArmIds?: string[]): Subject {
+    const parentSubjectName = subject.defaultParentSubject?.name || null;
+    const baseName =
+        subject.subjectKind === "COMPOSITE_COMPONENT" && parentSubjectName
+            ? `${subject.name} (Component of ${parentSubjectName})`
+            : subject.name;
+
+    return {
+        id: subject.id,
+        name: baseName,
+        code: subject.code || "",
+        classArmIds: classArmIds || subject.subjectClassArms?.map((sca) => sca.classArmId) || [],
+        subjectKind: subject.subjectKind,
+        parentSubjectId: subject.defaultParentSubject?.id || null,
+        parentSubjectName,
+        isCompositeConfigured: subject.subjectKind !== "STANDARD",
+        isReportVisible: subject.subjectKind !== "COMPOSITE_COMPONENT",
+        isScoreEntryEditable: subject.subjectKind !== "COMPOSITE_PARENT",
+    };
+}
+
 export default async function ScoreEntryPage() {
     const session = await getServerSession(authOptions);
 
@@ -61,7 +89,12 @@ export default async function ScoreEntryPage() {
             }),
             prisma.subject.findMany({
                 where: { schoolId },
-                include: { subjectClassArms: { select: { classArmId: true } } },
+                include: {
+                    defaultParentSubject: {
+                        select: { id: true, name: true },
+                    },
+                    subjectClassArms: { select: { classArmId: true } },
+                },
                 orderBy: { name: "asc" }
             })
         ]);
@@ -72,12 +105,7 @@ export default async function ScoreEntryPage() {
             arms: c.arms.map((a) => ({ id: a.id, armName: a.armName, level: c.level }))
         }));
 
-        initialSubjects = dbSubjects.map((sub) => ({
-            id: sub.id,
-            name: sub.name,
-            code: sub.code || "",
-            classArmIds: sub.subjectClassArms.map((sca) => sca.classArmId)
-        }));
+        initialSubjects = dbSubjects.map((sub) => toScoreSubject(sub));
     } else if (!userId) {
         initialClasses = [];
         initialSubjects = [];
@@ -118,9 +146,13 @@ export default async function ScoreEntryPage() {
                 prisma.subject.findMany({
                     where: {
                         schoolId,
-                        id: { in: assignedSubjectIds }
+                        id: { in: assignedSubjectIds },
+                        subjectKind: { not: "COMPOSITE_PARENT" },
                     },
                     include: {
+                        defaultParentSubject: {
+                            select: { id: true, name: true },
+                        },
                         subjectClassArms: {
                             where: { classArmId: { in: assignedArmIds } },
                             select: { classArmId: true }
@@ -144,15 +176,15 @@ export default async function ScoreEntryPage() {
                 assignmentMap.get(assignment.subjectId)!.add(assignment.classArmId);
             }
 
-            initialSubjects = dbSubjects.map((sub) => ({
-                id: sub.id,
-                name: sub.name,
-                code: sub.code || "",
-                classArmIds: Array.from(
-                    assignmentMap.get(sub.id) ||
-                    new Set(sub.subjectClassArms.map((sca) => sca.classArmId))
+            initialSubjects = dbSubjects.map((sub) =>
+                toScoreSubject(
+                    sub,
+                    Array.from(
+                        assignmentMap.get(sub.id) ||
+                        new Set(sub.subjectClassArms.map((sca) => sca.classArmId))
+                    )
                 )
-            }));
+            );
         }
     } else if (isClassTeacher) {
         const assignedArms = await prisma.classArm.findMany({
@@ -188,6 +220,9 @@ export default async function ScoreEntryPage() {
                     }
                 },
                 include: {
+                    defaultParentSubject: {
+                        select: { id: true, name: true },
+                    },
                     subjectClassArms: {
                         where: { classArmId: { in: assignedArmIds } },
                         select: { classArmId: true }
@@ -214,12 +249,7 @@ export default async function ScoreEntryPage() {
             }
 
             initialClasses = Array.from(classesById.values());
-            initialSubjects = dbSubjects.map((sub) => ({
-                id: sub.id,
-                name: sub.name,
-                code: sub.code || "",
-                classArmIds: sub.subjectClassArms.map((sca) => sca.classArmId)
-            }));
+            initialSubjects = dbSubjects.map((sub) => toScoreSubject(sub));
         }
     }
 

@@ -32,6 +32,8 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const [currentTermInfo, setCurrentTermInfo] = useState<{ session: string, term: string } | null>(null);
     const notificationItemsRef = useRef<HeaderNotification[]>([]);
     const hasLoadedNotificationsRef = useRef(false);
+    const notificationsRequestInFlightRef = useRef(false);
+    const notificationStreamRetryRef = useRef<number | null>(null);
 
     const userId = (session?.user as any)?.id || "anonymous";
     const notificationStorageKey = `dashboard-read-notifications:${userId}`;
@@ -75,8 +77,19 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
             return;
         }
 
+        if (notificationsRequestInFlightRef.current) {
+            return;
+        }
+
+        notificationsRequestInFlightRef.current = true;
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+
         try {
-            const response = await fetch("/api/notifications?limit=8", { cache: "no-store" });
+            const response = await fetch("/api/notifications?limit=8", {
+                cache: "no-store",
+                signal: controller.signal,
+            });
             if (await handleUnauthorizedApiResponse(response)) {
                 return;
             }
@@ -102,6 +115,9 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
         } catch {
             publishPendingUploadCount(0);
             setNotificationItems([]);
+        } finally {
+            window.clearTimeout(timeoutId);
+            notificationsRequestInFlightRef.current = false;
         }
     }, [session, publishPendingUploadCount]);
 
@@ -124,27 +140,78 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     }, []);
 
     useEffect(() => {
-        fetchNotifications();
-        const intervalId = setInterval(fetchNotifications, 60000);
+        void fetchNotifications();
+        const intervalId = setInterval(() => {
+            if (document.visibilityState === "visible") {
+                void fetchNotifications();
+            }
+        }, 60000);
         return () => clearInterval(intervalId);
     }, [fetchNotifications]);
 
     useEffect(() => {
         if (!session?.user || typeof window === "undefined") return;
 
-        const stream = new EventSource("/api/notifications/stream");
+        let stream: EventSource | null = null;
+        let cancelled = false;
         const handleNotification = () => {
-            fetchNotifications({ announceNew: true });
+            void fetchNotifications({ announceNew: true });
         };
 
-        stream.addEventListener("notification", handleNotification);
-        stream.onerror = () => {
-            // Keep the existing poll fallback if the realtime stream disconnects.
+        const clearRetry = () => {
+            if (notificationStreamRetryRef.current !== null) {
+                window.clearTimeout(notificationStreamRetryRef.current);
+                notificationStreamRetryRef.current = null;
+            }
         };
 
-        return () => {
+        const disconnectStream = () => {
+            if (!stream) return;
             stream.removeEventListener("notification", handleNotification);
             stream.close();
+            stream = null;
+        };
+
+        const connectStream = () => {
+            if (cancelled || document.visibilityState !== "visible") {
+                return;
+            }
+
+            clearRetry();
+            disconnectStream();
+
+            stream = new EventSource("/api/notifications/stream");
+            stream.addEventListener("notification", handleNotification);
+            stream.onerror = () => {
+                disconnectStream();
+
+                if (!cancelled) {
+                    notificationStreamRetryRef.current = window.setTimeout(() => {
+                        connectStream();
+                    }, 60000);
+                }
+            };
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                connectStream();
+                void fetchNotifications();
+                return;
+            }
+
+            clearRetry();
+            disconnectStream();
+        };
+
+        connectStream();
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            cancelled = true;
+            clearRetry();
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            disconnectStream();
         };
     }, [session, fetchNotifications]);
 

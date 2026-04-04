@@ -1,36 +1,70 @@
 import React from "react";
 import { prisma } from "@/lib/prisma";
+import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 import BirthdayWidget from "@/components/BirthdayWidget";
 
 export async function BirthdayWidgetAsync({ schoolId }: { schoolId: string }) {
-    const today = new Date();
-    const students = await prisma.student.findMany({
-        where: { schoolId, isActive: true },
-        select: { id: true, firstName: true, lastName: true, dateOfBirth: true, photoUrl: true, classArm: { include: { class: true } } }
-    });
+    try {
+        const today = new Date();
+        const students = await withPrismaRetry("birthday widget students", () =>
+            prisma.student.findMany({
+                where: { schoolId, isActive: true },
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    gender: true,
+                    dateOfBirth: true,
+                    photoUrl: true,
+                    classArm: { include: { class: true } },
+                },
+            })
+        );
 
-    const upcoming = students.filter(s => {
-        if (!s.dateOfBirth) return false;
-        const birth = new Date(s.dateOfBirth);
-        const thisYearBday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+        const upcomingBirthdays = students
+            .filter((student) => {
+                if (!student.dateOfBirth) return false;
 
-        if (thisYearBday.getTime() < today.getTime() - 5 * 60 * 1000) return false;
-        const diffMs = thisYearBday.getTime() - today.getTime();
-        const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        return days >= 0 && days <= 2;
-    });
+                const birth = new Date(student.dateOfBirth);
+                const thisYearBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
 
-    const upcomingBirthdays = upcoming.map(s => ({
-        id: s.id,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        dateOfBirth: s.dateOfBirth!.toISOString(),
-        photoUrl: s.photoUrl,
-        className: s.classArm ? `${s.classArm.class.name} ${s.classArm.armName}` : "Unassigned"
-    }));
+                if (thisYearBirthday.getTime() < today.getTime() - 5 * 60 * 1000) {
+                    return false;
+                }
 
-    if (upcomingBirthdays.length === 0) return null;
+                const diffMs = thisYearBirthday.getTime() - today.getTime();
+                const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                return days >= 0 && days <= 2;
+            })
+            .map((student) => ({
+                id: student.id,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                gender: student.gender,
+                dateOfBirth: student.dateOfBirth!.toISOString(),
+                photoUrl: student.photoUrl,
+                className: student.classArm ? `${student.classArm.class.name} ${student.classArm.armName}` : "Unassigned",
+            }))
+            .sort((left, right) => {
+                const leftDate = new Date(left.dateOfBirth);
+                const rightDate = new Date(right.dateOfBirth);
+                const today = new Date();
+                const nextLeft = new Date(today.getFullYear(), leftDate.getMonth(), leftDate.getDate()).getTime();
+                const nextRight = new Date(today.getFullYear(), rightDate.getMonth(), rightDate.getDate()).getTime();
+                return nextLeft - nextRight || left.firstName.localeCompare(right.firstName);
+            });
 
-    return <BirthdayWidget students={upcomingBirthdays} />;
+        if (upcomingBirthdays.length === 0) {
+            return null;
+        }
+
+        return <BirthdayWidget students={upcomingBirthdays} />;
+    } catch (error) {
+        if (!isTransientPrismaError(error)) {
+            throw error;
+        }
+
+        console.warn("Birthday widget temporarily unavailable because the database is busy.", error);
+        return null;
+    }
 }
-
