@@ -80,13 +80,21 @@ export async function POST(req: NextRequest) {
                 id: termId,
                 session: { schoolId },
             },
-            select: { name: true },
+            select: { name: true, termNumber: true },
         });
 
         const traitsSummary = reportCard ? [
             ...reportCard.affectiveRatings.map(r => `${r.trait.name}: ${r.rating}`),
             ...reportCard.psychomotorRatings.map(r => `${r.skill.name}: ${r.rating}`)
         ].join(", ") : "";
+
+        const affective_traits = reportCard
+            ? Object.fromEntries(reportCard.affectiveRatings.map((rating) => [rating.trait.name, rating.rating]))
+            : {};
+
+        const psychomotor_skills = reportCard
+            ? Object.fromEntries(reportCard.psychomotorRatings.map((rating) => [rating.skill.name, rating.rating]))
+            : {};
 
         const scores = await prisma.score.findMany({
             where: { studentId, termId },
@@ -114,10 +122,19 @@ export async function POST(req: NextRequest) {
                 termNumber: term?.termNumber || 1,
                 attendance: reportCard ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays) : "N/A",
                 traits: traitsSummary,
+                affective_traits,
+                psychomotor_skills,
                 average: reportCard?.average || 0,
                 position: reportCard?.classPosition || 0,
             },
-            reportCard,
+            reportCard: reportCard
+                ? {
+                    average: reportCard.average,
+                    classPosition: reportCard.classPosition,
+                    daysPresent: reportCard.daysPresent,
+                    totalSchoolDays: reportCard.totalSchoolDays,
+                }
+                : null,
             term: { termNumber: term?.termNumber || 1, name: term?.name || "" },
             scores: scores.map(s => ({
                 ca1: s.ca1,
@@ -145,4 +162,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to generate comment" }, { status: 500 });
     }
 }
-

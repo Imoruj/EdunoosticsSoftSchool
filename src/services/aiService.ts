@@ -55,12 +55,15 @@ abstract class BaseAgent {
     protected formatStudentPayload(studentData: StudentData) {
         return JSON.stringify({
             first_name: studentData.firstName,
+            full_name: studentData.name,
             gender: studentData.gender,
             average: studentData.average,
             position: studentData.position,
             attendance: studentData.attendance,
             report_type: studentData.reportTypeLabel || studentData.reportType || "end of term",
             term_number: studentData.termNumber,
+            affective_traits: studentData.affective_traits || {},
+            psychomotor_skills: studentData.psychomotor_skills || {},
             subject_scores: studentData.subjectScores || {},
             subject_percentages: studentData.subjectPercentages || {},
             resit_subjects: studentData.resitSubjects || [],
@@ -121,6 +124,14 @@ class DataCollectionAgent extends BaseAgent {
                 ].join(", ")
                 : "";
 
+            const affective_traits = reportCard
+                ? Object.fromEntries(reportCard.affectiveRatings.map((rating) => [rating.trait.name, rating.rating]))
+                : {};
+
+            const psychomotor_skills = reportCard
+                ? Object.fromEntries(reportCard.psychomotorRatings.map((rating) => [rating.skill.name, rating.rating]))
+                : {};
+
             const commentConfig =
                 ((aiSettings as any).commentConfig as ReportCommentConfig | null) || DEFAULT_COMMENT_CONFIG;
 
@@ -140,6 +151,8 @@ class DataCollectionAgent extends BaseAgent {
                         ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays)
                         : "N/A",
                     traits: traitsSummary,
+                    affective_traits,
+                    psychomotor_skills,
                     average: reportCard?.average?.toNumber() || 0,
                     position: reportCard?.classPosition || 0,
                 },
@@ -236,7 +249,9 @@ class CommentGenerationAgent extends BaseAgent {
             let prompt = template;
             const replacements: Record<string, string> = {
                 first_name: studentData.firstName,
+                firstName: studentData.firstName,
                 last_name: studentData.lastName,
+                lastName: studentData.lastName,
                 name: studentData.name,
                 gender: studentData.gender,
                 term: studentData.term,
@@ -256,8 +271,19 @@ class CommentGenerationAgent extends BaseAgent {
             prompt = prompt.replace(/{{[^}]+}}/g, "").trim();
 
             // Add context from analyses
+            const teacherInput = {
+                first_name: studentData.firstName,
+                name: studentData.name,
+                gender: studentData.gender,
+                affective_traits: studentData.affective_traits,
+                psychomotor_skills: studentData.psychomotor_skills,
+            };
             const systemPrompt = buildCommentSystemPrompt(type);
-            const userContent = buildCommentUserContent(type, prompt, studentData, analyses, criteria.commentConfig);
+            const promptWithTeacherInput =
+                type === "teacher"
+                    ? `${prompt}\n\nUse ONLY the following student identity for this single comment:\n- Full name: ${studentData.name}\n- First name: ${studentData.firstName}\n\nTeacher Input JSON:\n${JSON.stringify(teacherInput, null, 2)}`
+                    : prompt;
+            const userContent = buildCommentUserContent(type, promptWithTeacherInput, studentData, analyses, criteria.commentConfig);
 
             const comment = await this.callAI(systemPrompt, userContent);
             return { success: true, data: { comment, type } };
@@ -665,7 +691,9 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
 
         const replacements: Record<string, string> = {
             first_name: firstName,
+            firstName: firstName,
             last_name: lastName,
+            lastName: lastName,
             name,
             gender: studentData.gender || "neutral",
             term: studentData.term || "current term",

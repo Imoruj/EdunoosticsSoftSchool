@@ -897,10 +897,10 @@ export default function ReportsClient({
                                         className="flex w-full flex-col rounded-xl bg-indigo-600 px-4 py-3 text-left text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                     >
                                         <span className="text-sm font-semibold">
-                                            {workflowBusyAction === "publish_class" ? "Publishing..." : "Publish Result"}
+                                            {workflowBusyAction === "publish_class" ? "Publishing..." : "Publish Class"}
                                         </span>
                                         <span className="mt-1 text-xs text-indigo-100">
-                                            {adminTestMode ? "Admin override: auto-approves and publishes all." : "Make the class result available to student and parent portals."}
+                                            {adminTestMode ? "Admin override: auto-approves and publishes all." : "Publish report cards for the selected class only (students + parents)."}
                                         </span>
                                     </button>
                                 )}
@@ -912,10 +912,10 @@ export default function ReportsClient({
                                         className="flex w-full flex-col rounded-xl bg-rose-600 px-4 py-3 text-left text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                                     >
                                         <span className="text-sm font-semibold">
-                                            {workflowBusyAction === "unpublish_class" ? "Unpublishing..." : "Unpublish Result"}
+                                            {workflowBusyAction === "unpublish_class" ? "Unpublishing..." : "Unpublish Class"}
                                         </span>
                                         <span className="mt-1 text-xs text-rose-100">
-                                            Remove published access while keeping workflow history intact.
+                                            Remove published access for the selected class only while keeping workflow history intact.
                                         </span>
                                     </button>
                                 )}

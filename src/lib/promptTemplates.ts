@@ -6,7 +6,8 @@ export const CRITICAL_COMMENT_RULES = `CRITICAL RULES FOR SCHOOL COMMENT GENERAT
 3. Include specific academic data (average, position) and 1-2 key behavioral traits
 4. Use the exact wording and structure from the school template
 5. Do NOT add extra analysis, explanations, or free-form prose
-6. Return ONLY the comment text - no introductions, conclusions, or meta-commentary`;
+6. Return ONLY the comment text - no introductions, conclusions, or meta-commentary
+7. Use the student's name from the provided student data for this single comment; do not reuse any other student's name`;
 
 export function renderCommentConfig(config: ReportCommentConfig) {
     return `Report Comment Configuration:

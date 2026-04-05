@@ -5,6 +5,7 @@ import Link from "next/link";
 import BehaviorSkillsSettings from "@/components/settings/BehaviorSkillsSettings";
 import TermMappingSettings from "@/components/settings/TermMappingSettings";
 import BroadsheetTermMappingSettings from "@/components/settings/BroadsheetTermMappingSettings";
+import AICommentSettings from "@/components/settings/AICommentSettings";
 import SuccessModal from "@/components/ui/SuccessModal";
 import { GradingCategory, GradingPreset, getPresetLabel, getPresetOptionsForCategory, isPresetAllowedForCategory } from "@/lib/gradingPresets";
 import { getAssessmentTypeSummary, MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES, MAX_CONTINUOUS_ASSESSMENT_TYPES } from "@/lib/assessment-types";
@@ -182,7 +183,7 @@ export default function SettingsPage() {
                             { id: "broadsheet", label: "Broadsheet Templates", href: "/dashboard/settings/broadsheet" },
                             { id: "notifications", label: "Notifications" },
                             { id: "term-mapping", label: "Term Mapping" },
-                            { id: "ai", label: "AI Comment Settings" },
+                            { id: "ai", label: "Comment Settings" },
                         ].map((tab) =>
                             tab.href ? (
                                 <Link
@@ -993,144 +994,7 @@ interface GradingRuleRow {
 }
 
 function AISettingsContent() {
-    const [settings, setSettings] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
-    const fetchSettings = async () => {
-        try {
-            const response = await fetch("/api/settings/ai");
-            if (response.ok) {
-                const data = await response.json();
-                setSettings(data);
-            }
-        } catch (error) {
-            console.error("Failed to load AI settings");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const saveSettings = async () => {
-        if (!settings) return;
-
-        setSaving(true);
-        try {
-            const response = await fetch("/api/settings/ai", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    teacherPrompt: settings.teacherPrompt,
-                    principalPrompt: settings.principalPrompt,
-                    useMultiAgentComments: settings.useMultiAgentComments,
-                }),
-            });
-
-            if (response.ok) {
-                setShowSuccessModal(true);
-            }
-        } catch (error) {
-            console.error("Failed to save AI settings");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="card p-6 flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-        );
-    }
-
-    if (!settings) {
-        return (
-            <div className="card p-6 text-center text-gray-500">
-                Failed to load AI settings
-            </div>
-        );
-    }
-
-    return (
-        <div className="card p-6 space-y-6">
-            <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Comment Generation System</h3>
-                <p className="text-sm text-gray-600 mb-4">Configure how AI generates teacher and principal comments for report cards.</p>
-            </div>
-
-            {/* Multi-Agent Toggle */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h4 className="font-semibold text-gray-900 mb-1">Multi-Agent AI System</h4>
-                        <p className="text-sm text-gray-600">Use specialized AI agents for data collection, analysis, generation, and validation. Provides more accurate and validated comments.</p>
-                    </div>
-                    <label className="flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={settings.useMultiAgentComments || false}
-                            onChange={(e) => setSettings({ ...settings, useMultiAgentComments: e.target.checked })}
-                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-700">{settings.useMultiAgentComments ? "Enabled" : "Disabled"}</span>
-                    </label>
-                </div>
-            </div>
-
-            {/* Teacher Prompt */}
-            <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Teacher Comment Template</label>
-                <textarea
-                    value={settings.teacherPrompt || ""}
-                    onChange={(e) => setSettings({ ...settings, teacherPrompt: e.target.value })}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter the prompt template for teacher comments..."
-                />
-                <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                    <strong>Available Placeholders:</strong> {"{{name}}"}name, {"{{firstName}}"}first name, {"{{gender}}"}gender, {"{{term}}"}term, {"{{average}}"}average score, {"{{position}}"}class position, {"{{attendance}}"}attendance, {"{{traits}}"}behavioral traits, {"{{behaviour}}"}behavior ratings, {"{{skills}}"}skill ratings
-                </div>
-            </div>
-
-            {/* Principal Prompt */}
-            <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Principal Comment Template</label>
-                <textarea
-                    value={settings.principalPrompt || ""}
-                    onChange={(e) => setSettings({ ...settings, principalPrompt: e.target.value })}
-                    rows={5}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter the prompt template for principal comments..."
-                />
-                <div className="mt-2 text-xs text-gray-500 bg-gray-50 p-3 rounded">
-                    <strong>Available Placeholders:</strong> {"{{name}}"}name, {"{{firstName}}"}first name, {"{{average}}"}average score, {"{{position}}"}class position, {"{{attendance}}"}attendance, {"{{traits}}"}behavioral traits
-                </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-                <button
-                    onClick={saveSettings}
-                    disabled={saving}
-                    className="btn-primary"
-                >
-                    {saving ? "Saving..." : "Save Settings"}
-                </button>
-            </div>
-
-            <SuccessModal
-                isOpen={showSuccessModal}
-                onClose={() => setShowSuccessModal(false)}
-                title="Settings Saved"
-                message="AI comment settings have been saved successfully."
-            />
-        </div>
-    );
+    return <AICommentSettings />;
 }
 
 function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCategory; categoryLabel: string }) {

@@ -1274,11 +1274,20 @@ export async function POST(req: NextRequest) {
                 });
             }
 
+            const workflowStudents = await prisma.studentReportWorkflow.findMany({
+                where: { classReportWorkflowId: classWorkflow.id },
+                select: { studentId: true },
+            });
+            const workflowStudentIds = workflowStudents.map((entry) => entry.studentId);
+            if (workflowStudentIds.length === 0) {
+                return NextResponse.json({ error: "No students found for this class workflow." }, { status: 400 });
+            }
+
             const publishedAt = new Date();
             const downloadExpiresAt = plusDays(publishedAt, 3);
 
-            const [updatedClassWorkflow] = await prisma.$transaction([
-                prisma.classReportWorkflow.update({
+            const updatedClassWorkflow = await prisma.$transaction(async (tx) => {
+                const updated = await tx.classReportWorkflow.update({
                     where: { id: classWorkflow.id },
                     data: {
                         status: "PUBLISHED",
@@ -1287,30 +1296,60 @@ export async function POST(req: NextRequest) {
                         unpublishedAt: null,
                         unpublishedById: null,
                     },
-                }),
-                prisma.studentReportWorkflow.updateMany({
+                });
+
+                await tx.studentReportWorkflow.updateMany({
                     where: { classReportWorkflowId: classWorkflow.id },
                     data: {
                         status: "PUBLISHED",
                         publishedAt,
                         downloadExpiresAt,
                     },
-                }),
-                prisma.reportCard.updateMany({
-                    where: { termId, classArmId },
-                    data: {
-                        isPublished: true,
-                        publishedAt,
-                    },
-                }),
-            ]);
+                });
 
-            const workflowStudents = await prisma.studentReportWorkflow.findMany({
-                where: { classReportWorkflowId: classWorkflow.id },
-                select: { studentId: true },
+                const chunkSize = 500;
+                for (let i = 0; i < workflowStudentIds.length; i += chunkSize) {
+                    const chunk = workflowStudentIds.slice(i, i + chunkSize);
+                    await tx.reportCard.createMany({
+                        data: chunk.map((studentId) => ({
+                            studentId,
+                            termId,
+                            classArmId,
+                            isPublished: true,
+                            publishedAt,
+                        })),
+                        skipDuplicates: true,
+                    });
+
+                    await tx.reportCard.updateMany({
+                        where: {
+                            termId,
+                            studentId: { in: chunk },
+                        },
+                        data: {
+                            classArmId,
+                            isPublished: true,
+                            publishedAt,
+                        },
+                    });
+                }
+
+                const publishedCount = await tx.reportCard.count({
+                    where: {
+                        termId,
+                        studentId: { in: workflowStudentIds },
+                        isPublished: true,
+                    },
+                });
+                if (publishedCount !== workflowStudentIds.length) {
+                    throw new Error("Not all report cards were published for the selected class.");
+                }
+
+                return updated;
             });
+
             const { studentUserIds, parentUserIds } = await getStudentAndParentNotificationUserIds(
-                workflowStudents.map((entry) => entry.studentId)
+                workflowStudentIds
             );
 
             if (classArm.classTeacherId) {
@@ -1356,38 +1395,50 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "Only admin can unpublish results." }, { status: 403 });
             }
 
-            const [updatedClassWorkflow] = await prisma.$transaction([
-                prisma.classReportWorkflow.update({
+            const workflowStudents = await prisma.studentReportWorkflow.findMany({
+                where: { classReportWorkflowId: classWorkflow.id },
+                select: { studentId: true },
+            });
+            const workflowStudentIds = workflowStudents.map((entry) => entry.studentId);
+
+            const updatedClassWorkflow = await prisma.$transaction(async (tx) => {
+                const updated = await tx.classReportWorkflow.update({
                     where: { id: classWorkflow.id },
                     data: {
                         status: "UNPUBLISHED",
                         unpublishedAt: new Date(),
                         unpublishedById: userId,
                     },
-                }),
-                prisma.studentReportWorkflow.updateMany({
+                });
+
+                await tx.studentReportWorkflow.updateMany({
                     where: { classReportWorkflowId: classWorkflow.id },
                     data: {
                         status: "UNPUBLISHED",
                         publishedAt: null,
                         downloadExpiresAt: null,
                     },
-                }),
-                prisma.reportCard.updateMany({
-                    where: { termId, classArmId },
-                    data: {
-                        isPublished: false,
-                        publishedAt: null,
-                    },
-                }),
-            ]);
+                });
 
-            const workflowStudents = await prisma.studentReportWorkflow.findMany({
-                where: { classReportWorkflowId: classWorkflow.id },
-                select: { studentId: true },
+                const chunkSize = 500;
+                for (let i = 0; i < workflowStudentIds.length; i += chunkSize) {
+                    const chunk = workflowStudentIds.slice(i, i + chunkSize);
+                    await tx.reportCard.updateMany({
+                        where: {
+                            termId,
+                            studentId: { in: chunk },
+                        },
+                        data: {
+                            isPublished: false,
+                            publishedAt: null,
+                        },
+                    });
+                }
+
+                return updated;
             });
             const { studentUserIds, parentUserIds } = await getStudentAndParentNotificationUserIds(
-                workflowStudents.map((entry) => entry.studentId)
+                workflowStudentIds
             );
 
             if (classArm.classTeacherId) {
@@ -1432,4 +1483,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to process workflow action" }, { status: 500 });
     }
 }
-

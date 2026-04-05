@@ -40,6 +40,8 @@ export interface ReportCommentPayload {
     position: number;
     attendance: string;
     traits: string;
+    affective_traits: Record<string, number>;
+    psychomotor_skills: Record<string, number>;
     subjectScores: Record<string, number>;
     subjectPercentages: Record<string, number>;
     subjectDetails: ReportCommentSubjectDetail[];
@@ -112,6 +114,8 @@ export async function buildReportCommentPayload(params: {
         termNumber?: number;
         attendance?: string;
         traits?: string;
+        affective_traits?: Record<string, number>;
+        psychomotor_skills?: Record<string, number>;
         average?: number;
         position?: number;
     };
@@ -219,6 +223,8 @@ export async function buildReportCommentPayload(params: {
         position: reportCard?.classPosition ?? studentData.position ?? 0,
         attendance: studentData.attendance || (reportCard ? formatAttendancePoints(reportCard.daysPresent ?? 0, reportCard.totalSchoolDays ?? 0) : "N/A"),
         traits: studentData.traits || "",
+        affective_traits: studentData.affective_traits || {},
+        psychomotor_skills: studentData.psychomotor_skills || {},
         subjectScores,
         subjectPercentages,
         subjectDetails,
