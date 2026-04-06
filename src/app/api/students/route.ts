@@ -6,6 +6,8 @@ import { UserRole } from "@prisma/client";
 import { clampLimit } from "@/lib/apiError";
 import { checkCsrf } from "@/lib/csrf";
 import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
+import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField } from "@/lib/assessment-types";
 import {
     applyStudentUpdateTransaction,
     buildStudentChangeSummary,
@@ -426,6 +428,71 @@ export async function GET(req: NextRequest) {
             prisma.student.count({ where: { ...whereForGenderCounts, gender: 'MALE' } }),
             prisma.student.count({ where: { ...whereForGenderCounts, isActive: true } }),
         ]);
+
+        if (termId) {
+            const reportType = (searchParams.get("reportType") as "halfTerm" | "endOfTerm") || "endOfTerm";
+            const studentIds = students.map((student) => student.id);
+            const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
+                schoolId,
+                classArmId: classArmId ?? null,
+            });
+
+            const scores = await prisma.score.findMany({
+                where: {
+                    termId,
+                    studentId: { in: studentIds },
+                    subject: { subjectKind: { not: "COMPOSITE_COMPONENT" } },
+                },
+                select: {
+                    studentId: true,
+                    ca1: true,
+                    ca2: true,
+                    ca3: true,
+                    exam: true,
+                },
+            });
+
+            const scoreTotalsByStudent = new Map<string, number[]>();
+            for (const score of scores) {
+                if (!scoreTotalsByStudent.has(score.studentId)) {
+                    scoreTotalsByStudent.set(score.studentId, []);
+                }
+
+                if (reportType === "halfTerm") {
+                    const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
+                    const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type.maxScore) : 10;
+                    const ca1 = typeof (score.ca1 as any)?.toNumber === "function" ? (score.ca1 as any).toNumber() : Number(score.ca1 || 0);
+                    const percent = maxPerSubject > 0 ? (ca1 / maxPerSubject) * 100 : 0;
+                    scoreTotalsByStudent.get(score.studentId)!.push(percent);
+                    continue;
+                }
+
+                const values = {
+                    ca1: typeof (score.ca1 as any)?.toNumber === "function" ? (score.ca1 as any).toNumber() : Number(score.ca1 || 0),
+                    ca2: typeof (score.ca2 as any)?.toNumber === "function" ? (score.ca2 as any).toNumber() : Number(score.ca2 || 0),
+                    ca3: typeof (score.ca3 as any)?.toNumber === "function" ? (score.ca3 as any).toNumber() : Number(score.ca3 || 0),
+                    exam: typeof (score.exam as any)?.toNumber === "function" ? (score.exam as any).toNumber() : Number(score.exam || 0),
+                };
+                const metrics = calculateEndOfTermScoreTotals(values, assessmentTypes as any);
+                scoreTotalsByStudent.get(score.studentId)!.push(metrics.adjustedTotal);
+            }
+
+            const computedAverageByStudent = new Map<string, number>();
+            for (const [studentId, totals] of scoreTotalsByStudent.entries()) {
+                const avg = totals.length > 0 ? totals.reduce((acc, curr) => acc + curr, 0) / totals.length : 0;
+                computedAverageByStudent.set(studentId, Number(avg.toFixed(1)));
+            }
+
+            for (const student of students as any[]) {
+                const computedAverage = computedAverageByStudent.get(student.id);
+                if (!student.reportCards || student.reportCards.length === 0) continue;
+                if (computedAverage === undefined) continue;
+                student.reportCards = student.reportCards.map((reportCard: any) => ({
+                    ...reportCard,
+                    average: computedAverage,
+                }));
+            }
+        }
 
         return NextResponse.json({
             students,

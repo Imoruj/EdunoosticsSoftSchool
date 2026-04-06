@@ -436,7 +436,7 @@ export default function ReportsClient({
 
             setLoading(true);
             try {
-                const res = await fetch(`/api/students?classArmId=${selectedClassArmId}&termId=${selectedTermId}&sessionId=${selectedSessionId}`);
+                const res = await fetch(`/api/students?classArmId=${selectedClassArmId}&termId=${selectedTermId}&sessionId=${selectedSessionId}&reportType=${reportType}`);
                 if (res.ok) {
                     const data = await res.json();
                     const studentsList = data.students || [];
