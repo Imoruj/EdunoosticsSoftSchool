@@ -35,18 +35,31 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
         }
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
         if (!previewRef.current) return;
-
-        const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1100,height=900");
-        if (!printWindow) return;
 
         const styleMarkup = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
             .map((node) => node.outerHTML)
             .join("\n");
 
-        printWindow.document.open();
-        printWindow.document.write(`
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        document.body.appendChild(iframe);
+
+        const iframeWindow = iframe.contentWindow;
+        const iframeDocument = iframe.contentDocument;
+        if (!iframeWindow || !iframeDocument) {
+            iframe.remove();
+            return;
+        }
+
+        iframeDocument.open();
+        iframeDocument.write(`
             <!DOCTYPE html>
             <html>
                 <head>
@@ -63,11 +76,31 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
                 </body>
             </html>
         `);
-        printWindow.document.close();
-        printWindow.focus();
+        iframeDocument.close();
+
+        const images = Array.from(iframeDocument.images || []);
+        await Promise.all(
+            images.map(
+                (img) =>
+                    new Promise<void>((resolve) => {
+                        if (img.complete) return resolve();
+                        const cleanup = () => {
+                            img.onload = null;
+                            img.onerror = null;
+                            resolve();
+                        };
+                        img.onload = cleanup;
+                        img.onerror = cleanup;
+                    })
+            )
+        );
+
+        iframeWindow.focus();
+        iframeWindow.print();
+
         window.setTimeout(() => {
-            printWindow.print();
-        }, 400);
+            iframe.remove();
+        }, 1000);
     };
 
     return (
