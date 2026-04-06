@@ -665,7 +665,7 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
                 if (!result || result.startsWith("Manual assessment recommended")) {
                     throw new Error("Multi-agent comment generation returned fallback result");
                 }
-                return result;
+                return normalizeGeneratedComment(result, studentData, type);
             } catch (error) {
                 console.warn("Multi-agent generation failed, falling back to single-agent:", error);
             }
@@ -724,11 +724,52 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
             behavioralAnalysis: "",
         }, commentConfig);
 
-        return await generateWithFallback(systemPrompt, userContent);
+        const generated = await generateWithFallback(systemPrompt, userContent);
+        return normalizeGeneratedComment(generated, studentData, type);
     } catch (error) {
         console.error("AI Generation Failure:", error);
         return "Manual assessment recommended.";
     }
+}
+
+function normalizeGeneratedComment(comment: string, studentData: any, type: "teacher" | "principal") {
+    if (typeof comment !== "string") return comment as any;
+    if (type !== "teacher") return comment;
+
+    const firstNameRaw = typeof studentData?.firstName === "string" ? studentData.firstName.trim() : "";
+    if (!firstNameRaw) return comment;
+
+    const trimmed = comment.trim();
+    if (!trimmed) return comment;
+
+    const match = trimmed.match(/^([A-Z][A-Za-z'’\-]{1,40})(\b)([\s\S]*)$/);
+    if (!match) return comment;
+
+    const leadingToken = match[1];
+    const rest = match[3] ?? "";
+    const normalizedLeading = leadingToken.trim();
+    const normalizedFirstName = firstNameRaw.trim();
+
+    const reserved = new Set([
+        "With",
+        "The",
+        "This",
+        "In",
+        "On",
+        "At",
+        "As",
+        "He",
+        "She",
+        "They",
+        "Student",
+        "Your",
+        "Overall",
+    ]);
+
+    if (reserved.has(normalizedLeading)) return comment;
+    if (normalizedLeading.toLowerCase() === normalizedFirstName.toLowerCase()) return comment;
+
+    return `${normalizedFirstName}${rest}`;
 }
 
 export async function generateTeacherComment(schoolId: string, studentData: any) {
