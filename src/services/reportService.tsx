@@ -77,6 +77,15 @@ function roundToSingleDecimal(value: number | undefined) {
     return Number(value.toFixed(1));
 }
 
+function normalizePublicAssetUrl(url: string, useAbsolutePath: boolean) {
+    if (!url) return url;
+    if (/^(https?:)?\/\//i.test(url) || /^data:/i.test(url) || /^blob:/i.test(url)) return url;
+    if (useAbsolutePath) {
+        return require("path").join(process.cwd(), "public", url.startsWith("/") ? url.slice(1) : url);
+    }
+    return url.startsWith("/") ? url : `/${url}`;
+}
+
 function normalizeReportCardData(report: ReportCardData): ReportCardData {
     return {
         ...report,
@@ -597,13 +606,7 @@ export async function generateReportCardData(
                 : "Unassigned",
             gender: studentData.gender,
             dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.toISOString() : undefined,
-            photoUrl: studentData.photoUrl
-                ? (studentData.photoUrl.startsWith("http")
-                    ? studentData.photoUrl
-                    : (useAbsolutePath
-                        ? require("path").join(process.cwd(), "public", studentData.photoUrl.startsWith("/") ? studentData.photoUrl.slice(1) : studentData.photoUrl)
-                        : studentData.photoUrl))
-                : undefined
+            photoUrl: studentData.photoUrl ? normalizePublicAssetUrl(studentData.photoUrl, useAbsolutePath) : undefined
         },
         school: {
             name: school.name,
@@ -1104,7 +1107,7 @@ export async function bulkGenerateReportCardData(
                 className: effectiveClassArm ? `${effectiveClassArm.class.name} ${effectiveClassArm.armName}` : "Unassigned",
                 gender: studentData.gender,
                 dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.toISOString() : undefined,
-                photoUrl: studentData.photoUrl ? (studentData.photoUrl.startsWith("http") ? studentData.photoUrl : (useAbsolutePath ? require("path").join(process.cwd(), "public", studentData.photoUrl.startsWith("/") ? studentData.photoUrl.slice(1) : studentData.photoUrl) : studentData.photoUrl)) : undefined
+                photoUrl: studentData.photoUrl ? normalizePublicAssetUrl(studentData.photoUrl, useAbsolutePath) : undefined
             },
             school: {
                 name: school.name,
@@ -1232,5 +1235,3 @@ export async function bulkGenerateReportCardData(
         });
     });
 }
-
-

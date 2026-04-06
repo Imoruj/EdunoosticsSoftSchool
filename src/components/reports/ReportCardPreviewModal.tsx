@@ -51,6 +51,7 @@ const ReportCardPreviewModal: React.FC<ReportCardPreviewModalProps> = ({ isOpen,
             <html>
                 <head>
                     <meta charset="utf-8" />
+                    <base href="${window.location.origin}/" />
                     <title>${title || "Report Card Preview"}</title>
                     ${styleMarkup}
                     <style>

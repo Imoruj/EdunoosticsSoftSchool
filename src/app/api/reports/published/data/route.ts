@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
         });
 
         const reportType = toClientReportType(publishedWorkflow?.reportType || null);
-        const report = await generateReportCardData(reportCard.studentId, reportCard.termId, reportType);
+        const report = await generateReportCardData(reportCard.studentId, reportCard.termId, reportType, false);
 
         return NextResponse.json({ report });
     } catch (error) {
