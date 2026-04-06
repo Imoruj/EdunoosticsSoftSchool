@@ -600,7 +600,7 @@ export default function ReportsClient({
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">My Reports</h1>
                         <p className="text-slate-500">
-                            All published report cards are available here. View and print inside the portal; PDF downloads remain available during the active download window.
+                            All published report cards are available here. View and print inside the portal.
                         </p>
                     </div>
                 </div>
@@ -638,20 +638,9 @@ export default function ReportsClient({
                                             <td className="px-4 py-3">{report.termName}</td>
                                             <td className="px-4 py-3">{report.className}</td>
                                             <td className="px-4 py-3">
-                                                <div className="flex flex-col items-start gap-1">
-                                                    <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                                        View & Print Ready
-                                                    </span>
-                                                    {report.canDownload ? (
-                                                        <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                                            Download Available
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                                            Download Expired
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                    View & Print Ready
+                                                </span>
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <div className="flex justify-end gap-2">
@@ -662,16 +651,6 @@ export default function ReportsClient({
                                                     >
                                                         {loadingPublishedPreviewId === report.id ? "Opening..." : "View / Print"}
                                                     </button>
-                                                    <button
-                                                        onClick={() => window.open(`/api/reports/published/download?reportCardId=${report.id}`, "_blank")}
-                                                        disabled={!report.canDownload}
-                                                        className={`rounded-md px-3 py-1.5 text-xs font-medium ${report.canDownload
-                                                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                                                : "bg-slate-200 text-slate-500 cursor-not-allowed"
-                                                            }`}
-                                                    >
-                                                        Download PDF
-                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -681,6 +660,12 @@ export default function ReportsClient({
                         </table>
                     </div>
                 </Card>
+                <ReportCardPreviewModal
+                    isOpen={showPreviewModal}
+                    onClose={() => setShowPreviewModal(false)}
+                    reports={previewData as any}
+                    title={previewModalTitle}
+                />
             </div>
         );
     }
