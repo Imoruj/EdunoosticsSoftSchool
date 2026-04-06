@@ -688,7 +688,7 @@ export async function GET(req: NextRequest) {
         const userId = typeof user.id === "string" ? user.id : null;
         const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
         const isClassTeacher = roles.includes("CLASS_TEACHER");
 
         if (!userId || !schoolId) {
@@ -792,7 +792,7 @@ export async function POST(req: NextRequest) {
         const userId = typeof user.id === "string" ? user.id : null;
         const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
         const isClassTeacher = roles.includes("CLASS_TEACHER");
         const actorName = (user.name as string) || "A teacher";
 

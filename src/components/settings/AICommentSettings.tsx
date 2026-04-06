@@ -60,17 +60,19 @@ export default function AICommentSettings() {
     const fetchSettings = async () => {
         try {
             const response = await fetch("/api/settings/ai");
-            if (response.ok) {
-                const data = await response.json();
-                setSettings({
-                    teacherPrompt: data.teacherPrompt || "",
-                    principalPrompt: data.principalPrompt || "",
-                    useMultiAgentComments: data.useMultiAgentComments || false,
-                    commentConfig: data.commentConfig || defaultCommentConfig,
-                });
+            if (!response.ok) {
+                throw new Error("Failed to fetch settings");
             }
+            const data = await response.json();
+            setSettings({
+                teacherPrompt: data.teacherPrompt || "",
+                principalPrompt: data.principalPrompt || "",
+                useMultiAgentComments: data.useMultiAgentComments || false,
+                commentConfig: data.commentConfig || defaultCommentConfig,
+            });
         } catch (error) {
             console.error("Failed to load AI settings", error);
+            toast.error("Failed to load comment settings");
         } finally {
             setLoading(false);
         }
@@ -79,12 +81,14 @@ export default function AICommentSettings() {
     const fetchSubjectOptions = async () => {
         try {
             const response = await fetch("/api/settings/ai/subject-options");
-            if (response.ok) {
-                const data = await response.json();
-                setSubjectOptions(data.subjects || []);
+            if (!response.ok) {
+                throw new Error("Failed to fetch subject options");
             }
+            const data = await response.json();
+            setSubjectOptions(data.subjects || []);
         } catch (error) {
             console.warn("Failed to load subject options", error);
+            toast.error("Failed to load subject options");
         }
     };
 
@@ -324,9 +328,7 @@ export default function AICommentSettings() {
                         <div className="text-sm text-blue-800 space-y-1">
                             <div><code className="bg-blue-100 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
                             <div><code className="bg-blue-100 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{first_name}}"}</code> - Student first name</div>
                             <div><code className="bg-blue-100 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{last_name}}"}</code> - Student last name</div>
                             <div><code className="bg-blue-100 px-1 rounded">{"{{gender}}"}</code> - Student gender</div>
                             <div><code className="bg-blue-100 px-1 rounded">{"{{term}}"}</code> - Current term</div>
                             <div><code className="bg-blue-100 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
@@ -358,9 +360,7 @@ export default function AICommentSettings() {
                         <div className="text-sm text-green-800 space-y-1">
                             <div><code className="bg-green-100 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
                             <div><code className="bg-green-100 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{first_name}}"}</code> - Student first name</div>
                             <div><code className="bg-green-100 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{last_name}}"}</code> - Student last name</div>
                             <div><code className="bg-green-100 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
                             <div><code className="bg-green-100 px-1 rounded">{"{{position}}"}</code> - Class position</div>
                             <div><code className="bg-green-100 px-1 rounded">{"{{attendance}}"}</code> - Attendance summary</div>

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const user = session.user as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-    const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+    const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
     const { searchParams } = new URL(req.url);
     let studentId = searchParams.get("studentId");
     let studentIds: string[] = [];
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     // For students, force their own ID (matches dashboard reports page: student login or STUDENT role)
     if (isStudentSessionUser(user) && !isAdmin) {
         const resolved = await resolveStudentRecordIdForUser(user);
-        studentId = resolved ?? undefined;
+        studentId = resolved;
         if (resolved) {
             studentIds = [resolved];
         }

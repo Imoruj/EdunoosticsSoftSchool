@@ -7,7 +7,8 @@ export const CRITICAL_COMMENT_RULES = `CRITICAL RULES FOR SCHOOL COMMENT GENERAT
 4. Use the exact wording and structure from the school template
 5. Do NOT add extra analysis, explanations, or free-form prose
 6. Return ONLY the comment text - no introductions, conclusions, or meta-commentary
-7. Use the student's name from the provided student data for this single comment; do not reuse any other student's name`;
+7. Use the student's name from the provided student data for this single comment; do not reuse any other student's name
+8. If the template includes a sample student name, replace it with the provided student name`;
 
 export function renderCommentConfig(config: ReportCommentConfig) {
     return `Report Comment Configuration:
@@ -76,6 +77,11 @@ export function buildCommentUserContent(
         : "Resit subjects: None.";
 
     return `${prompt}
+
+Student identity (must match exactly):
+- Full name: ${studentData.name}
+- First name: ${studentData.firstName}
+- Last name: ${studentData.lastName}
 
 Report Type: ${studentData.reportTypeLabel}
 ${commentConfig ? renderCommentConfig(commentConfig) + "\n\n" : ""}Average: ${studentData.average}%

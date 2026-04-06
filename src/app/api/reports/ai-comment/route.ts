@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
         const schoolId = user.schoolId as string | undefined;
         const roles: string[] = user.roles || [];
-        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
+        const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
 
         const parsed = bodySchema.safeParse(await req.json().catch(() => null));
         if (!parsed.success) {
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
                 traits: traitsSummary,
                 affective_traits,
                 psychomotor_skills,
-                average: reportCard?.average || 0,
+                average: reportCard?.average?.toNumber() || 0,
                 position: reportCard?.classPosition || 0,
             },
             reportCard: reportCard

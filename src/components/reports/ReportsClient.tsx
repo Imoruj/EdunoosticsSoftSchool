@@ -200,7 +200,8 @@ export default function ReportsClient({
     const userRoles: string[] = Array.isArray(user?.roles) ? user.roles : [];
     const isAdmin =
         userRoles.includes("SUPER_ADMIN") ||
-        userRoles.includes("SCHOOL_ADMIN");
+        userRoles.includes("SCHOOL_ADMIN") ||
+        userRoles.includes("PROPRIETOR");
     const isClassTeacher = userRoles.includes("CLASS_TEACHER");
     const restrictToAssignedScope = !isAdmin && isClassTeacher;
     const isParent = user?.loginType === "parent";
