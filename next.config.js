@@ -32,12 +32,6 @@ const securityHeaders = [
 const nextConfig = {
     distDir: isDev ? ".next-dev" : ".next",
     reactStrictMode: true,
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
-    typescript: {
-        ignoreBuildErrors: true,
-    },
     images: {
         remotePatterns: [
             {
@@ -53,7 +47,14 @@ const nextConfig = {
             "jspdf",
         ],
     },
+    turbopack: {
+        root: __dirname,
+    },
     async headers() {
+        if (isDev) {
+            return [];
+        }
+
         return [
             {
                 source: "/(.*)",

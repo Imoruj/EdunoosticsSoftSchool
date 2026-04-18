@@ -76,7 +76,6 @@ abstract class BaseAgent {
 class DataCollectionAgent extends BaseAgent {
     async collectStudentData(studentId: string, termId: string): Promise<AgentResult> {
         try {
-            console.log(`DataCollectionAgent: Collecting data for student ${studentId}`);
 
             const student = await prisma.student.findUnique({
                 where: { id: studentId },
@@ -94,7 +93,7 @@ class DataCollectionAgent extends BaseAgent {
                 return { success: false, error: "Student not found" };
             }
 
-            const [reportCard, term, scores, aiSettings] = await Promise.all([
+            const [reportCard, term, scores, enrollments, aiSettings] = await Promise.all([
                 prisma.reportCard.findFirst({
                     where: { studentId, termId },
                     include: {
@@ -109,6 +108,13 @@ class DataCollectionAgent extends BaseAgent {
                 prisma.score.findMany({
                     where: { studentId, termId },
                     include: { subject: true },
+                }),
+                prisma.subjectEnrollment.findMany({
+                    where: { 
+                        termId, 
+                        classArmId: student.classArmId ?? undefined,
+                        studentId: student.classArmId ? undefined : studentId
+                    },
                 }),
                 getOrCreateAiSettings(student.schoolId),
             ]);
@@ -166,6 +172,7 @@ class DataCollectionAgent extends BaseAgent {
                     : null,
                 term: { termNumber: term.termNumber, name: term.name },
                 scores,
+                enrollments,
                 classArmId: student.classArmId,
                 commentConfig,
             });
@@ -189,7 +196,6 @@ class DataCollectionAgent extends BaseAgent {
 class AcademicAnalysisAgent extends BaseAgent {
     async analyzePerformance(studentData: StudentData): Promise<AgentResult> {
         try {
-            console.log(`AcademicAnalysisAgent: Analyzing performance for ${studentData.name}`);
 
             const payload = this.formatStudentPayload(studentData);
             const systemPrompt = "You are an academic performance analyst. Provide objective analysis of student academic data.";
@@ -212,7 +218,6 @@ Provide a brief analysis of their academic standing, strengths, and areas for im
 class BehavioralAnalysisAgent extends BaseAgent {
     async analyzeBehavior(studentData: StudentData): Promise<AgentResult> {
         try {
-            console.log(`BehavioralAnalysisAgent: Analyzing behavior for ${studentData.name}`);
 
             const payload = this.formatStudentPayload(studentData);
             const systemPrompt = "You are a behavioral analyst specializing in student character assessment.";
@@ -241,7 +246,6 @@ class CommentGenerationAgent extends BaseAgent {
         type: "teacher" | "principal"
     ): Promise<AgentResult> {
         try {
-            console.log(`CommentGenerationAgent: Generating ${type} comment for ${studentData.name}`);
 
             const template = type === "teacher" ? criteria.teacherPrompt : criteria.principalPrompt;
 
@@ -278,7 +282,7 @@ class CommentGenerationAgent extends BaseAgent {
                 affective_traits: studentData.affective_traits,
                 psychomotor_skills: studentData.psychomotor_skills,
             };
-            const systemPrompt = buildCommentSystemPrompt(type);
+            const systemPrompt = buildCommentSystemPrompt(type, studentData.reportType as "halfTerm" | "endOfTerm" | undefined);
             const promptWithTeacherInput =
                 type === "teacher"
                     ? `${prompt}\n\nUse ONLY the following student identity for this single comment:\n- Full name: ${studentData.name}\n- First name: ${studentData.firstName}\n\nTeacher Input JSON:\n${JSON.stringify(teacherInput, null, 2)}`
@@ -302,7 +306,6 @@ class ValidationAgent extends BaseAgent {
         type: "teacher" | "principal"
     ): Promise<AgentResult> {
         try {
-            console.log(`ValidationAgent: Validating ${type} comment for ${studentData.name}`);
 
             const template = type === "teacher" ? criteria.teacherPrompt : criteria.principalPrompt;
             const payload = this.formatStudentPayload(studentData);
@@ -371,7 +374,6 @@ class QualityAssuranceAgent extends BaseAgent {
         validationResult: any
     ): Promise<AgentResult> {
         try {
-            console.log(`QualityAssuranceAgent: Final check for ${studentData.name}`);
 
             if (!validationResult.isValid) {
                 // Attempt to fix the comment
@@ -421,7 +423,6 @@ class CoordinatorAgent {
         type: "teacher" | "principal"
     ): Promise<string> {
         try {
-            console.log(`CoordinatorAgent: Starting ${type} comment generation for student ${studentId}`);
 
             // Step 1: Collect student data
             const dataResult = await this.dataAgent.collectStudentData(studentId, termId);
@@ -493,7 +494,6 @@ class CoordinatorAgent {
             }
 
             const finalComment = qaResult.data.finalComment;
-            console.log(`CoordinatorAgent: Successfully generated ${type} comment for ${studentData.name}`);
 
             return finalComment;
         } catch (error) {
@@ -604,7 +604,6 @@ async function callGemini(systemPrompt: string, userContent: string, model: stri
 
 async function generateWithFallback(systemPrompt: string, userContent: string): Promise<string> {
     const provider = getConfiguredAiProvider();
-    console.log(`AI Service: Using provider ${provider}`);
     const models =
         provider === "gemini"
             ? ([
@@ -622,13 +621,11 @@ async function generateWithFallback(systemPrompt: string, userContent: string): 
     let lastError: any;
     for (const model of models) {
         try {
-            console.log(`AI Service: Trying model ${model} with provider ${provider}`);
             const output =
                 provider === "gemini"
                     ? await callGemini(systemPrompt, userContent, model)
                     : await callOpenRouter(systemPrompt, userContent, model);
             if (output) {
-                console.log(`AI Service: Successfully used model ${model}`);
                 return output;
             }
             lastError = new Error("Empty AI response");
@@ -653,7 +650,6 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
         const hasMultiAgentContext = Boolean(studentData.studentId && studentData.termId);
 
         if (useMultiAgent && hasMultiAgentContext) {
-            console.log(`Using multi-agent system for ${type} comment generation`);
             const provider = getConfiguredAiProvider();
             const primaryModel = provider === "gemini"
                 ? "gemini-2.0-flash"
@@ -674,7 +670,6 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
         }
 
         // Fallback to original single-agent system
-        console.log(`Using single-agent system for ${type} comment generation`);
 
         let promptTemplate = type === "teacher" ? aiSettings.teacherPrompt : aiSettings.principalPrompt;
         promptTemplate = (promptTemplate || "").trim() || (type === "teacher" ? defaultTeacherPrompt : defaultPrincipalPrompt);
@@ -718,7 +713,8 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
         prompt = prompt.replace(/{{[^}]+}}/g, "").trim();
 
         const commentConfig = ((aiSettings as any).commentConfig as ReportCommentConfig | null) || DEFAULT_COMMENT_CONFIG;
-        const systemPrompt = buildCommentSystemPrompt(type);
+        const reportType = studentData.reportType as "halfTerm" | "endOfTerm" | undefined;
+        const systemPrompt = buildCommentSystemPrompt(type, reportType);
         const userContent = buildCommentUserContent(type, prompt, studentData, {
             academicAnalysis: "",
             behavioralAnalysis: "",
@@ -734,7 +730,6 @@ export async function generateAIComment(studentData: any, type: "teacher" | "pri
 
 function normalizeGeneratedComment(comment: string, studentData: any, type: "teacher" | "principal") {
     if (typeof comment !== "string") return comment as any;
-    if (type !== "teacher") return comment;
 
     const firstNameRaw = typeof studentData?.firstName === "string" ? studentData.firstName.trim() : "";
     if (!firstNameRaw) return comment;
@@ -742,7 +737,7 @@ function normalizeGeneratedComment(comment: string, studentData: any, type: "tea
     const trimmed = comment.trim();
     if (!trimmed) return comment;
 
-    const match = trimmed.match(/^([A-Z][A-Za-z'’\-]{1,40})(\b)([\s\S]*)$/);
+    const match = trimmed.match(/^([A-Z][A-Za-z’’\-]{1,40})(\b)([\s\S]*)$/);
     if (!match) return comment;
 
     const leadingToken = match[1];
@@ -764,6 +759,12 @@ function normalizeGeneratedComment(comment: string, studentData: any, type: "tea
         "Student",
         "Your",
         "Overall",
+        "Well",
+        "Keep",
+        "Continue",
+        "Excellent",
+        "Good",
+        "Well",
     ]);
 
     if (reserved.has(normalizedLeading)) return comment;

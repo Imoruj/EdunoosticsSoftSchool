@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isSchoolAdmin } from "@/lib/rbac";
 import { isCompositeReportVisible } from "@/lib/composite-subjects";
 import { getSafeServerSession } from "@/lib/server-session";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
+import { apiError, clampLimit } from "@/lib/apiError";
+
+const CreateSubjectSchema = z.object({
+    name: z.string().min(1, "Name is required").max(100),
+    code: z.string().max(20).optional(),
+    category: z.string().min(1, "Category is required"),
+    classIds: z.array(z.string()).optional(),
+});
 
 function busyDatabaseResponse(action: string) {
     return NextResponse.json(
@@ -32,6 +41,8 @@ export async function GET(req: NextRequest) {
         const includeComponents = searchParams.get("includeComponents") === "true";
         const includeEnrollmentStatus = searchParams.get("includeEnrollmentStatus") === "true";
         const requestedTermId = searchParams.get("termId");
+        const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+        const limit = clampLimit(searchParams.get("limit") ?? "500");
 
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -96,9 +107,12 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const subjects = await prisma.subject.findMany({
+        const [subjects, total] = await Promise.all([
+          prisma.subject.findMany({
             where,
             orderBy: { name: "asc" },
+            skip: (page - 1) * limit,
+            take: limit,
             include: {
                 subjectClassArms: {
                     select: {
@@ -139,7 +153,9 @@ export async function GET(req: NextRequest) {
                     }
                     : {}),
             }
-        });
+          }),
+          prisma.subject.count({ where }),
+        ]);
 
         const allOfferingClassArmIds = Array.from(
             new Set(
@@ -701,13 +717,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             subjects: transformedSubjects,
             enrollmentContext,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
     } catch (error: any) {
-        console.error("Error fetching subjects:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch subjects" },
-            { status: 500 }
-        );
+        return apiError("Failed to fetch subjects", 500, error);
     }
 }
 
@@ -810,15 +823,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
         }
 
-        const body = await req.json();
-        const { name, code, category, classIds } = body;
-
-        if (!name || !category) {
-            return NextResponse.json(
-                { error: "Name and category are required" },
-                { status: 400 }
-            );
+        const parsed = CreateSubjectSchema.safeParse(await req.json());
+        if (!parsed.success) {
+            return apiError(parsed.error.issues.map(e => e.message).join(", "), 422);
         }
+        const { name, code, category, classIds } = parsed.data;
 
         const schoolId = (session.user as any).schoolId;
 

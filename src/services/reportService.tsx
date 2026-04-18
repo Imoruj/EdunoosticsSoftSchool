@@ -9,48 +9,11 @@ import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-type
 import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, getAssessmentTypeSummary } from "@/lib/assessment-types";
 import { scaleAttendanceSummaryToPoints } from "@/lib/attendance-points";
 import { normalizeSignatureSource } from "@/lib/signature-images";
+import { getScoreFieldNumber, getHalfTermSummaryFromScores, getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
 
 const SCHOOL_TIMEZONE = "Africa/Lagos";
 
-function getScoreFieldNumber(value: { toNumber?: () => number } | number | null | undefined) {
-    if (typeof value === "number") return value;
-    if (value && typeof value === "object" && typeof value.toNumber === "function") {
-        return value.toNumber();
-    }
-    return Number(value || 0);
-}
-
-function getHalfTermSummaryFromScores(
-    scores: Array<{ ca1: { toNumber: () => number } }>,
-    assessmentTypes: Array<{ id: string; name: string; maxScore: number; order: number; includeInTotal?: boolean }>
-) {
-    const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
-    const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type.maxScore) : 10;
-    const totalScore = scores.reduce((acc, curr) => acc + curr.ca1.toNumber(), 0);
-    const n = scores.length;
-    const totalObtainable = n * maxPerSubject;
-    const average = totalObtainable > 0 ? (totalScore / totalObtainable) * 100 : 0;
-    return { totalScore, totalObtainable, average };
-}
-
-function getEndOfTermScoreMetrics(score: {
-    ca1?: { toNumber?: () => number } | number | null;
-    ca2?: { toNumber?: () => number } | number | null;
-    ca3?: { toNumber?: () => number } | number | null;
-    exam?: { toNumber?: () => number } | number | null;
-}, assessmentTypes: Array<{ id: string; name: string; maxScore: number; order: number; includeInTotal?: boolean }>) {
-    const values = {
-        ca1: getScoreFieldNumber(score.ca1),
-        ca2: getScoreFieldNumber(score.ca2),
-        ca3: getScoreFieldNumber(score.ca3),
-        exam: getScoreFieldNumber(score.exam),
-    };
-
-    return {
-        ...values,
-        ...calculateEndOfTermScoreTotals(values, assessmentTypes),
-    };
-}
+// Shared utilities imported above
 
 function normalizeScoreForRuleScale(total: number, rules: Array<{ maxScore: number }>) {
     const maxRuleScore = rules.reduce((max, rule) => Math.max(max, Number(rule.maxScore) || 0), 0);
@@ -58,6 +21,17 @@ function normalizeScoreForRuleScale(total: number, rules: Array<{ maxScore: numb
         return Math.round(total / 2);
     }
     return total;
+}
+
+/** Single-pass min/max — avoids spread-into-Math.min/max stack overflow on large arrays. */
+function getArrayMinMax(arr: number[]): { min: number; max: number } {
+    if (arr.length === 0) return { min: 0, max: 0 };
+    let min = arr[0], max = arr[0];
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] < min) min = arr[i];
+        if (arr[i] > max) max = arr[i];
+    }
+    return { min, max };
 }
 
 function calculateGrade(total: number, rules: Array<{ minScore: number; maxScore: number; grade: string; remark: string }>) {
@@ -279,39 +253,7 @@ function buildAttendanceSummary(params: {
     });
 }
 
-function buildActiveEnrollmentLookup(enrollments: Array<{ studentId: string; subjectId: string; isActive: boolean }>) {
-    const subjectsWithEnrollment = new Set<string>();
-    const activeEnrollmentBySubject: Record<string, Set<string>> = {};
-
-    enrollments.forEach((enrollment) => {
-        subjectsWithEnrollment.add(enrollment.subjectId);
-
-        if (!enrollment.isActive) {
-            return;
-        }
-
-        if (!activeEnrollmentBySubject[enrollment.subjectId]) {
-            activeEnrollmentBySubject[enrollment.subjectId] = new Set<string>();
-        }
-
-        activeEnrollmentBySubject[enrollment.subjectId].add(enrollment.studentId);
-    });
-
-    return { subjectsWithEnrollment, activeEnrollmentBySubject };
-}
-
-function isStudentIncludedInSubjectStats(
-    subjectId: string,
-    studentId: string,
-    subjectsWithEnrollment: Set<string>,
-    activeEnrollmentBySubject: Record<string, Set<string>>
-) {
-    if (!subjectsWithEnrollment.has(subjectId)) {
-        return true;
-    }
-
-    return activeEnrollmentBySubject[subjectId]?.has(studentId) ?? false;
-}
+// Shared utilities imported above
 
 function getSubjectRank(subjectScores: number[], studentScoreValue: number) {
     if (subjectScores.length === 0) {
@@ -593,6 +535,10 @@ export async function generateReportCardData(
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
     };
 
+    // Pre-compute term IDs once (avoids repeated .find() inside subjects .map())
+    const term1Id = term.session.terms.find(t => t.termNumber === 1)?.id;
+    const term2Id = term.session.terms.find(t => t.termNumber === 2)?.id;
+
     // 6. Construct Data Object
     return normalizeReportCardData({
         student: {
@@ -627,8 +573,8 @@ export async function generateReportCardData(
         attendance,
         academic: {
             subjects: currentScores.map(s => {
-                const term1Score = prevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term.session.terms.find(t => t.termNumber === 1)?.id);
-                const term2Score = prevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term.session.terms.find(t => t.termNumber === 2)?.id);
+                const term1Score = prevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term1Id);
+                const term2Score = prevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term2Id);
 
                 const subjectScores = scoresBySubject[s.subjectId] || [];
                 const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
@@ -639,8 +585,7 @@ export async function generateReportCardData(
 
                 // Rank by the live subject totals for enrolled students in this subject.
                 const rank = getSubjectRank(subjectScores, studentScoreValue);
-                const minScore = subjectScores.length > 0 ? Math.min(...subjectScores) : 0;
-                const maxScore = subjectScores.length > 0 ? Math.max(...subjectScores) : 0;
+                const { min: minScore, max: maxScore } = getArrayMinMax(subjectScores);
                 const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
                 const totalScore = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
                 const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, gradingRules);
@@ -833,11 +778,33 @@ export async function bulkGenerateReportCardData(
     // Check if we have historical reports (for class contexts)
     const allReportCards = await prisma.reportCard.findMany({
         where: { studentId: { in: studentIds }, termId },
-        include: {
-            classArm: { include: { class: true } },
-            affectiveRatings: { include: { trait: true } },
-            psychomotorRatings: { include: { skill: true } }
-        }
+        select: {
+            studentId: true,
+            classArmId: true,
+            daysPresent: true,
+            daysAbsent: true,
+            totalSchoolDays: true,
+            classSize: true,
+            classPosition: true,
+            classTeacherComment: true,
+            principalComment: true,
+            publishedAt: true,
+            classArm: {
+                select: {
+                    id: true,
+                    classTeacherId: true,
+                    classId: true,
+                    armName: true,
+                    class: { select: { id: true, name: true, level: true } },
+                },
+            },
+            affectiveRatings: {
+                select: { rating: true, trait: { select: { id: true, name: true } } },
+            },
+            psychomotorRatings: {
+                select: { rating: true, skill: { select: { id: true, name: true } } },
+            },
+        },
     });
     const attendanceClassArmIds = Array.from(new Set([
         ...effectiveClassArmIds,
@@ -1020,9 +987,38 @@ export async function bulkGenerateReportCardData(
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
     };
 
+    // Pre-compute term IDs once (avoids repeated .find() inside the per-subject map below)
+    const term1IdBulk = term.session.terms.find(t => t.termNumber === 1)?.id;
+    const term2IdBulk = term.session.terms.find(t => t.termNumber === 2)?.id;
+
+    // Build O(1) lookup maps to replace O(n) .find()/.filter() calls inside the student loop
+    const reportCardByStudentId = new Map(allReportCards.map(rc => [rc.studentId, rc]));
+
+    const currentScoresByStudent = new Map<string, typeof allCurrentScores>();
+    allCurrentScores.forEach(s => {
+        const arr = currentScoresByStudent.get(s.studentId) ?? [];
+        arr.push(s);
+        currentScoresByStudent.set(s.studentId, arr);
+    });
+
+    const prevScoresByStudent = new Map<string, typeof allPrevScores>();
+    allPrevScores.forEach(s => {
+        const arr = prevScoresByStudent.get(s.studentId) ?? [];
+        arr.push(s);
+        prevScoresByStudent.set(s.studentId, arr);
+    });
+
+    const enrollmentsByStudentArm = new Map<string, typeof allEnrollments>();
+    allEnrollments.forEach(e => {
+        const key = `${e.studentId}|${e.classArmId}`;
+        const arr = enrollmentsByStudentArm.get(key) ?? [];
+        arr.push(e);
+        enrollmentsByStudentArm.set(key, arr);
+    });
+
     // Assemble reports
     return studentsData.map(studentData => {
-        const reportCard = allReportCards.find(rc => rc.studentId === studentData.id);
+        const reportCard = reportCardByStudentId.get(studentData.id);
         const effectiveClassArm = reportCard?.classArm || studentData.classArm;
         const effectiveClassArmId = reportCard?.classArmId || studentData.classArmId || null;
         const studentAssessmentTypes = effectiveClassArmId
@@ -1084,16 +1080,18 @@ export async function bulkGenerateReportCardData(
             },
         });
 
-        const studentEnrollments = allEnrollments.filter(e => e.studentId === studentData.id && e.classArmId === effectiveClassArmId);
+        const studentEnrollments = effectiveClassArmId
+            ? (enrollmentsByStudentArm.get(`${studentData.id}|${effectiveClassArmId}`) ?? [])
+            : [];
         const subjectsWithEnrollment = new Set(studentEnrollments.map(e => e.subjectId));
         const activeEnrolledSubjects = new Set(studentEnrollments.filter(e => e.isActive).map(e => e.subjectId));
 
-        const studentCurrentScores = allCurrentScores.filter(s => s.studentId === studentData.id).filter(score => {
+        const studentCurrentScores = (currentScoresByStudent.get(studentData.id) ?? []).filter(score => {
             if (!subjectsWithEnrollment.has(score.subjectId)) return true;
             return activeEnrolledSubjects.has(score.subjectId);
         });
 
-        const studentPrevScores = allPrevScores.filter(s => s.studentId === studentData.id);
+        const studentPrevScores = prevScoresByStudent.get(studentData.id) ?? [];
 
         const scoresBySubject = effectiveClassArmId ? (scoresByClassAndSubject[effectiveClassArmId] || {}) : {};
 
@@ -1128,8 +1126,8 @@ export async function bulkGenerateReportCardData(
             attendance,
             academic: {
                 subjects: studentCurrentScores.map(s => {
-                    const term1Score = studentPrevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term.session.terms.find(t => t.termNumber === 1)?.id);
-                    const term2Score = studentPrevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term.session.terms.find(t => t.termNumber === 2)?.id);
+                    const term1Score = studentPrevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term1IdBulk);
+                    const term2Score = studentPrevScores.find(ps => ps.subjectId === s.subjectId && ps.termId === term2IdBulk);
 
                     const subjectScores = scoresBySubject[s.subjectId] || [];
                     const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
@@ -1139,8 +1137,7 @@ export async function bulkGenerateReportCardData(
                     const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
 
                     const rank = getSubjectRank(subjectScores, studentScoreValue);
-                    const minScore = subjectScores.length > 0 ? Math.min(...subjectScores) : 0;
-                    const maxScore = subjectScores.length > 0 ? Math.max(...subjectScores) : 0;
+                    const { min: minScore, max: maxScore } = getArrayMinMax(subjectScores);
                     const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
                     const totalScore = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
                     const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, studentGradingRules);

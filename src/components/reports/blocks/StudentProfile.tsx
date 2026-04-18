@@ -73,7 +73,7 @@ export const StudentProfile: React.FC<StudentProfileProps> = ({ student, display
             {showOption('showSex') && (
                 <View style={[styles.dataRow, borderOnly]}>
                     <Text style={[styles.dataLabel, borderOnly]}>Sex</Text>
-                    <Text style={styles.dataValue}>{student.gender || "N/A"}</Text>
+                    <Text style={styles.dataValue}>{student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase() : "N/A"}</Text>
                 </View>
             )}
             {showOption('showClass') && (

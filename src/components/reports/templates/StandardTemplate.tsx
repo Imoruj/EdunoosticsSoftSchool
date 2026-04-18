@@ -511,7 +511,7 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                     {showOption('showSex') && (
                         <View style={styles.dataRow}>
                             <Text style={styles.dataLabel}>Sex</Text>
-                            <Text style={styles.dataValue}>{student.gender || "N/A"}</Text>
+                            <Text style={styles.dataValue}>{student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase() : "N/A"}</Text>
                         </View>
                     )}
                     {showOption('showClass') && (

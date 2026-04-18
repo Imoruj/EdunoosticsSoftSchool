@@ -186,7 +186,7 @@ export function TeacherStats({ myClasses, mySubjects, stats }: TeacherStatsProps
                                                         {ts.completion}%
                                                     </span>
                                                 </div>
-                                                <div className="flex-shrink-0">
+                                                <div className="shrink-0">
                                                     <Link
                                                         href={`/dashboard/scores?classArmId=${ts.classArmId}&subjectId=${ts.subjectId}`}
                                                         className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-400 group-hover:text-primary-600 group-hover:bg-primary-50 transition-all duration-200"

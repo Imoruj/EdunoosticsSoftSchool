@@ -436,7 +436,7 @@ export default function ReportsClient({
 
             setLoading(true);
             try {
-                const res = await fetch(`/api/students?classArmId=${selectedClassArmId}&termId=${selectedTermId}&sessionId=${selectedSessionId}&reportType=${reportType}`);
+                const res = await fetch(`/api/students?classArmId=${selectedClassArmId}&termId=${selectedTermId}&sessionId=${selectedSessionId}&reportType=${reportType}&limit=500`);
                 if (res.ok) {
                     const data = await res.json();
                     const studentsList = data.students || [];
@@ -684,7 +684,7 @@ export default function ReportsClient({
                         <button
                             onClick={handlePreviewSelected}
                             disabled={loadingPreview}
-                            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-slate-100 hover:text-slate-900 h-10 py-2 px-4 shadow-sm disabled:opacity-50"
+                            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
                         >
                             {loadingPreview ? "Loading..." : `View Selected (${selectedStudentIds.length})`}
                         </button>
@@ -693,7 +693,7 @@ export default function ReportsClient({
                     {selectedClassArmId && students.length > 0 && (
                         <button
                             onClick={() => setIsBulkModalOpen(true)}
-                            className="inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md shadow-sm font-medium transition-colors"
+                            className="inline-flex h-10 items-center justify-center rounded-md bg-primary-600 px-4 py-2 font-medium text-white shadow-sm transition-colors hover:bg-primary-700"
                         >
                             Generate {selectedStudentIds.length > 0 ? "Selected" : "All"} Reports (ZIP)
                         </button>
@@ -913,27 +913,60 @@ export default function ReportsClient({
 
             {loading ? (
                 <div className="flex justify-center flex-col items-center py-12 bg-white rounded-lg shadow-sm border border-slate-200">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                    <div className="mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
                     <p className="text-slate-500 font-medium">Loading classroom data...</p>
                 </div>
             ) : students.length > 0 ? (
-                <ReportDataTable
-                    students={students}
-                    selectedStudentIds={selectedStudentIds}
-                    handleSelectAll={handleSelectAll}
-                    handleSelectStudent={handleSelectStudent}
-                    onOpenComment={handleOpenComment}
-                    isAdmin={isAdmin}
-                    isClassTeacher={isClassTeacher}
-                    workflowBusyAction={workflowBusyAction}
-                    commentEnabled={["RESULT_BROADCASTED", "COMMENTS_GENERATED", "READY_FOR_ADMIN_REVIEW", "PUBLISHED", "UNPUBLISHED"].includes(classWorkflow?.status || "")}
-                    onClassApproveStudent={(student) => runWorkflowAction("class_approve_student", { studentId: student.id })}
-                    onAdminApproveStudent={(student) => runWorkflowAction("admin_review_student", { studentId: student.id, decision: "approve" })}
-                    onAdminRejectStudent={(student) => {
-                        setRejectingStudent(student);
-                        setRejectReason("");
-                    }}
-                />
+                <>
+                    {selectedStudentIds.length > 0 && isAdmin && (
+                        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm">
+                            <span className="font-medium text-blue-700">{selectedStudentIds.length} selected</span>
+                            <button
+                                onClick={() => runWorkflowAction("publish_class")}
+                                disabled={workflowBusyAction !== null}
+                                className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                            >
+                                Publish All
+                            </button>
+                            <button
+                                onClick={() => runWorkflowAction("unpublish_class")}
+                                disabled={workflowBusyAction !== null}
+                                className="rounded-md bg-amber-500 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
+                            >
+                                Unpublish All
+                            </button>
+                            {selectedTermId && selectedClassArmId && (
+                                <a
+                                    href={`/api/reports/broadsheet/export?termId=${selectedTermId}&classArmId=${selectedClassArmId}&format=excel`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                >
+                                    Export Excel
+                                </a>
+                            )}
+                        </div>
+                    )}
+                    <ReportDataTable
+                        students={students}
+                        selectedStudentIds={selectedStudentIds}
+                        handleSelectAll={handleSelectAll}
+                        handleSelectStudent={handleSelectStudent}
+                        onOpenComment={handleOpenComment}
+                        isAdmin={isAdmin}
+                        isClassTeacher={isClassTeacher}
+                        workflowBusyAction={workflowBusyAction}
+                        commentEnabled={["RESULT_BROADCASTED", "COMMENTS_GENERATED", "READY_FOR_ADMIN_REVIEW", "PUBLISHED", "UNPUBLISHED"].includes(classWorkflow?.status || "")}
+                        onClassApproveStudent={(student) => runWorkflowAction("class_approve_student", { studentId: student.id })}
+                        onAdminApproveStudent={(student) => runWorkflowAction("admin_review_student", { studentId: student.id, decision: "approve" })}
+                        onAdminRejectStudent={(student) => {
+                            setRejectingStudent(student);
+                            setRejectReason("");
+                        }}
+                        termId={selectedTermId ?? undefined}
+                        classArmId={selectedClassArmId ?? undefined}
+                    />
+                </>
             ) : selectedClassArmId ? (
                 <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
                     <p className="text-slate-500 font-medium">No students found in this class.</p>
@@ -947,7 +980,7 @@ export default function ReportsClient({
             {selectedWorkflowSubject && (
                 <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/40 p-4">
                     <div className="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
-                        <div className="flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-2xl">
+                        <div className="flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
                             <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">

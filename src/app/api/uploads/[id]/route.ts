@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { makeTransparentSignature } from "@/lib/signature-images";
 
@@ -45,6 +47,11 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await context.params;
 
   const file = await getUploadedFile(id);
@@ -108,9 +115,14 @@ export async function GET(
 }
 
 export async function HEAD(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return new NextResponse(null, { status: 401 });
+  }
+
   const { id } = await context.params;
 
   const file = await getUploadedFile(id);

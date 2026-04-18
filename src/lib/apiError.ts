@@ -19,8 +19,8 @@ export function apiError(
 /**
  * Cap an untrusted pagination limit to prevent resource exhaustion.
  */
-export function clampLimit(raw: number | string | null | undefined, max = 100): number {
-    const parsed = typeof raw === "number" ? raw : parseInt(String(raw ?? "20"), 10);
-    if (!Number.isFinite(parsed) || parsed < 1) return 20;
+export function clampLimit(raw: number | string | null | undefined, max = 500): number {
+    const parsed = typeof raw === "number" ? raw : parseInt(String(raw ?? "50"), 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return 50;
     return Math.min(parsed, max);
 }

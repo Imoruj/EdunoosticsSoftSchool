@@ -7,7 +7,7 @@ import { clampLimit } from "@/lib/apiError";
 import { checkCsrf } from "@/lib/csrf";
 import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { calculateEndOfTermScoreTotals, getAssessmentTypeForField } from "@/lib/assessment-types";
+// Use shared calculation and assessment type utilities
 import {
     applyStudentUpdateTransaction,
     buildStudentChangeSummary,
@@ -21,6 +21,7 @@ import {
     ensureUniqueStudentEmail,
     generateStudentDefaultPasswordHash,
 } from "@/lib/studentLoginCredentials";
+import { getScoreFieldNumber, getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats, getAssessmentTypeForField } from "@/lib/reports/calculations";
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -432,10 +433,23 @@ export async function GET(req: NextRequest) {
         if (termId) {
             const reportType = (searchParams.get("reportType") as "halfTerm" | "endOfTerm") || "endOfTerm";
             const studentIds = students.map((student) => student.id);
-            const assessmentTypes = await getResolvedAssessmentTypesForClassContext(prisma, {
-                schoolId,
-                classArmId: classArmId ?? null,
-            });
+            const classArmIds = Array.from(new Set(students.map(s => s.classArmId).filter(Boolean)));
+            const [assessmentTypes, classEnrollments] = await Promise.all([
+                getResolvedAssessmentTypesForClassContext(prisma, {
+                    schoolId,
+                    classArmId: classArmId ?? null,
+                }),
+                prisma.subjectEnrollment.findMany({
+                    where: {
+                        termId,
+                        classArmId: classArmIds.length > 0 ? { in: classArmIds as string[] } : undefined,
+                        studentId: classArmIds.length > 0 ? undefined : { in: studentIds },
+                        subject: { subjectKind: { not: "COMPOSITE_COMPONENT" } }
+                    }
+                })
+            ]);
+
+            const enrollmentLookup = buildActiveEnrollmentLookup(classEnrollments);
 
             const scores = await prisma.score.findMany({
                 where: {
@@ -445,6 +459,7 @@ export async function GET(req: NextRequest) {
                 },
                 select: {
                     studentId: true,
+                    subjectId: true,
                     ca1: true,
                     ca2: true,
                     ca3: true,
@@ -454,26 +469,30 @@ export async function GET(req: NextRequest) {
 
             const scoreTotalsByStudent = new Map<string, number[]>();
             for (const score of scores) {
+                // Determine if this student is actively enrolled in this subject (or use fallback)
+                if (!isStudentIncludedInSubjectStats(
+                    score.subjectId,
+                    score.studentId,
+                    enrollmentLookup.subjectsWithEnrollment,
+                    enrollmentLookup.activeEnrollmentBySubject
+                )) {
+                    continue;
+                }
+
                 if (!scoreTotalsByStudent.has(score.studentId)) {
                     scoreTotalsByStudent.set(score.studentId, []);
                 }
 
                 if (reportType === "halfTerm") {
                     const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
-                    const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type.maxScore) : 10;
-                    const ca1 = typeof (score.ca1 as any)?.toNumber === "function" ? (score.ca1 as any).toNumber() : Number(score.ca1 || 0);
+                    const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type?.maxScore) : 10;
+                    const ca1 = getScoreFieldNumber(score.ca1);
                     const percent = maxPerSubject > 0 ? (ca1 / maxPerSubject) * 100 : 0;
                     scoreTotalsByStudent.get(score.studentId)!.push(percent);
                     continue;
                 }
 
-                const values = {
-                    ca1: typeof (score.ca1 as any)?.toNumber === "function" ? (score.ca1 as any).toNumber() : Number(score.ca1 || 0),
-                    ca2: typeof (score.ca2 as any)?.toNumber === "function" ? (score.ca2 as any).toNumber() : Number(score.ca2 || 0),
-                    ca3: typeof (score.ca3 as any)?.toNumber === "function" ? (score.ca3 as any).toNumber() : Number(score.ca3 || 0),
-                    exam: typeof (score.exam as any)?.toNumber === "function" ? (score.exam as any).toNumber() : Number(score.exam || 0),
-                };
-                const metrics = calculateEndOfTermScoreTotals(values, assessmentTypes as any);
+                const metrics = getEndOfTermScoreMetrics(score, assessmentTypes as any);
                 scoreTotalsByStudent.get(score.studentId)!.push(metrics.adjustedTotal);
             }
 

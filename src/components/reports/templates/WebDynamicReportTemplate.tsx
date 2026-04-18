@@ -49,7 +49,7 @@ export const WebDynamicReportTemplate: React.FC<WebDynamicReportTemplateProps> =
                     {row.columns.map((col) => {
                         const Component = col.componentId ? WEB_COMPONENT_REGISTRY[col.componentId] : null;
                         return (
-                            <div key={col.id} style={{ width: `${col.width}%` }} className="flex-shrink-0">
+                            <div key={col.id} style={{ width: `${col.width}%` }} className="shrink-0">
                                 {Component && <Component {...getComponentProps(col.componentId!)} />}
                                 {!Component && col.componentId && <div className="text-red-500 text-[10px]">Error: {col.componentId}</div>}
                             </div>

@@ -30,7 +30,7 @@ export function AudioElementView({ data }: { data: AudioBlockData }) {
 
       <button
         onClick={toggle}
-        className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"
+        className="shrink-0 w-8 h-8 rounded-full bg-indigo-500 hover:bg-indigo-400 flex items-center justify-center transition-colors"
       >
         {playing ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white ml-0.5" />}
       </button>

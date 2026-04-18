@@ -3,12 +3,20 @@ import { ReportCommentConfig, ReportCommentPayload } from "@/lib/reportPayloadBu
 export const CRITICAL_COMMENT_RULES = `CRITICAL RULES FOR SCHOOL COMMENT GENERATION (MUST FOLLOW ALL):
 1. ALWAYS use the school's comment template provided - do not create your own format
 2. Keep comments to 1-2 sentences maximum - be extremely concise
-3. Include specific academic data (average, position) and 1-2 key behavioral traits
+3. Include specific academic data (average, position if ranked) and 1-2 key behavioral traits
 4. Use the exact wording and structure from the school template
 5. Do NOT add extra analysis, explanations, or free-form prose
 6. Return ONLY the comment text - no introductions, conclusions, or meta-commentary
-7. Use the student's name from the provided student data for this single comment; do not reuse any other student's name
-8. If the template includes a sample student name, replace it with the provided student name`;
+7. Use the student's name from the provided student data; do not reuse any other student's name
+8. If the template includes a sample student name, replace it with the provided student name
+9. Use the correct pronoun matching the student's gender throughout`;
+
+export const HALF_TERM_COMMENT_RULES = `ADDITIONAL RULES FOR HALF-TERM REPORTS:
+- This is a MID-TERM interim report, NOT a final end-of-term assessment
+- Do NOT mention class position — students are not yet ranked at half-term
+- Do NOT mention resit subjects — resit only applies at end of third term
+- Focus on current progress and encouragement to keep up or improve before the term ends
+- Use language like "so far this term", "has been showing", "is encouraged to" rather than final verdicts`;
 
 export function renderCommentConfig(config: ReportCommentConfig) {
     return `Report Comment Configuration:
@@ -21,30 +29,46 @@ export function renderCommentConfig(config: ReportCommentConfig) {
 - Focus subject policy: ${config.focusSubjectPolicy === "lowestNormalized" ? "Lowest scoring subject (normalised)" : "Lowest scoring subject (raw, not resit)"}`;
 }
 
-export const defaultTeacherPrompt = `Generate a professional and encouraging class teacher's comment for a student based on these details:
+export const defaultTeacherPrompt = `Generate a professional and encouraging class teacher’s comment for a student based on these details:
 Name: {{name}}
 Gender: {{gender}}
+Report Type: {{report_type}}
 Term: {{term}}
 Average Score: {{average}}%
 Class Position: {{position}}
 Attendance: {{attendance}}
 Traits: {{traits}}
+Focus Subject: {{focus_subject}}
+Resit Subjects: {{resit_subjects}}
 
-The comment should be concise, follow the school template, mention the student’s strengths and one area for growth, and include resit subjects only when required.`;
+Write 1-2 sentences. Use the correct pronoun for the student’s gender. Acknowledge their average (and class position if ranked), name one behavioral strength from their traits, and if a focus subject exists, gently encourage improvement in it. Mention resit subjects only when required. For half-term reports, do not mention class position or resit subjects.`;
 
-export const defaultPrincipalPrompt = `Generate a concise principal's closing remark for a student based on their overall performance:
+export const defaultPrincipalPrompt = `Generate a concise principal’s closing remark for a student based on their overall performance:
 Name: {{name}}
+Gender: {{gender}}
+Report Type: {{report_type}}
+Term: {{term}}
 Average Score: {{average}}%
 Class Position: {{position}}
 Attendance: {{attendance}}
 Traits: {{traits}}
+Resit Subjects: {{resit_subjects}}
 
-Keep it professional, focused on growth, and mention resit subjects only if they exist.`;
+Write 1-2 sentences. Use the correct pronoun for the student’s gender. Reflect on their overall achievement this term using their average (and class position if ranked). End with a motivating, forward-looking statement. Mention resit subjects only if they exist and this is an end-of-term report.`;
 
-export function buildCommentSystemPrompt(type: "teacher" | "principal") {
-    return `${CRITICAL_COMMENT_RULES}
+export function buildCommentSystemPrompt(type: "teacher" | "principal", reportType?: "halfTerm" | "endOfTerm") {
+    const halfTermSection = reportType === "halfTerm" ? `\n\n${HALF_TERM_COMMENT_RULES}` : "";
+    return `${CRITICAL_COMMENT_RULES}${halfTermSection}
 
 You are a professional ${type} comment writer for a school. Follow the school comment template exactly and do not deviate from the required structure or tone.`;
+}
+
+function getPerformanceBand(average: number): string {
+    if (average >= 75) return "Excellent";
+    if (average >= 60) return "Good";
+    if (average >= 50) return "Average";
+    if (average >= 40) return "Below Average";
+    return "Poor";
 }
 
 export function buildCommentUserContent(
@@ -62,19 +86,21 @@ export function buildCommentUserContent(
             return `- ${subject.name}: ${scoreText} (${subject.percentage}%)`;
         }).join("\n")
         : Object.entries(studentData.subjectScores || {}).map(([name, score]) => {
-            const scoreText = studentData.reportType === "halfTerm" ? `${score}` : `${score}`;
-            return `- ${name}: ${scoreText}`;
+            return `- ${name}: ${score}`;
         }).join("\n") || "- No subject score details available.";
 
     const focusLine = studentData.focusSubject
-        ? `Focus subject: ${studentData.focusSubject.name} (${studentData.focusSubject.percentage}%).`
-        : studentData.subjectDetails && studentData.subjectDetails.length > 0
-            ? "Focus subject: None."
-            : "Focus subject information unavailable.";
+        ? `Focus subject (lowest, needs attention): ${studentData.focusSubject.name} — ${studentData.focusSubject.rawScore}/${studentData.focusSubject.maxScore} (${studentData.focusSubject.percentage}%).`
+        : "Focus subject: None.";
 
-    const resitLine = studentData.includeResitAddendum
+    const resitLine = studentData.includeResitAddendum && studentData.resitSubjects.length > 0
         ? `Resit subjects: ${studentData.resitSubjects.join(", ")}.`
         : "Resit subjects: None.";
+
+    const performanceBand = getPerformanceBand(studentData.average);
+
+    const isHalfTerm = studentData.reportType === "halfTerm";
+    const positionDisplay = isHalfTerm ? "Not ranked (interim report)" : `${studentData.position}`;
 
     return `${prompt}
 
@@ -82,21 +108,19 @@ Student identity (must match exactly):
 - Full name: ${studentData.name}
 - First name: ${studentData.firstName}
 - Last name: ${studentData.lastName}
+- Gender: ${studentData.gender}
 
 Report Type: ${studentData.reportTypeLabel}
-${commentConfig ? renderCommentConfig(commentConfig) + "\n\n" : ""}Average: ${studentData.average}%
-Class Position: ${studentData.position}
+${commentConfig ? renderCommentConfig(commentConfig) + "\n\n" : ""}Average: ${studentData.average}% (${performanceBand})
+Class Position: ${positionDisplay}
 Attendance: ${studentData.attendance}
-Traits: ${studentData.traits}
+Traits: ${studentData.traits || "Not recorded"}
 ${focusLine}
 ${resitLine}
 
 Subject breakdown:
 ${subjectLines}
-
-Additional Context:
-Academic Analysis: ${analyses.academicAnalysis}
-Behavioral Analysis: ${analyses.behavioralAnalysis}
+${analyses.academicAnalysis ? `\nAcademic Analysis: ${analyses.academicAnalysis}` : ""}${analyses.behavioralAnalysis ? `\nBehavioral Analysis: ${analyses.behavioralAnalysis}` : ""}
 
 Generate only the ${type} comment text. Do not include any additional explanation, metadata, or formatting.`;
 }

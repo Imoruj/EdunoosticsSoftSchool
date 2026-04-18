@@ -197,7 +197,7 @@ export default function UploadRequestsPage() {
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex items-center gap-2 shrink-0">
                                     <button
                                         onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
                                         className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"

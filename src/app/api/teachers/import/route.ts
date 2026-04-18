@@ -3,7 +3,12 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { UserRole } from "@prisma/client";
+
+function generateTempPassword(): string {
+    return randomBytes(6).toString("base64url");
+}
 
 const VALID_ROLES: UserRole[] = [
     UserRole.PROPRIETOR,
@@ -50,6 +55,11 @@ export async function POST(req: NextRequest) {
 
         if (!file.name.endsWith(".csv")) {
             return NextResponse.json({ error: "File must be a CSV" }, { status: 400 });
+        }
+
+        const MAX_CSV_SIZE = 5 * 1024 * 1024; // 5MB
+        if (file.size > MAX_CSV_SIZE) {
+            return NextResponse.json({ error: "File must be 5MB or less" }, { status: 400 });
         }
 
         // Read the file content
@@ -147,8 +157,8 @@ export async function POST(req: NextRequest) {
 
             try {
                 if (!isDryRun) {
-                    // Generate a default password (should be changed on first login)
-                    const defaultPassword = "1234";
+                    // Generate a secure random temp password (user must change on first login)
+                    const defaultPassword = generateTempPassword();
                     const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
                     // Create teacher user
@@ -162,6 +172,7 @@ export async function POST(req: NextRequest) {
                             roles: teacherRoles,
                             schoolId,
                             isActive: isCreateLoginAccounts,
+                            mustChangePassword: true,
                         },
                     });
                 }

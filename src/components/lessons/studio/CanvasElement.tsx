@@ -18,7 +18,7 @@ interface CanvasElementProps {
   isPlaying: boolean;
   playhead: number;
   dispatch: React.Dispatch<StudioAction>;
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
 }
 
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';

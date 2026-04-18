@@ -16,10 +16,10 @@ import {
 import type {
   Lesson, ContentBlock,
   TextBlockData, ImageBlockData, VideoBlockData, AudioBlockData,
-  QuizBlockData, AssignmentBlockData,
+  QuizBlockData, AssignmentBlockData, AdaptBlockData,
   LessonReferenceMaterial,
 } from '@/lib/db/types';
-import { TextBlock, ImageBlock, VideoBlock, AudioBlock, QuizBlock, AssignmentBlock } from './ContentBlocks';
+import { TextBlock, ImageBlock, VideoBlock, AudioBlock, QuizBlock, AssignmentBlock, AdaptBlock } from './ContentBlocks';
 import type { LessonAiContext } from './ContentBlocks';
 import { LayoutPicker, LAYOUT_TEMPLATES } from './LayoutPicker';
 import type { LayoutTemplate } from './LayoutPicker';
@@ -85,6 +85,7 @@ const BLOCK_DATA_DEFAULTS: Partial<Record<ContentBlock['type'], ContentBlock['da
   audio:      { mode: 'upload', title: '', caption: '' } as AudioBlockData,
   quiz:       { quizId: '', quizTitle: '', instructions: '', required: false },
   assignment: { assignmentId: '', assignmentTitle: '', instructions: '', required: false },
+  adapt:      { coursePath: '', title: '', isScorm: true } as AdaptBlockData,
 };
 
 /** Objectives accordion config — defined outside the component so it's stable. */
@@ -740,6 +741,7 @@ const ADD_BLOCK_LABELS: Partial<Record<ContentBlock['type'], { icon: ElementType
   audio:      { icon: Volume2,      label: 'Audio'      },
   quiz:       { icon: FileQuestion, label: 'Quiz'       },
   assignment: { icon: PenSquare,    label: 'Assignment' },
+  adapt:      { icon: Zap,          label: 'Adapt Interactive' },
 };
 
 function AddBlockBar({
@@ -798,6 +800,7 @@ function renderBlock(block: ContentBlock, sharedProps: Parameters<typeof TextBlo
   if (block.type === 'audio')      return <AudioBlock      key={block.id} {...props} />;
   if (block.type === 'quiz')       return <QuizBlock       key={block.id} {...props} />;
   if (block.type === 'assignment') return <AssignmentBlock key={block.id} {...props} />;
+  if (block.type === 'adapt')      return <AdaptBlock      key={block.id} {...props} />;
   return null;
 }
 
@@ -1967,7 +1970,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                 <>
                   <EmptyState icon={FileQuestion} iconClass="text-amber-400" dashed="border-amber-200 bg-amber-50/50"
                     title="No induction activity yet" subtitle="Add a quiz to assess prior knowledge" />
-                  <AddBlockBar section="induction" allowed={['quiz', 'text']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                  <AddBlockBar section="induction" allowed={['quiz', 'text', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                 </>
               ) : (
                 <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'induction')} />
@@ -1987,7 +1990,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                 <>
                   <EmptyState icon={Presentation} iconClass="text-sky-400" dashed="border-sky-200 bg-sky-50/50"
                     title="No introduction yet" subtitle="Add text or an image to introduce the lesson" />
-                  <AddBlockBar section="introduction" allowed={['text', 'image', 'video', 'audio']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                  <AddBlockBar section="introduction" allowed={['text', 'image', 'video', 'audio', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                 </>
               ) : (
                 <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'introduction')} />
@@ -2033,7 +2036,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                             <>
                               <EmptyState icon={Plus} iconClass="text-green-400" dashed="border-green-200 bg-green-50/30"
                                 title="No content yet" subtitle="Add blocks to cover this objective" />
-                              <AddBlockBar section="content" allowed={['text', 'image', 'video', 'audio', 'quiz']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection}
+                              <AddBlockBar section="content" allowed={['text', 'image', 'video', 'audio', 'quiz', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection}
                                 extra={{ objectiveIndex: idx, objectiveTab: 'general' }} />
                             </>
                           ) : (
@@ -2056,7 +2059,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                   <>
                     <EmptyState icon={Plus} iconClass="text-green-400" dashed="border-green-200 bg-green-50/30"
                       title="No content blocks yet" subtitle="Add text, images, or videos to build your lesson" />
-                    <AddBlockBar section="content" allowed={['text', 'image', 'video', 'audio']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                    <AddBlockBar section="content" allowed={['text', 'image', 'video', 'audio', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                   </>
                 ) : (
                   <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'content')} />
@@ -2095,7 +2098,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                 <>
                   <EmptyState icon={FileText} iconClass="text-purple-300" dashed="border-purple-200 bg-purple-50/30"
                     title="No summary yet" subtitle="Add a text block to summarise the lesson" />
-                  <AddBlockBar section="summary" allowed={['text', 'audio']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                  <AddBlockBar section="summary" allowed={['text', 'audio', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                 </>
               ) : (
                 <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'summary')} />
@@ -2115,7 +2118,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                 <>
                   <EmptyState icon={ClipboardList} iconClass="text-rose-300" dashed="border-rose-200 bg-rose-50/30"
                     title="No evaluation yet" subtitle="Add a quiz or text to evaluate student understanding" />
-                  <AddBlockBar section="evaluation" allowed={['quiz', 'text']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                  <AddBlockBar section="evaluation" allowed={['quiz', 'text', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                 </>
               ) : (
                 <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'evaluation')} />
@@ -2135,7 +2138,7 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
                 <>
                   <EmptyState icon={PenSquare} iconClass="text-indigo-300" dashed="border-indigo-200 bg-indigo-50/30"
                     title="No assignment yet" subtitle="Add an assignment for students to complete" />
-                  <AddBlockBar section="assignment" allowed={['assignment', 'text']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
+                  <AddBlockBar section="assignment" allowed={['assignment', 'text', 'adapt']} onAdd={addBlockToSection} onAddLayout={addLayoutToSection} />
                 </>
               ) : (
                 <ChangeLayoutBar onReplace={(t) => replaceLayoutInSection(t, 'assignment')} />

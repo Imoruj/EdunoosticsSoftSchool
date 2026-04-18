@@ -47,7 +47,7 @@ export const StudentProfileWeb: React.FC<StudentProfileWebProps> = ({ student, d
             {showOption('showSex') && (
                 <div className="grid grid-cols-[80px_1fr] border-b text-[10px]" style={borderStyle}>
                     <div className="p-1.5 font-bold bg-gray-50 border-r" style={borderStyle}>Sex</div>
-                    <div className="p-1.5 uppercase">{student.gender || "N/A"}</div>
+                    <div className="p-1.5">{student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase() : "N/A"}</div>
                 </div>
             )}
             {showOption('showClass') && (

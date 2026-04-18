@@ -4,11 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import {
     ensureUniqueStudentEmail,
     generateStudentDefaultPasswordHash,
     syncStudentTemporaryLoginCredentials,
 } from "@/lib/studentLoginCredentials";
+
+function generateTempPassword(): string {
+    return randomBytes(6).toString("base64url");
+}
 
 const ADMISSION_SEQUENCE_PAD_LENGTH = 4;
 
@@ -344,6 +349,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "File must be a CSV" }, { status: 400 });
         }
 
+        const MAX_CSV_SIZE = 5 * 1024 * 1024; // 5MB
+        if (file.size > MAX_CSV_SIZE) {
+            return NextResponse.json({ error: "File must be 5MB or less" }, { status: 400 });
+        }
+
         // Read the file content
         const content = await file.text();
         const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -620,7 +630,7 @@ export async function POST(req: NextRequest) {
                                 : trimmedLastName;
                             const parentEmailSeed = trimmedParentEmail || `parent-${cleanAdmission}@parent.edunostics.local`;
                             const parentEmailFinal = await ensureUniqueUserEmail(tx, parentEmailSeed);
-                            const parentPasswordHash = await bcrypt.hash("1234", 10);
+                            const parentPasswordHash = await bcrypt.hash(generateTempPassword(), 12);
 
                             const createdParent = await tx.parent.create({
                                 data: {
@@ -636,6 +646,7 @@ export async function POST(req: NextRequest) {
                                             roles: [UserRole.PARENT],
                                             schoolId,
                                             isActive,
+                                            mustChangePassword: true,
                                         },
                                     },
                                 },

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
   BookOpen, ChevronDown, ChevronRight, Loader2,
-  Link2, ImageIcon, Music2, Youtube, FileText, Globe, ExternalLink, X,
+  Link2, ImageIcon, Music2, PlayCircle, FileText, Globe, ExternalLink, X,
 } from 'lucide-react';
 
 export interface SowReference {
@@ -48,7 +48,7 @@ const REF_ICON: Record<string, React.ReactNode> = {
   TEXT:         <Link2 size={9} />,
   IMAGE:        <ImageIcon size={9} />,
   AUDIO:        <Music2 size={9} />,
-  YOUTUBE:      <Youtube size={9} />,
+  YOUTUBE:      <PlayCircle size={9} />,
   FILE:         <FileText size={9} />,
   GOOGLE_DRIVE: <Globe size={9} />,
 };

@@ -612,6 +612,11 @@ export default function ScoresClient({
         setShowTemplateModal(false);
     };
 
+    const handleExportScores = () => {
+        const url = `/api/scores/template?classArmId=${selectedArmId}&subjectId=${selectedSubjectId}&termId=${selectedTermId}&columns=all&includeScores=true`;
+        window.open(url, "_blank");
+    };
+
     const handleUploadScores = async (forceOverwrite = false) => {
         if (!uploadFile) return;
         setUploading(true);
@@ -749,6 +754,17 @@ export default function ScoresClient({
                     )}
                     {selectionReady && students.length > 0 && canEditScores && (
                         <button
+                            onClick={handleExportScores}
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export Scores
+                        </button>
+                    )}
+                    {selectionReady && students.length > 0 && canEditScores && (
+                        <button
                             onClick={() => { setUploadFile(null); setUploadResult(null); setShowUploadModal(true); }}
                             className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                         >
@@ -786,8 +802,10 @@ export default function ScoresClient({
             <div className="card p-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                        <label htmlFor="scores-session" className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
                         <select
+                            id="scores-session"
+                            aria-label="Select academic session"
                             className="input w-full"
                             value={selectedSessionId}
                             onChange={(e) => {
@@ -810,8 +828,10 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
+                        <label htmlFor="scores-term" className="block text-sm font-medium text-gray-700 mb-2">Term</label>
                         <select
+                            id="scores-term"
+                            aria-label="Select term"
                             className="input w-full"
                             value={selectedTermId}
                             onChange={(e) => setSelectedTermId(e.target.value)}
@@ -826,8 +846,10 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Class Arm</label>
+                        <label htmlFor="scores-class" className="block text-sm font-medium text-gray-700 mb-2">Class Arm</label>
                         <select
+                            id="scores-class"
+                            aria-label="Select class arm"
                             className="input w-full"
                             value={selectedArmId}
                             onChange={(e) => setSelectedArmId(e.target.value)}
@@ -845,8 +867,10 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                        <label htmlFor="scores-subject" className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
                         <select
+                            id="scores-subject"
+                            aria-label="Select subject"
                             className="input w-full"
                             value={selectedSubjectId}
                             onChange={(e) => setSelectedSubjectId(e.target.value)}
@@ -998,8 +1022,29 @@ export default function ScoresClient({
 
             {/* Score Table */}
             {loadingData ? (
-                <div className="flex justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <div className="card overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                                {[40, 120, 80, 60, 60, 60, 80].map((w, i) => (
+                                    <th key={i} className="px-3 py-3 text-left">
+                                        <div className="h-3 animate-pulse rounded bg-slate-200" style={{ width: w }} />
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <tr key={i} className="border-b border-gray-100">
+                                    {[40, 120, 80, 60, 60, 60, 80].map((w, j) => (
+                                        <td key={j} className="px-3 py-3">
+                                            <div className="h-3 animate-pulse rounded bg-slate-100" style={{ width: w }} />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             ) : students.length > 0 ? (
                 <div className="card overflow-hidden">
@@ -1354,7 +1399,7 @@ export default function ScoresClient({
                                 {/* Instructions */}
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                     <div className="flex gap-3">
-                                        <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <div className="text-sm text-blue-700">
@@ -1437,7 +1482,7 @@ export default function ScoresClient({
                         <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
                             <div className="p-6">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
                                         <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                         </svg>

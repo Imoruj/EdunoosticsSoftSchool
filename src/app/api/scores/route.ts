@@ -266,11 +266,26 @@ export async function GET(req: NextRequest) {
         // Fetch students (filtered by enrollment if applicable)
         const students = await prisma.student.findMany({
             where: studentFilter,
-            include: {
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                admissionNumber: true,
+                gender: true,
                 scores: {
                     where: {
                         subjectId: subjectId,
                         termId: termId,
+                    },
+                    select: {
+                        id: true,
+                        ca1: true,
+                        ca2: true,
+                        ca3: true,
+                        exam: true,
+                        subjectId: true,
+                        termId: true,
+                        studentId: true,
                     },
                 },
             },
@@ -372,7 +387,10 @@ export async function GET(req: NextRequest) {
             });
         } catch (workflowError) {
             if (isMissingPrismaRelationError(workflowError, SCORE_WORKFLOW_TABLE_HINTS)) {
-                console.warn("Score workflow tables are missing. Falling back to default status.", workflowError);
+                console.warn("Score workflow tables are missing. Falling back to default status.", {
+                    error: workflowError instanceof Error ? workflowError.message : String(workflowError),
+                    context: { subjectId, termId, classArmId },
+                });
             } else {
                 throw workflowError;
             }

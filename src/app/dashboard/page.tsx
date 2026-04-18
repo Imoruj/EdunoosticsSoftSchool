@@ -156,8 +156,8 @@ export default async function DashboardPage({
             )}
 
             <div className="card border-0 bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white shadow-lg shadow-primary-900/10">
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
                         <h2 className="mb-1 text-2xl font-bold">Welcome back, {displayName}</h2>
                         <p className="text-sm font-medium text-primary-100 opacity-90">
                             Here&apos;s what&apos;s happening in your {greeting.toLowerCase()} account today.

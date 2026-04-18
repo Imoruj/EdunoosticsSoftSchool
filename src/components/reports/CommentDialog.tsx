@@ -153,7 +153,7 @@ export default function CommentDialog({
                 <div className="p-6 space-y-6">
                     {loading ? (
                         <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
                             <p className="text-sm text-slate-500">Loading comments...</p>
                         </div>
                     ) : (
@@ -172,7 +172,7 @@ export default function CommentDialog({
                                     </button>
                                 </div>
                                 <textarea
-                                    className="w-full min-h-[100px] p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none text-slate-700"
+                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 p-3 text-slate-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                     placeholder="Enter teacher's comment..."
                                     value={teacherComment}
                                     onChange={(e) => setTeacherComment(e.target.value)}
@@ -193,7 +193,7 @@ export default function CommentDialog({
                                     </button>
                                 </div>
                                 <textarea
-                                    className="w-full min-h-[100px] p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none text-slate-700"
+                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 p-3 text-slate-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                     placeholder="Enter principal's comment..."
                                     value={principalComment}
                                     onChange={(e) => setPrincipalComment(e.target.value)}

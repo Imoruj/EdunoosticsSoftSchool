@@ -237,7 +237,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
   }
 
   // Auto-save
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (!state.isDirty) return;
     clearTimeout(autosaveTimer.current);

@@ -75,7 +75,7 @@ export function LessonCard({
         {/* Icon — clicks navigate to lesson */}
         <button
           onClick={() => router.push(`/dashboard/lessons/${lesson.id}`)}
-          className="flex items-center justify-center w-14 h-14 bg-blue-50 rounded-lg flex-shrink-0 hover:bg-blue-100 transition-colors"
+          className="flex items-center justify-center w-14 h-14 bg-blue-50 rounded-lg shrink-0 hover:bg-blue-100 transition-colors"
         >
           <BookOpen className="w-7 h-7 text-blue-600" />
         </button>

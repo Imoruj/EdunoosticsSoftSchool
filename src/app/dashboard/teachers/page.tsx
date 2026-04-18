@@ -690,7 +690,7 @@ export default function TeachersPage() {
 
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-gradient-to-br from-primary-50 to-primary-100/30 rounded-2xl flex items-center justify-center border border-primary-100/50 group-hover:scale-110 transition-transform duration-300">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary-100/50 bg-gradient-to-br from-primary-50 to-primary-100/30 transition-transform duration-300 group-hover:scale-110">
                                         <span className="text-primary-700 font-bold text-lg uppercase">
                                             {teacher.firstName[0]}{teacher.lastName[0]}
                                         </span>
@@ -1133,7 +1133,7 @@ export default function TeachersPage() {
 
             {/* Unsaved Changes Warning Modal */}
             {showUnsavedWarning && (
-                <div className="fixed inset-0 z-[60] overflow-y-auto overflow-x-hidden flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4">
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={cancelSubjectSwitch} />
 
                     <Card className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-none animate-in zoom-in-95 duration-200">
@@ -1218,7 +1218,7 @@ export default function TeachersPage() {
                                 {/* Instructions */}
                                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
                                     <div className="flex">
-                                        <div className="flex-shrink-0">
+                                        <div className="shrink-0">
                                             <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                             </svg>

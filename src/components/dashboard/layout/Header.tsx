@@ -18,7 +18,7 @@ interface HeaderNotification {
 interface HeaderProps {
     setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
     findPageTitle: () => string;
-    topBarRef: React.RefObject<HTMLElement>;
+    topBarRef: React.RefObject<HTMLElement | null>;
 }
 
 export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps) {
@@ -257,10 +257,10 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     return (
         <header
             ref={topBarRef}
-            className="fixed top-0 left-0 right-0 lg:left-64 z-30 bg-white border-b border-gray-200"
+            className="fixed top-0 left-0 right-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur lg:left-64"
         >
-            <div className="flex items-center justify-between px-4 py-3 lg:px-8">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
+                <div className="flex min-w-0 items-center gap-4">
                     <button
                         onClick={() => setSidebarOpen(true)}
                         className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
@@ -272,12 +272,12 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                     </button>
 
                     {/* Breadcrumb / Page Title */}
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-900">
+                    <div className="min-w-0">
+                        <h2 className="truncate text-lg font-semibold text-gray-900">
                             {findPageTitle()}
                         </h2>
-                        <div className="flex items-center gap-3 text-sm text-gray-500">
-                            <span>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-gray-500">
+                            <span className="truncate">
                                 {currentTermInfo ? `${currentTermInfo.session} - ${currentTermInfo.term}` : "Loading term info..."}
                             </span>
                             {(session?.user as any)?.assignedClass && (
@@ -292,7 +292,7 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 lg:gap-4">
                     {/* Search */}
                     <div className="hidden md:flex items-center">
                         <div className="relative">
@@ -352,7 +352,7 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                                                 >
                                                     <div className="flex items-start gap-3">
                                                         {!notification.read && (
-                                                            <span className="mt-1.5 w-2 h-2 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                                            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500"></span>
                                                         )}
                                                         <div className={!notification.read ? '' : 'ml-5'}>
                                                             <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>

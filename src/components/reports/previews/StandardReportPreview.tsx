@@ -286,7 +286,7 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                     {showOption('showSex') && (
                         <div className="grid grid-cols-[80px_1fr] border-b text-[10px]" style={personalStyles.borderOnly}>
                             <div className="p-1.5 font-bold bg-gray-50 border-r" style={personalStyles.borderOnly}>Sex</div>
-                            <div className="p-1.5">{reportData.student.gender || "N/A"}</div>
+                            <div className="p-1.5">{reportData.student.gender ? reportData.student.gender.charAt(0).toUpperCase() + reportData.student.gender.slice(1).toLowerCase() : "N/A"}</div>
                         </div>
                     )}
                     {showOption('showClass') && (

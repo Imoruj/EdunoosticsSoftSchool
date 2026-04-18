@@ -13,6 +13,7 @@ const bodySchema = z.object({
     termId:     z.string().trim().min(1).max(100),
     classArmId: z.string().trim().min(1).max(100),
     type:       z.enum(["teacher", "principal"]),
+    reportType: z.enum(["halfTerm", "endOfTerm"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
         if (!parsed.success) {
             return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
         }
-        const { studentId, termId, classArmId, type } = parsed.data;
+        const { studentId, termId, classArmId, type, reportType: reportTypeParam = "endOfTerm" } = parsed.data;
 
         if (!isAdmin && type === "principal") {
             return NextResponse.json({ error: "Only admins can generate principal comments." }, { status: 403 });
@@ -97,11 +98,25 @@ export async function POST(req: NextRequest) {
             : {};
 
         const scores = await prisma.score.findMany({
-            where: { studentId, termId },
+            where: { 
+                studentId, 
+                termId,
+                subject: {
+                    subjectKind: { not: "COMPOSITE_COMPONENT" }
+                }
+            },
             include: { subject: true }
         });
 
-        // Get AI settings for comment config
+        const enrollments = await prisma.subjectEnrollment.findMany({
+            where: {
+                studentId,
+                classArmId: student.classArmId,
+                termId,
+            },
+            select: { studentId: true, subjectId: true, isActive: true },
+        });
+
         const aiSettings = await prisma.aiSettings.findUnique({
             where: { schoolId }
         });
@@ -118,7 +133,7 @@ export async function POST(req: NextRequest) {
                 gender: student.gender,
                 term: term?.name || "",
                 schoolId,
-                reportType: "endOfTerm", // Default to end of term for now
+                reportType: reportTypeParam,
                 termNumber: term?.termNumber || 1,
                 attendance: reportCard ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays) : "N/A",
                 traits: traitsSummary,
@@ -144,6 +159,7 @@ export async function POST(req: NextRequest) {
                 total: s.total,
                 subject: s.subject,
             })),
+            enrollments,
             classArmId: student.classArmId,
             commentConfig: aiSettings?.commentConfig as any,
         });

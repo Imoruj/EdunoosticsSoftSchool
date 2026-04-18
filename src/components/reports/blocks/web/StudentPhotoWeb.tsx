@@ -22,7 +22,7 @@ export const StudentPhotoWeb: React.FC<StudentPhotoWebProps> = ({ student, displ
     return (
         <div className="border-2 bg-gray-50 flex items-center justify-center min-h-[140px] w-full" style={containerStyle}>
             {student.photoUrl ? (
-                <img src={student.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                <img src={student.photoUrl} alt={`Photo of ${(student as any).firstName ?? "student"} ${(student as any).lastName ?? ""}`.trim()} className="w-full h-full object-cover" />
             ) : (
                 <div className="text-gray-400 text-[10px]">PHOTO</div>
             )}

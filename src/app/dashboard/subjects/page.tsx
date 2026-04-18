@@ -1221,7 +1221,7 @@ export default function SubjectsPage() {
             {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4">
                     <div className="flex">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path
                                     fillRule="evenodd"
@@ -2519,7 +2519,7 @@ export default function SubjectsPage() {
                     <div className="p-6 space-y-4">
                         <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
                             <div className="flex">
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                     <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                                         <path
                                             fillRule="evenodd"

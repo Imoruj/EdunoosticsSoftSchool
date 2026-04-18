@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function AdminWelcomeBanner() {
     return (
-        <div className="card p-6 bg-gradient-to-r from-primary-600 to-primary-800 text-white border-0">
+        <div className="card border-0 bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold mb-1">Welcome, Super Admin 👋</h2>

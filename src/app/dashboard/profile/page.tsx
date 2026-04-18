@@ -253,7 +253,7 @@ export default function ProfilePage() {
 
     if (!profile) {
         return (
-            <div className="bg-white rounded-[1.5rem] p-8 text-center shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+            <div className="rounded-3xl border border-slate-100/80 bg-white p-8 text-center shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)]">
                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -346,7 +346,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left Column - Profile Summary */}
                 <div className="lg:col-span-4 space-y-6">
-                    <div className="bg-white rounded-[1.5rem] p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80 flex flex-col items-center text-center relative overflow-hidden">
+                    <div className="relative flex flex-col items-center overflow-hidden rounded-3xl border border-slate-100/80 bg-white p-6 text-center shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)]">
                         {/* Soft Gradient Header Background */}
                         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary-50/80 to-transparent"></div>
 
@@ -396,7 +396,7 @@ export default function ProfilePage() {
 
                     {/* Digital Signature Card */}
                     {isAdmin && (
-                        <div className="bg-white rounded-[1.5rem] p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                        <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)]">
                             <div className="flex flex-col mb-4">
                                 <h3 className="text-sm font-semibold text-slate-900">Digital Signature</h3>
                                 <p className="text-[12px] text-slate-500 mt-1 pb-4 border-b border-slate-50">Authorized seal for issuing reports</p>
@@ -468,7 +468,7 @@ export default function ProfilePage() {
                 <div className="lg:col-span-8 space-y-6">
                     {!isEditing ? (
                         <>
-                            <div className="bg-white rounded-[1.5rem] p-6 lg:p-8 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                            <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] lg:p-8">
                                 <h3 className="text-[15px] font-bold text-slate-900 mb-6 flex items-center gap-2.5 pb-4 border-b border-slate-100">
                                     <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-[1.5rem] p-6 lg:p-8 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                            <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] lg:p-8">
                                 <h3 className="text-[15px] font-bold text-slate-900 mb-6 flex items-center gap-2.5 pb-4 border-b border-slate-100">
                                     <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -522,7 +522,7 @@ export default function ProfilePage() {
 
                             {/* Additional Section for Parents: Linked Wards */}
                             {isParent && profile.students?.length > 0 && (
-                                <div className="bg-white rounded-[1.5rem] p-6 sm:p-8 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                                <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] sm:p-8">
                                     <h3 className="text-[15px] font-bold text-slate-900 mb-6 flex items-center gap-2.5 pb-4 border-b border-slate-100">
                                         <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -531,7 +531,7 @@ export default function ProfilePage() {
                                     </h3>
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         {profile.students.map((ward: any) => (
-                                            <Link key={ward.id} href={`/dashboard/wards/${ward.id}`} className="bg-white rounded-[1.25rem] border border-slate-100 p-4 hover:border-primary-300 transition-all hover:shadow-[0px_4px_16px_-8px_rgba(0,0,0,0.06)] flex items-center justify-between group">
+                                            <Link key={ward.id} href={`/dashboard/wards/${ward.id}`} className="bg-white rounded-2xl border border-slate-100 p-4 hover:border-primary-300 transition-all hover:shadow-[0px_4px_16px_-8px_rgba(0,0,0,0.06)] flex items-center justify-between group">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
                                                         {ward.firstName[0]}
@@ -552,7 +552,7 @@ export default function ProfilePage() {
                         </>
                     ) : (
                         <form id="profile-form" onSubmit={handleSubmit} className="space-y-6">
-                            <div className="bg-white rounded-[1.5rem] p-6 lg:p-8 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                            <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] lg:p-8">
                                 <h3 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
                                     <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -613,7 +613,7 @@ export default function ProfilePage() {
                             </div>
 
                             {isAdmin && (
-                                <div className="bg-white rounded-[1.5rem] p-6 lg:p-8 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] border border-slate-100/80">
+                                <div className="rounded-3xl border border-slate-100/80 bg-white p-6 shadow-[0px_4px_24px_-8px_rgba(0,0,0,0.04)] lg:p-8">
                                     <h3 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
                                         <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -634,7 +634,7 @@ export default function ProfilePage() {
                             )}
 
                             {!isAdmin && (
-                                <div className="bg-blue-50/50 border border-blue-100 rounded-[1.5rem] p-6">
+                                <div className="rounded-3xl border border-blue-100 bg-blue-50/50 p-6">
                                     <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
                                         <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

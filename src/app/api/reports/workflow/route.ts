@@ -7,6 +7,7 @@ import { createUserNotification, createUserNotifications } from "@/lib/userNotif
 import { getStudentAndParentNotificationUserIds } from "@/lib/studentAudience";
 import { generatePrincipalComment, generateTeacherComment } from "@/services/aiService";
 import { formatAttendancePoints } from "@/lib/attendance-points";
+import { buildReportCommentPayload, ReportCommentConfig } from "@/lib/reportPayloadBuilder";
 
 type WorkflowAction =
     | "broadcast_result"
@@ -540,8 +541,9 @@ async function buildCommentContext(params: {
     studentId: string;
     termId: string;
     classArmId: string;
+    reportType?: "halfTerm" | "endOfTerm";
 }) {
-    const [student, reportCard, term, scores] = await Promise.all([
+    const [student, reportCard, term, scores, enrollments, aiSettings] = await Promise.all([
         prisma.student.findUnique({
             where: { id: params.studentId },
             select: {
@@ -562,12 +564,25 @@ async function buildCommentContext(params: {
         }),
         prisma.term.findFirst({
             where: { id: params.termId, session: { schoolId: params.schoolId } },
-            select: { name: true },
+            select: { name: true, termNumber: true },
         }),
         prisma.score.findMany({
-            where: { studentId: params.studentId, termId: params.termId },
+            where: {
+                studentId: params.studentId,
+                termId: params.termId,
+                subject: { subjectKind: { not: "COMPOSITE_COMPONENT" } },
+            },
             include: { subject: true },
         }),
+        prisma.subjectEnrollment.findMany({
+            where: {
+                termId: params.termId,
+                classArmId: params.classArmId,
+                studentId: params.studentId,
+            },
+            select: { studentId: true, subjectId: true, isActive: true },
+        }),
+        prisma.aiSettings.findUnique({ where: { schoolId: params.schoolId } }),
     ]);
 
     if (!student) {
@@ -580,40 +595,65 @@ async function buildCommentContext(params: {
 
     const traitsSummary = reportCard
         ? [
-            ...reportCard.affectiveRatings.map((rating) => `${rating.trait.name}: ${rating.rating}`),
-            ...reportCard.psychomotorRatings.map((rating) => `${rating.skill.name}: ${rating.rating}`),
+            ...reportCard.affectiveRatings.map((r) => `${r.trait.name}: ${r.rating}`),
+            ...reportCard.psychomotorRatings.map((r) => `${r.skill.name}: ${r.rating}`),
         ].join(", ")
         : "";
 
-    const subjectScores: Record<string, number> = {};
-    const resitSubjects: string[] = [];
-    for (const s of scores) {
-        const total = s.total.toNumber();
-        subjectScores[s.subject.name] = total;
-        if (total < 50) {
-            resitSubjects.push(s.subject.name);
-        }
-    }
+    const affective_traits = reportCard
+        ? Object.fromEntries(reportCard.affectiveRatings.map((r) => [r.trait.name, r.rating]))
+        : {};
 
-    return {
-        id: student.id,
-        studentId: student.id,
-        termId: params.termId,
-        name: `${student.firstName} ${student.lastName}`,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        gender: student.gender,
-        term: term?.name || "",
-        average: reportCard?.average?.toNumber() || 0,
-        position: reportCard?.classPosition || 0,
-        attendance: reportCard
-            ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays)
-            : "N/A",
-        traits: traitsSummary,
-        schoolId: student.schoolId,
-        subjectScores,
-        resitSubjects,
-    };
+    const psychomotor_skills = reportCard
+        ? Object.fromEntries(reportCard.psychomotorRatings.map((r) => [r.skill.name, r.rating]))
+        : {};
+
+    const commentConfig = ((aiSettings as any)?.commentConfig as ReportCommentConfig | null) || undefined;
+
+    return buildReportCommentPayload({
+        prisma,
+        studentData: {
+            id: student.id,
+            studentId: student.id,
+            termId: params.termId,
+            name: `${student.firstName} ${student.lastName}`,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            gender: student.gender,
+            term: term?.name || "",
+            schoolId: student.schoolId,
+            reportType: params.reportType || "endOfTerm",
+            termNumber: term?.termNumber || 1,
+            attendance: reportCard
+                ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays)
+                : "N/A",
+            traits: traitsSummary,
+            affective_traits,
+            psychomotor_skills,
+            average: reportCard?.average?.toNumber() || 0,
+            position: reportCard?.classPosition || 0,
+        },
+        reportCard: reportCard
+            ? {
+                average: reportCard.average,
+                classPosition: reportCard.classPosition,
+                daysPresent: reportCard.daysPresent,
+                totalSchoolDays: reportCard.totalSchoolDays,
+            }
+            : null,
+        term: { termNumber: term?.termNumber || 1, name: term?.name || "" },
+        scores: scores.map((s) => ({
+            ca1: s.ca1,
+            ca2: s.ca2,
+            ca3: s.ca3,
+            exam: s.exam,
+            total: s.total,
+            subject: s.subject,
+        })),
+        enrollments,
+        classArmId: params.classArmId,
+        commentConfig,
+    });
 }
 
 async function ensureReportCardAggregates(classArmId: string, termId: string) {
@@ -897,12 +937,113 @@ export async function POST(req: NextRequest) {
                 select: { id: true, studentId: true },
             });
 
+            const studentIds = studentWorkflows.map(w => w.studentId);
+
+            // Batch-fetch all per-student data upfront (fixes N+1: was 6N queries, now 6 queries)
+            const [allStudents, allReportCards, sharedTerm, allScores, allEnrollments, sharedAiSettings] = await Promise.all([
+                prisma.student.findMany({
+                    where: { id: { in: studentIds } },
+                    select: { id: true, firstName: true, lastName: true, gender: true, schoolId: true, classArmId: true },
+                }),
+                prisma.reportCard.findMany({
+                    where: { studentId: { in: studentIds }, termId },
+                    include: {
+                        affectiveRatings: { include: { trait: true } },
+                        psychomotorRatings: { include: { skill: true } },
+                    },
+                }),
+                prisma.term.findFirst({
+                    where: { id: termId, session: { schoolId } },
+                    select: { name: true, termNumber: true },
+                }),
+                prisma.score.findMany({
+                    where: {
+                        studentId: { in: studentIds },
+                        termId,
+                        subject: { subjectKind: { not: "COMPOSITE_COMPONENT" } },
+                    },
+                    include: { subject: true },
+                }),
+                prisma.subjectEnrollment.findMany({
+                    where: { termId, classArmId, studentId: { in: studentIds } },
+                    select: { studentId: true, subjectId: true, isActive: true },
+                }),
+                prisma.aiSettings.findUnique({ where: { schoolId } }),
+            ]);
+
+            const studentMap = new Map(allStudents.map(s => [s.id, s]));
+            const reportCardMap = new Map(allReportCards.map(r => [r.studentId, r]));
+            const scoresByStudent = new Map<string, typeof allScores>();
+            for (const score of allScores) {
+                if (!scoresByStudent.has(score.studentId)) scoresByStudent.set(score.studentId, []);
+                scoresByStudent.get(score.studentId)!.push(score);
+            }
+            const enrollmentsByStudent = new Map<string, typeof allEnrollments>();
+            for (const enr of allEnrollments) {
+                if (!enrollmentsByStudent.has(enr.studentId)) enrollmentsByStudent.set(enr.studentId, []);
+                enrollmentsByStudent.get(enr.studentId)!.push(enr);
+            }
+
             for (const workflow of studentWorkflows) {
-                const context = await buildCommentContext({
-                    schoolId,
+                const student = studentMap.get(workflow.studentId);
+                if (!student || student.schoolId !== schoolId || student.classArmId !== classArmId) continue;
+
+                const reportCard = reportCardMap.get(workflow.studentId) ?? null;
+                const scores = scoresByStudent.get(workflow.studentId) ?? [];
+                const enrollments = enrollmentsByStudent.get(workflow.studentId) ?? [];
+
+                const traitsSummary = reportCard
+                    ? [
+                        ...reportCard.affectiveRatings.map((r: any) => `${r.trait.name}: ${r.rating}`),
+                        ...reportCard.psychomotorRatings.map((r: any) => `${r.skill.name}: ${r.rating}`),
+                    ].join(", ")
+                    : "";
+                const affective_traits = reportCard
+                    ? Object.fromEntries(reportCard.affectiveRatings.map((r: any) => [r.trait.name, r.rating]))
+                    : {};
+                const psychomotor_skills = reportCard
+                    ? Object.fromEntries(reportCard.psychomotorRatings.map((r: any) => [r.skill.name, r.rating]))
+                    : {};
+                const commentConfig = ((sharedAiSettings as any)?.commentConfig as ReportCommentConfig | null) || undefined;
+
+                const context = await buildReportCommentPayload({
+                    prisma,
+                    studentData: {
+                        id: student.id,
+                        studentId: student.id,
+                        termId,
+                        name: `${student.firstName} ${student.lastName}`,
+                        firstName: student.firstName,
+                        lastName: student.lastName,
+                        gender: student.gender,
+                        term: sharedTerm?.name || "",
+                        schoolId: student.schoolId,
+                        reportType: toClientReportType(reportType),
+                        termNumber: sharedTerm?.termNumber || 1,
+                        attendance: reportCard
+                            ? formatAttendancePoints(reportCard.daysPresent, reportCard.totalSchoolDays)
+                            : "N/A",
+                        traits: traitsSummary,
+                        affective_traits,
+                        psychomotor_skills,
+                        average: reportCard?.average?.toNumber() || 0,
+                        position: reportCard?.classPosition || 0,
+                    },
+                    reportCard: reportCard
+                        ? {
+                            average: reportCard.average,
+                            classPosition: reportCard.classPosition,
+                            daysPresent: reportCard.daysPresent,
+                            totalSchoolDays: reportCard.totalSchoolDays,
+                        }
+                        : null,
+                    term: { termNumber: sharedTerm?.termNumber || 1, name: sharedTerm?.name || "" },
+                    scores: scores.map((s: any) => ({
+                        ca1: s.ca1, ca2: s.ca2, ca3: s.ca3, exam: s.exam, total: s.total, subject: s.subject,
+                    })),
+                    enrollments,
                     classArmId,
-                    studentId: workflow.studentId,
-                    termId,
+                    commentConfig,
                 });
 
                 const [teacherComment, principalComment] = await Promise.all([
@@ -1052,6 +1193,7 @@ export async function POST(req: NextRequest) {
                 classArmId,
                 studentId,
                 termId,
+                reportType: toClientReportType(reportType),
             });
 
             const generated = target === "classTeacher"

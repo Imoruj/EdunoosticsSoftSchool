@@ -166,7 +166,7 @@ const TranscriptPreview: React.FC<TranscriptPreviewProps> = ({ data }) => {
             {/* Student Info */}
             <div className="flex gap-5 mb-7 pb-5 border-b border-gray-200">
                 {student.photoUrl && (
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                         <img src={student.photoUrl} alt="" className="w-[80px] h-[96px] object-cover rounded border border-gray-200" />
                     </div>
                 )}

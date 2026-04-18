@@ -219,6 +219,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                 <Link
                                     key={entry.name}
                                     href={entry.href}
+                                    aria-current={isActive ? "page" : undefined}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
                                         ? "bg-primary-50 text-primary-700"
                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -244,6 +245,8 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                             <div key={entry.label} className="mt-3 first:mt-0">
                                 <button
                                     onClick={() => toggleGroup(entry.label)}
+                                    aria-expanded={isExpanded}
+                                    aria-label={`${entry.label} navigation group`}
                                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors ${groupHasActive ? "text-primary-700" : "text-gray-400 hover:text-gray-600"
                                         }`}
                                 >
@@ -265,6 +268,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                                 <Link
                                                     key={item.name}
                                                     href={item.href}
+                                                    aria-current={isActive ? "page" : undefined}
                                                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                                                         ? "bg-primary-50 text-primary-700"
                                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"

@@ -358,6 +358,7 @@ model SubjectEnrollment {
 
   @@unique([studentId, subjectId, termId])
   @@index([subjectId, classArmId, termId])
+  @@index([studentId, termId])
 }
 
 model Score {
@@ -387,6 +388,8 @@ model Score {
   derivedFromCompositeConfig   CompositeSubjectConfig? @relation("DerivedCompositeScores", fields: [derivedFromCompositeConfigId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, subjectId, termId])
+  @@index([termId, subjectId])
+  @@index([studentId, termId])
 }
 
 model ReportCard {
@@ -416,6 +419,8 @@ model ReportCard {
   term                Term                @relation(fields: [termId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, termId])
+  @@index([termId, classArmId])
+  @@index([classArmId, isPublished])
 }
 
 model PsychomotorSkill {

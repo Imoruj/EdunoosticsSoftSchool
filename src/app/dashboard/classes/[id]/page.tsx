@@ -293,7 +293,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
                                 cls.classSubjects.map(({ subject }) => (
                                     <div key={subject.id} className="flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100 group">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-[10px] font-black text-primary border border-primary/20">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary-200 bg-primary-50 text-[10px] font-black text-primary-700">
                                                 {subject.code}
                                             </div>
                                             <span className="text-sm font-bold text-slate-700">{subject.name}</span>
@@ -307,7 +307,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
                                 <p className="text-sm text-slate-400 italic py-2">No subjects assigned</p>
                             )}
                         </div>
-                        <Link href="/dashboard/subjects" className="w-full mt-6 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 font-bold hover:bg-slate-50 hover:text-primary transition-all flex items-center justify-center gap-2 group">
+                        <Link href="/dashboard/subjects" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 hover:text-primary-700">
                             Manage Subjects
                             <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -367,7 +367,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
                                                 <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">
                                                     <Link
                                                         href={`/dashboard/students?classId=${cls.id}&armId=${arm.id}`}
-                                                        className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg border border-transparent hover:border-primary/10 transition-all"
+                                                        className="rounded-lg border border-transparent p-1.5 text-slate-400 transition-all hover:border-primary-100 hover:bg-primary-50 hover:text-primary-700"
                                                         title="Manage Students"
                                                     >
                                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

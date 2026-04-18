@@ -2,10 +2,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { SubjectKind, UserRole } from "@prisma/client";
+import { apiError, clampLimit } from "@/lib/apiError";
+
+const CreateTeacherSchema = z.object({
+    firstName: z.string().min(1, "First name is required").max(100),
+    lastName: z.string().min(1, "Last name is required").max(100),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().max(20).optional(),
+    roles: z.array(z.string()).min(1, "At least one role is required"),
+    classArmIds: z.array(z.string()).optional(),
+    subjectAssignments: z.array(z.object({ subjectId: z.string(), classArmId: z.string() })).optional(),
+    subjectIds: z.array(z.string()).optional(),
+    subjectClassArmIds: z.array(z.string()).optional(),
+});
 
 const STAFF_MANAGEMENT_ROLES: UserRole[] = [
     UserRole.PROPRIETOR,
@@ -92,13 +106,19 @@ export async function GET(req: NextRequest) {
 
         const schoolId = user.schoolId;
 
-        const teachers = await prisma.user.findMany({
-            where: {
-                schoolId,
-                roles: {
-                    hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"]
-                }
-            },
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+        const limit = clampLimit(searchParams.get("limit") ?? "500");
+        const teacherWhere = {
+            schoolId,
+            roles: { hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"] as UserRole[] },
+        };
+
+        const [teachers, total] = await Promise.all([
+          prisma.user.findMany({
+            where: teacherWhere,
+            skip: (page - 1) * limit,
+            take: limit,
             select: {
                 id: true,
                 firstName: true,
@@ -141,7 +161,9 @@ export async function GET(req: NextRequest) {
                 { firstName: "asc" },
                 { lastName: "asc" }
             ]
-        });
+          }),
+          prisma.user.count({ where: teacherWhere }),
+        ]);
 
         // Format for frontend
         const formattedTeachers = teachers.map((t: any) => ({
@@ -233,6 +255,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             teachers: formattedTeachers,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
             metadata: {
                 classes: availableClasses.map((c: any) => ({
                     id: c.id,
@@ -257,11 +280,7 @@ export async function GET(req: NextRequest) {
             }
         });
     } catch (error: any) {
-        console.error("Error fetching staff:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch staff" },
-            { status: 500 }
-        );
+        return apiError("Failed to fetch staff", 500, error);
     }
 }
 
@@ -276,7 +295,10 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
 
         const schoolId = user.schoolId;
-        const body = await req.json();
+        const parsed = CreateTeacherSchema.safeParse(await req.json());
+        if (!parsed.success) {
+            return apiError(parsed.error.issues.map(e => e.message).join(", "), 422);
+        }
         const {
             firstName,
             lastName,
@@ -286,15 +308,8 @@ export async function POST(req: NextRequest) {
             classArmIds,
             subjectAssignments: rawSubjectAssignments,
             subjectIds: rawSubjectIds,
-            subjectClassArmIds: rawSubjectClassArmIds
-        } = body;
-
-        if (!firstName || !lastName || !email || !roles || roles.length === 0) {
-            return NextResponse.json(
-                { error: "Missing required fields" },
-                { status: 400 }
-            );
-        }
+            subjectClassArmIds: rawSubjectClassArmIds,
+        } = parsed.data;
 
         const normalizedSubjectAssignments = resolveSubjectAssignments(
             rawSubjectAssignments,
@@ -361,7 +376,7 @@ export async function POST(req: NextRequest) {
             });
 
             // Handle Class Assignments if CLASS_TEACHER role is present
-            if (normalizedRoles.includes("CLASS_TEACHER") && classArmIds?.length > 0) {
+            if (normalizedRoles.includes("CLASS_TEACHER") && (classArmIds?.length ?? 0) > 0) {
                 await tx.classArm.updateMany({
                     where: { id: { in: classArmIds }, class: { schoolId } },
                     data: { classTeacherId: user.id }

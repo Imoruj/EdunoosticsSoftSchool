@@ -6,7 +6,7 @@ import BroadsheetDocument from "@/components/reports/BroadsheetDocument";
 import { resolveTemplateForTerm } from "@/lib/templateResolver";
 import React from "react";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import { getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
 
 function resolveSchoolCategory(level: string | null | undefined): "PRIMARY" | "JUNIOR_SECONDARY" | "SENIOR_SECONDARY" | null {
     if (level === "PRIMARY" || level === "NURSERY") return "PRIMARY";
@@ -15,32 +15,7 @@ function resolveSchoolCategory(level: string | null | undefined): "PRIMARY" | "J
     return null;
 }
 
-function getScoreFieldNumber(value: { toNumber?: () => number } | number | null | undefined) {
-    if (typeof value === "number") return value;
-    if (value && typeof value === "object" && typeof value.toNumber === "function") {
-        return value.toNumber();
-    }
-    return Number(value || 0);
-}
-
-function getEndOfTermScoreMetrics(score: {
-    ca1?: { toNumber?: () => number } | number | null;
-    ca2?: { toNumber?: () => number } | number | null;
-    ca3?: { toNumber?: () => number } | number | null;
-    exam?: { toNumber?: () => number } | number | null;
-}, assessmentTypes: Array<{ id: string; name: string; maxScore: number; order: number; includeInTotal?: boolean }>) {
-    const values = {
-        ca1: getScoreFieldNumber(score.ca1),
-        ca2: getScoreFieldNumber(score.ca2),
-        ca3: getScoreFieldNumber(score.ca3),
-        exam: getScoreFieldNumber(score.exam),
-    };
-
-    return {
-        ...values,
-        ...calculateEndOfTermScoreTotals(values, assessmentTypes),
-    };
-}
+// Shared utilities imported above
 
 export async function generateBroadsheetData(
     classArmId: string,
@@ -225,14 +200,7 @@ export async function generateBroadsheetData(
     );
 
     // Build enrollment lookup: subjectId -> Set of active student IDs
-    const subjectsWithEnrollment = new Set(enrollments.map(e => e.subjectId));
-    const activeEnrollmentBySubject: Record<string, Set<string>> = {};
-    enrollments.filter(e => e.isActive).forEach(e => {
-        if (!activeEnrollmentBySubject[e.subjectId]) {
-            activeEnrollmentBySubject[e.subjectId] = new Set();
-        }
-        activeEnrollmentBySubject[e.subjectId].add(e.studentId);
-    });
+    const enrollmentLookup = buildActiveEnrollmentLookup(enrollments);
 
     // 8. Fetch previous term scores (endOfTerm only)
     const prevScores = reportType === "endOfTerm" ? await prisma.score.findMany({
@@ -296,10 +264,13 @@ export async function generateBroadsheetData(
     students.forEach(student => {
         subjects.forEach(subject => {
             // Check enrollment
-            if (subjectsWithEnrollment.has(subject.id)) {
-                if (!activeEnrollmentBySubject[subject.id]?.has(student.id)) {
-                    return; // Student not enrolled in this subject
-                }
+            if (!isStudentIncludedInSubjectStats(
+                subject.id,
+                student.id,
+                enrollmentLookup.subjectsWithEnrollment,
+                enrollmentLookup.activeEnrollmentBySubject
+            )) {
+                return; // Student not enrolled in this subject
             }
 
             const score = scoreMap[student.id]?.[subject.id];
@@ -334,8 +305,12 @@ export async function generateBroadsheetData(
     const broadsheetStudents: BroadsheetStudent[] = students.map(student => {
         const studentScores: BroadsheetStudentScore[] = subjects.map(subject => {
             // Check enrollment
-            const isEnrolled = !subjectsWithEnrollment.has(subject.id) ||
-                activeEnrollmentBySubject[subject.id]?.has(student.id);
+            const isEnrolled = isStudentIncludedInSubjectStats(
+                subject.id,
+                student.id,
+                enrollmentLookup.subjectsWithEnrollment,
+                enrollmentLookup.activeEnrollmentBySubject
+            );
 
             const score = scoreMap[student.id]?.[subject.id];
 
@@ -438,8 +413,18 @@ export async function generateBroadsheetData(
     const studentCountBySubject: Record<string, number> = {};
     subjectsWithScores.forEach(sub => {
         const values = summary[sub.id] || [];
-        highest[sub.id] = values.length > 0 ? Math.max(...values) : 0;
-        lowest[sub.id] = values.length > 0 ? Math.min(...values) : 0;
+        if (values.length === 0) {
+            highest[sub.id] = 0;
+            lowest[sub.id] = 0;
+        } else {
+            let hi = values[0], lo = values[0];
+            for (let i = 1; i < values.length; i++) {
+                if (values[i] > hi) hi = values[i];
+                if (values[i] < lo) lo = values[i];
+            }
+            highest[sub.id] = hi;
+            lowest[sub.id] = lo;
+        }
         studentCountBySubject[sub.id] = values.length;
     });
 

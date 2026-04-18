@@ -39,7 +39,7 @@ const ProfessionalStudentProfile: React.FC<StudentProfileProps & { config?: any 
                     </View>
                     <View style={styles.gridRow}>
                         <View style={styles.gridLabel}><Text>Sex</Text></View>
-                        <View style={styles.gridValue}><Text>{student.gender || "FEMALE"}</Text></View>
+                        <View style={styles.gridValue}><Text>{student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1).toLowerCase() : "FEMALE"}</Text></View>
                     </View>
                     <View style={styles.gridRow}>
                         <View style={styles.gridLabel}><Text>Class</Text></View>

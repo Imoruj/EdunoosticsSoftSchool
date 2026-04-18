@@ -34,7 +34,8 @@ export type ContentBlockType =
   | 'quiz'
   | 'assignment'
   | 'embed'
-  | 'file';
+  | 'file'
+  | 'adapt';
 
 export interface SlideElement {
   id: string;
@@ -47,7 +48,8 @@ export interface SlideElement {
     | QuizBlockData
     | AssignmentBlockData
     | EmbedBlockData
-    | FileBlockData;
+    | FileBlockData
+    | AdaptBlockData;
 
   // Canvas position (% of slide width/height, 0–100)
   x: number;
@@ -167,7 +169,16 @@ export interface ContentBlock {
   | QuizBlockData
   | AssignmentBlockData
   | EmbedBlockData
-  | FileBlockData;
+  | FileBlockData
+  | AdaptBlockData;
+}
+
+export interface AdaptBlockData {
+  coursePath: string; // Relative URL to unzipped index.html
+  title?: string;
+  zippedUrl?: string; // Original ZIP location
+  isScorm?: boolean;
+  version?: string;   // e.g. "scorm_12", "scorm_2004"
 }
 
 export interface TextBlockData {

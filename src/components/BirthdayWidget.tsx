@@ -150,14 +150,14 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {decoratedStudents.map((student) => (
                     <article
                         key={student.id}
-                        className={`group relative overflow-hidden rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${student.palette.shell}`}
+                        className={`group relative isolate flex h-full min-h-[18rem] flex-col overflow-hidden rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${student.palette.shell}`}
                     >
-                        <div className={`absolute inset-0 bg-gradient-to-br ${student.palette.highlight}`} />
-                        <div className="absolute inset-0 opacity-90">
+                        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${student.palette.highlight}`} />
+                        <div className="pointer-events-none absolute inset-0 opacity-90">
                             {PARTICLE_POSITIONS.map((particle, index) => (
                                 <span
                                     key={index}
@@ -172,12 +172,12 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                             ))}
                         </div>
 
-                        <div className="relative space-y-4">
+                        <div className="relative flex h-full flex-col gap-4">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-4">
-                                    <div className={`birthday-frame shrink-0 rounded-[1.75rem] bg-gradient-to-br p-[3px] ${student.palette.frame}`}>
-                                        <div className="rounded-[1.55rem] bg-white/90 p-1.5 backdrop-blur-sm">
-                                            <div className="h-20 w-20 overflow-hidden rounded-[1.2rem] bg-slate-100">
+                                    <div className={`birthday-frame shrink-0 rounded-3xl bg-gradient-to-br p-[3px] ${student.palette.frame}`}>
+                                        <div className="rounded-[1.35rem] bg-white/90 p-1.5 backdrop-blur-sm">
+                                            <div className="h-20 w-20 overflow-hidden rounded-[1.1rem] bg-slate-100">
                                                 {student.photoUrl ? (
                                                     <img
                                                         src={student.photoUrl}
@@ -194,7 +194,7 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                                         </div>
                                     </div>
 
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="truncate text-lg font-semibold tracking-tight text-slate-900">
                                             {student.firstName} {student.lastName}
                                         </p>
@@ -210,8 +210,8 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between rounded-2xl bg-white/70 px-4 py-3 ring-1 ring-white/70 backdrop-blur-sm">
-                                <div>
+                            <div className="mt-auto flex items-center justify-between gap-3 rounded-2xl bg-white/70 px-4 py-3 ring-1 ring-white/70 backdrop-blur-sm">
+                                <div className="min-w-0">
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                                         Celebration note
                                     </p>

@@ -3,6 +3,14 @@
 import React, { useEffect, useId, useRef } from 'react';
 import type { TextBlockData } from '@/lib/db/types';
 
+/** Strip script tags and dangerous event-handler attributes from HTML strings. */
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '')
+    .replace(/javascript\s*:/gi, '');
+}
+
 interface TextElementViewProps {
   data: TextBlockData;
   editing?: boolean;
@@ -88,7 +96,7 @@ export function TextElementView({ data, editing = false, onEditEnd }: TextElemen
       ) : (
         /* Read-only render */
         <div
-          dangerouslySetInnerHTML={{ __html: data?.content ?? '<p style="color:#94a3b8;font-style:italic">Double-click to edit…</p>' }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(data?.content ?? '<p style="color:#94a3b8;font-style:italic">Double-click to edit…</p>') }}
         />
       )}
     </div>

@@ -19,7 +19,7 @@ import {
   FileQuestion,
   Upload,
   Link as LinkIcon,
-  Youtube,
+  PlayCircle,
   Plus,
   ClipboardList,
   CalendarClock,
@@ -42,7 +42,9 @@ import type {
   QuizQuestion,
   AssignmentBlockData,
   LessonReferenceMaterial,
+  AdaptBlockData,
 } from '@/lib/db/types';
+import { AdaptPlayer } from './AdaptPlayer';
 import { useAssignments, useQuizzes } from '@/lib/db/hooks';
 import { RichTextEditor } from './RichTextEditor';
 import { GoogleDrivePicker } from './GoogleDrivePicker';
@@ -603,7 +605,7 @@ export function VideoBlock({ block, onUpdate, onDelete, dragHandleProps }: Conte
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex-1 justify-center ${activeTab === 'youtube' ? 'bg-white shadow text-red-600' : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
-                <Youtube className="w-3.5 h-3.5" />
+                <PlayCircle className="w-3.5 h-3.5" />
                 YouTube / Vimeo
               </button>
               <button
@@ -2321,6 +2323,164 @@ export function AudioBlock({ block, onUpdate, onDelete, dragHandleProps, lessonC
                   <p className="text-sm font-medium">Click to add audio</p>
                   <p className="text-xs mt-0.5">Upload file or generate with AI</p>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function AdaptBlock({ block, onUpdate, onDelete, dragHandleProps }: ContentBlockProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(block.data as AdaptBlockData);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSave = () => {
+    onUpdate({ ...block, data: editData });
+    setIsEditing(false);
+  };
+
+  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("blockId", block.id);
+
+      const res = await fetch("/api/lessons/adapt/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+
+      const { url, title } = await res.json();
+      setEditData((prev) => ({
+        ...prev,
+        coursePath: url,
+        title: prev.title || title,
+        isScorm: true,
+      }));
+    } catch (error: any) {
+      alert(error.message || "Adapt package upload failed.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="group border border-gray-200 rounded-lg bg-white hover:shadow-sm transition-shadow">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50">
+        <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-4 h-4 text-gray-400" />
+        </div>
+        <Zap className="w-4 h-4 text-amber-500" />
+        <span className="text-xs font-medium text-gray-600 flex-1">Adapt Interactive Course</span>
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 rounded transition-opacity"
+          >
+            <Edit className="w-4 h-4 text-gray-600" />
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-opacity"
+        >
+          <Trash2 className="w-4 h-4 text-red-600" />
+        </button>
+      </div>
+
+      <div className="p-4">
+        {isEditing ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <Zap className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div className="text-xs text-amber-800">
+                <p className="font-bold mb-1">Upload Adapt ZIP Package</p>
+                <p>Export your course from the Adapt Authoring Tool as a SCORM package and upload it here.</p>
+              </div>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={handleUpload}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl p-10 hover:border-amber-400 hover:bg-amber-50 transition-all group"
+            >
+              {isUploading ? (
+                <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+              ) : (
+                <Upload className="w-10 h-10 text-gray-400 group-hover:scale-110 transition-transform" />
+              )}
+              <span className="text-sm font-medium text-gray-700">
+                {isUploading ? "Extracting Course Assets..." : editData.coursePath ? "Replace Adapt Course" : "Click to upload Adapt ZIP"}
+              </span>
+              <p className="text-xs text-gray-400">Standard SCORM 1.2 or 2004 ZIP packages</p>
+            </button>
+
+            {editData.coursePath && (
+              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-100 rounded text-green-700 text-xs">
+                <Check className="w-4 h-4" /> Package unzipped successfully
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Course Title</label>
+              <input
+                type="text"
+                value={editData.title || ""}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                placeholder="Course display name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-sm"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                onClick={handleSave} 
+                disabled={!editData.coursePath}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-bold rounded-lg hover:bg-amber-700 disabled:bg-gray-300 transition-colors"
+              >
+                <Check className="w-4 h-4" /> Confirm Block
+              </button>
+              <button onClick={() => setIsEditing(false)} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full">
+            {editData.coursePath ? (
+              <AdaptPlayer 
+                lessonId={block.id} 
+                courseUrl={editData.coursePath}
+                title={editData.title}
+              />
+            ) : (
+              <div 
+                className="flex flex-col items-center justify-center h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-amber-50/30 transition-colors"
+                onClick={() => setIsEditing(true)}
+              >
+                <Zap className="w-10 h-10 text-gray-300 mb-2" />
+                <p className="text-sm font-medium text-gray-500">Configure Adapt Course</p>
               </div>
             )}
           </div>

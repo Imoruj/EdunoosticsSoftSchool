@@ -127,7 +127,7 @@ export default function BulkGenerateModal({
                                 href={resultUrl || "#"}
                                 download
                                 onClick={onClose}
-                                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4 shadow-sm"
+                                className="inline-flex items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary-700 h-10"
                             >
                                 Download ZIP
                             </a>
@@ -147,7 +147,7 @@ export default function BulkGenerateModal({
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
                         <button
                             onClick={onClose}
-                            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input hover:bg-slate-100 hover:text-slate-900 h-10 py-2 px-4 shadow-sm"
+                            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 hover:bg-slate-100 hover:text-slate-900"
                         >
                             {status === "FAILED" ? "Close" : "Cancel (Run in Background)"}
                         </button>

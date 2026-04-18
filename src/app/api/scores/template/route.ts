@@ -186,16 +186,40 @@ export async function GET(req: NextRequest) {
         });
 
         // Build CSV content
+        const includeScores = searchParams.get("includeScores") === "true";
+        let scoreMap = new Map<string, any>();
+
+        if (includeScores) {
+            const studentIds = students.map(s => s.id);
+            const scores = await prisma.score.findMany({
+                where: {
+                    subjectId,
+                    termId,
+                    studentId: { in: studentIds }
+                }
+            });
+            scores.forEach(s => scoreMap.set(s.studentId, s));
+        }
+
         const headerRow = ["S/N", "Student Name", "Admission Number", ...columnHeaders.map(c => sanitizeCsv(c.label))];
         const csvLines = [headerRow.join(",")];
 
         students.forEach((student, index) => {
             const name = `${student.lastName} ${student.firstName}${student.otherNames ? " " + student.otherNames : ""}`;
+            const studentScores = scoreMap.get(student.id) || {};
             const row = [
                 sanitizeCsv(index + 1),
                 sanitizeCsv(name),
                 sanitizeCsv(student.admissionNumber),
-                ...columnHeaders.map(() => '""'),
+                ...columnHeaders.map((c) => {
+                    if (includeScores) {
+                        const val = studentScores[c.field];
+                        if (val != null) {
+                           return typeof val.toNumber === "function" ? val.toNumber() : val;
+                        }
+                    }
+                    return '""';
+                }),
             ];
             csvLines.push(row.join(","));
         });
@@ -206,7 +230,8 @@ export async function GET(req: NextRequest) {
         const className = classArm ? `${classArm.class.name}_${classArm.armName}` : "Class";
         const subjectName = subject?.name || "Subject";
         const columnLabel = columns === "all" ? "ALL" : requestedColumns.join("_").toUpperCase();
-        const fileName = `${className}_${subjectName}_${columnLabel}_template.csv`
+        const exportSuffix = includeScores ? "scores_export" : "template";
+        const fileName = `${className}_${subjectName}_${columnLabel}_${exportSuffix}.csv`
             .replace(/\s+/g, "_");
 
         return new NextResponse(csvContent, {

@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prismaDirect } from "@/lib/prisma";
 import { validateMagicBytes } from "@/lib/magicBytes";
+import { checkCsrf } from "@/lib/csrf";
 import { makeTransparentSignature } from "@/lib/signature-images";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 
@@ -137,6 +138,9 @@ function uploadBusyResponse() {
 }
 
 export async function POST(req: NextRequest) {
+    const csrfError = checkCsrf(req);
+    if (csrfError) return csrfError;
+
     let uploadType: UploadType | null = null;
     let uploadContext: Record<string, string | number | null> = {};
 

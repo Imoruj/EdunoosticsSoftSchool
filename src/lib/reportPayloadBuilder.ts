@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { calculateEndOfTermScoreTotals, getAssessmentTypeForField } from "@/lib/assessment-types";
+import { getAssessmentTypeForField } from "@/lib/assessment-types";
 import { formatAttendancePoints } from "@/lib/attendance-points";
+import { getScoreFieldNumber, getEndOfTermScoreMetrics, isStudentIncludedInSubjectStats, buildActiveEnrollmentLookup } from "@/lib/reports/calculations";
 
 export type ReportType = "halfTerm" | "endOfTerm";
 
@@ -79,13 +80,7 @@ const RESIT_ELIGIBLE_SUBJECTS = [
     "biology",
 ];
 
-function toNumber(value: { toNumber?: () => number } | number | null | undefined) {
-    if (typeof value === "number") return value;
-    if (value && typeof value === "object" && typeof value.toNumber === "function") {
-        return value.toNumber();
-    }
-    return 0;
-}
+// Shared utilities imported above
 
 function normalizeName(name: string) {
     return name.trim().toLowerCase();
@@ -127,6 +122,7 @@ export async function buildReportCommentPayload(params: {
     } | null;
     term: { termNumber: number; name: string };
     scores: RawScoreRecord[];
+    enrollments?: Array<{ studentId: string; subjectId: string; isActive: boolean }>;
     classArmId?: string | null;
     commentConfig?: ReportCommentConfig;
 }): Promise<ReportCommentPayload> {
@@ -149,21 +145,30 @@ export async function buildReportCommentPayload(params: {
     const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
     const halfTermMaxScore = Number(ca1Type?.maxScore ?? 15);
 
-    const subjectDetails: ReportCommentSubjectDetail[] = scores.map((score) => {
-        const rawScore = reportType === "halfTerm"
-            ? toNumber(score.ca1)
-            : calculateEndOfTermScoreTotals(
-                {
-                    ca1: toNumber(score.ca1),
-                    ca2: toNumber(score.ca2),
-                    ca3: toNumber(score.ca3),
-                    exam: toNumber(score.exam),
-                },
-                assessmentTypes
-            ).adjustedTotal;
+    const enrollmentLookup = buildActiveEnrollmentLookup(params.enrollments || []);
 
-        const maxScore = commentConfig?.maxScorePerSubject === "fixed100" ? 100 : (reportType === "halfTerm" ? halfTermMaxScore : 100);
-        const percentage = maxScore > 0 ? Number(((rawScore / maxScore) * 100).toFixed(2)) : 0;
+    const subjectDetails: ReportCommentSubjectDetail[] = scores
+        .filter((score) => isStudentIncludedInSubjectStats(
+            score.subject.id,
+            studentData.studentId,
+            enrollmentLookup.subjectsWithEnrollment,
+            enrollmentLookup.activeEnrollmentBySubject
+        ))
+        .map((score) => {
+            const metrics = reportType === "halfTerm"
+                ? null
+                : getEndOfTermScoreMetrics(score, assessmentTypes as any);
+
+            const rawScore = reportType === "halfTerm"
+                ? getScoreFieldNumber(score.ca1)
+                : metrics?.adjustedTotal ?? 0;
+
+            const actualMaxScore = reportType === "halfTerm"
+                ? halfTermMaxScore
+                : (metrics?.includedMaxScore || 100);
+
+            const maxScore = commentConfig?.maxScorePerSubject === "fixed100" ? 100 : actualMaxScore;
+            const percentage = maxScore > 0 ? Number(((rawScore / maxScore) * 100).toFixed(2)) : 0;
 
         // Use config for resit eligibility
         const isResitEligible = commentConfig?.resitSubjects === "thirdTermBelow50" &&
@@ -202,14 +207,12 @@ export async function buildReportCommentPayload(params: {
             .sort((a, b) => a.percentage - b.percentage)[0];
     }
 
-    // Use config for average calculation
     let average: number;
-    if (commentConfig?.overallAverage === "direct") {
-        average = subjectDetails.length > 0
-            ? Number((subjectDetails.reduce((sum, detail) => sum + detail.percentage, 0) / subjectDetails.length).toFixed(2))
-            : 0;
+    if (subjectDetails.length === 0) {
+        average = getScoreFieldNumber(reportCard?.average);
+    } else if (commentConfig?.overallAverage === "direct") {
+        average = Number((subjectDetails.reduce((sum, detail) => sum + detail.percentage, 0) / subjectDetails.length).toFixed(2));
     } else {
-        // Default: normalized
         const totalMaxScore = subjectDetails.reduce((sum, detail) => sum + detail.maxScore, 0);
         const totalScore = subjectDetails.reduce((sum, detail) => sum + detail.rawScore, 0);
         average = totalMaxScore > 0 ? Number(((totalScore / totalMaxScore) * 100).toFixed(2)) : 0;

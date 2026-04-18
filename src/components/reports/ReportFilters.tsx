@@ -34,11 +34,11 @@ export default function ReportFilters({
 
     return (
         <Card className="p-6">
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Session</label>
                     <select
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         value={selectedSessionId}
                         onChange={(e) => {
                             setSelectedSessionId(e.target.value);
@@ -56,7 +56,7 @@ export default function ReportFilters({
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Term</label>
                     <select
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         value={selectedTermId}
                         onChange={(e) => setSelectedTermId(e.target.value)}
                         disabled={!selectedSessionId}
@@ -70,7 +70,7 @@ export default function ReportFilters({
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Class</label>
                     <select
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         value={selectedClassArmId}
                         onChange={(e) => setSelectedClassArmId(e.target.value)}
                     >
@@ -83,7 +83,7 @@ export default function ReportFilters({
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Report Type</label>
                     <select
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
                         value={reportType}
                         onChange={(e) => setReportType(e.target.value as "halfTerm" | "endOfTerm")}
                     >
