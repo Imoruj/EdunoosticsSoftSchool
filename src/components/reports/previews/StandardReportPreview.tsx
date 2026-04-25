@@ -37,6 +37,7 @@ interface StandardReportPreviewProps {
             showCA1?: boolean;
             showCA2?: boolean;
             showCA3?: boolean;
+            showScoreComponents?: boolean;
             showExam?: boolean;
             showSubjectTotal?: boolean;
             showGrade?: boolean;
@@ -56,6 +57,7 @@ interface StandardReportPreviewProps {
             showPrincipalSign?: boolean;
             showTeacherDate?: boolean;
             showPrincipalDate?: boolean;
+            assessmentTypeVisibility?: Record<string, boolean>;
 
             // Traits (Granular)
             showTraitPunctuality?: boolean;
@@ -140,28 +142,63 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
         () => mapAssessmentTypesToScoreFields(fetchedAssessmentTypes),
         [fetchedAssessmentTypes]
     );
+
+    const assessmentTypeVisibility = config.displayOptions?.assessmentTypeVisibility;
+
     const fallbackCaTypes = [
         { field: "ca1", name: "CA1", maxScore: 30 },
         { field: "ca2", name: "CA2", maxScore: 30 },
         { field: "ca3", name: "CA3", maxScore: 30 },
     ];
     const caAssessmentTypes = mappedAssessmentTypes.length > 0
-        ? mappedAssessmentTypes.filter(at => at.field !== "exam")
+        ? mappedAssessmentTypes.filter(at => at.field !== "exam" && assessmentTypeVisibility?.[at.field] !== false)
         : fallbackCaTypes;
     const examLabel = mappedAssessmentTypes.find(at => at.field === "exam")?.name
         || (config as any)?.assessmentTypeNames?.["exam"] || "EXAM";
 
-    // Generate mock score values that match whatever assessment types are configured
-    const mockScoreValues = React.useMemo(() => {
+    const showExamCol = showOption("showExam") && assessmentTypeVisibility?.["exam"] !== false;
+
+    const showScoreComponents = showOption("showScoreComponents");
+
+    // Each CA entry augmented with its components list (from fetched assessment types)
+    type CompEntry = { id: string; name: string; maxScore: number };
+    type CaTypeWithComponents = typeof caAssessmentTypes[number] & {
+        components?: CompEntry[];
+        showComponents: boolean;
+    };
+    const caTypesWithExpansion: CaTypeWithComponents[] = caAssessmentTypes.map(at => {
+        const components = (at as any).components as CompEntry[] | undefined;
+        return { ...at, components, showComponents: showScoreComponents && !!components?.length };
+    });
+
+    // Generate mock score values + component scores matching whatever types are configured
+    const mockSubjectData = React.useMemo(() => {
+        const examMax = mappedAssessmentTypes.find(t => t.field === "exam")?.maxScore ?? 40;
         const make = (factor: number) => {
-            const sv: Record<string, number> = {};
-            caAssessmentTypes.forEach(at => { sv[at.field] = Math.round(at.maxScore * factor); });
-            const examMax = mappedAssessmentTypes.find(t => t.field === "exam")?.maxScore ?? 40;
-            sv["exam"] = Math.round(examMax * factor);
-            return sv;
+            const scoreValues: Record<string, number> = {};
+            const componentScores: Record<string, number> = {};
+            let caTotal = 0;
+            caTypesWithExpansion.forEach(at => {
+                if (at.components?.length) {
+                    let compSum = 0;
+                    at.components.forEach((c: CompEntry) => {
+                        const v = Math.round(c.maxScore * factor);
+                        componentScores[c.id] = v;
+                        compSum += v;
+                    });
+                    scoreValues[at.field] = compSum;
+                    caTotal += compSum;
+                } else {
+                    const v = Math.round(at.maxScore * factor);
+                    scoreValues[at.field] = v;
+                    caTotal += v;
+                }
+            });
+            scoreValues["exam"] = Math.round(examMax * factor);
+            return { scoreValues, componentScores, caTotal, exam: scoreValues["exam"], total: caTotal + scoreValues["exam"] };
         };
         return [make(0.72), make(0.62), make(0.58)];
-    }, [caAssessmentTypes, mappedAssessmentTypes]);
+    }, [caTypesWithExpansion, mappedAssessmentTypes]);
 
     // Style resolver
     const getSectionStyle = (sectionKey: string) => {
@@ -230,27 +267,9 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                 average: 70.8
             },
             subjects: [
-                {
-                    id: "1", name: "Mathematics", scoreValues: mockScoreValues[0],
-                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[0][at.field] ?? 0), 0),
-                    exam: mockScoreValues[0]["exam"],
-                    total: Object.values(mockScoreValues[0]).reduce((s, v) => s + v, 0),
-                    grade: "B2", remark: "Very Good", subjectClassAverage: 62, subjectPosition: "5th", subjectLowestScore: 45, subjectHighestScore: 88, cumulativeTotal1: 65, cumulativeTotal2: 70,
-                },
-                {
-                    id: "2", name: "English Language", scoreValues: mockScoreValues[1],
-                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[1][at.field] ?? 0), 0),
-                    exam: mockScoreValues[1]["exam"],
-                    total: Object.values(mockScoreValues[1]).reduce((s, v) => s + v, 0),
-                    grade: "C4", remark: "Good", subjectClassAverage: 58, subjectPosition: "12th", subjectLowestScore: 40, subjectHighestScore: 92,
-                },
-                {
-                    id: "3", name: "Physics", scoreValues: mockScoreValues[2],
-                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[2][at.field] ?? 0), 0),
-                    exam: mockScoreValues[2]["exam"],
-                    total: Object.values(mockScoreValues[2]).reduce((s, v) => s + v, 0),
-                    grade: "C6", remark: "Credit", subjectClassAverage: 55, subjectPosition: "8th", subjectLowestScore: 35, subjectHighestScore: 85,
-                },
+                { id: "1", name: "Mathematics", scoreValues: mockSubjectData[0].scoreValues, componentScores: mockSubjectData[0].componentScores, ca: mockSubjectData[0].caTotal, exam: mockSubjectData[0].exam, total: mockSubjectData[0].total, grade: "B2", remark: "Very Good", subjectClassAverage: 62, subjectPosition: "5th", subjectLowestScore: 45, subjectHighestScore: 88, cumulativeTotal1: 65, cumulativeTotal2: 70 },
+                { id: "2", name: "English Language", scoreValues: mockSubjectData[1].scoreValues, componentScores: mockSubjectData[1].componentScores, ca: mockSubjectData[1].caTotal, exam: mockSubjectData[1].exam, total: mockSubjectData[1].total, grade: "C4", remark: "Good", subjectClassAverage: 58, subjectPosition: "12th", subjectLowestScore: 40, subjectHighestScore: 92 },
+                { id: "3", name: "Physics", scoreValues: mockSubjectData[2].scoreValues, componentScores: mockSubjectData[2].componentScores, ca: mockSubjectData[2].caTotal, exam: mockSubjectData[2].exam, total: mockSubjectData[2].total, grade: "C6", remark: "Credit", subjectClassAverage: 55, subjectPosition: "8th", subjectLowestScore: 35, subjectHighestScore: 85 },
             ]
         },
         affective: [
@@ -403,11 +422,13 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                         <tr>
                             <th rowSpan={2} className="border p-2 text-left" style={academicStyles.header}>SUBJECT</th>
                             {showOption('showTermHistory') && <th colSpan={2} className="border p-1 text-center font-bold whitespace-nowrap" style={academicStyles.header}>TERM HISTORY</th>}
-                            {showOption('showCA1') && caAssessmentTypes.map(at => (
-                                <th key={at.field} rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{at.name.toUpperCase()}</th>
-                            ))}
+                            {showOption('showCA1') && caTypesWithExpansion.map(at =>
+                                at.showComponents && at.components?.length
+                                    ? <th key={at.field} colSpan={at.components.length + 1} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{at.name.toUpperCase()}</th>
+                                    : <th key={at.field} rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{at.name.toUpperCase()}</th>
+                            )}
                             {showOption('showCA') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>CA</th>}
-                            {showOption('showExam') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>{examLabel.toUpperCase()}</th>}
+                            {showExamCol && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>{examLabel.toUpperCase()}</th>}
                             {showOption('showSubjectTotal') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>TOTAL</th>}
                             {showOption('showGrade') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>GRADE</th>}
                             {showOption('showSubjectPosition') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>POS</th>}
@@ -427,6 +448,16 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                     <th className="border p-1 text-center text-[9px] whitespace-nowrap" style={academicStyles.header}>2ND</th>
                                 </>
                             )}
+                            {showOption('showCA1') && caTypesWithExpansion.flatMap(at =>
+                                at.showComponents && at.components?.length
+                                    ? [
+                                        ...at.components.map((c: CompEntry) => (
+                                            <th key={c.id} className="border p-1 text-center text-[8px] whitespace-nowrap bg-blue-50" style={academicStyles.header}>{c.name}</th>
+                                        )),
+                                        <th key={`${at.field}-tot`} className="border p-1 text-center text-[8px] whitespace-nowrap font-bold" style={academicStyles.header}>TOT</th>,
+                                    ]
+                                    : []
+                            )}
                         </tr>
                     </thead>
                     <tbody>
@@ -439,13 +470,29 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                         <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.cumulativeTotal2)}</td>
                                     </>
                                 )}
-                                {showOption('showCA1') && caAssessmentTypes.map(at => (
-                                    <td key={at.field} className="border p-1 text-center" style={academicStyles.borderOnly}>
-                                        {formatScore((sub.scoreValues as Record<string, number> | undefined)?.[at.field] ?? sub[at.field] as number | undefined)}
-                                    </td>
-                                ))}
+                                {showOption('showCA1') && caTypesWithExpansion.flatMap(at => {
+                                    const sv = sub.scoreValues as Record<string, number> | undefined;
+                                    const cs = sub.componentScores as Record<string, number> | undefined;
+                                    if (at.showComponents && at.components?.length) {
+                                        return [
+                                            ...at.components.map((c: CompEntry) => (
+                                                <td key={c.id} className="border p-1 text-center text-[9px] bg-blue-50/40" style={academicStyles.borderOnly}>
+                                                    {formatScore(cs?.[c.id])}
+                                                </td>
+                                            )),
+                                            <td key={`${at.field}-tot`} className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>
+                                                {formatScore(sv?.[at.field] ?? sub[at.field] as number | undefined)}
+                                            </td>,
+                                        ];
+                                    }
+                                    return [
+                                        <td key={at.field} className="border p-1 text-center" style={academicStyles.borderOnly}>
+                                            {formatScore(sv?.[at.field] ?? sub[at.field] as number | undefined)}
+                                        </td>,
+                                    ];
+                                })}
                                 {showOption('showCA') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca)}</td>}
-                                {showOption('showExam') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.exam)}</td>}
+                                {showExamCol && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.exam)}</td>}
                                 {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{formatScore(sub.total)}</td>}
                                 {showOption('showGrade') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{sub.grade || "-"}</td>}
                                 {showOption('showSubjectPosition') && <td className="border p-1 text-center text-[9px]" style={academicStyles.borderOnly}>{sub.subjectPosition || "-"}</td>}

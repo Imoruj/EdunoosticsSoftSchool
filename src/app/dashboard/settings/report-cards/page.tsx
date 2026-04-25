@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import SuccessModal from "@/components/ui/SuccessModal";
 import { showSuccessMessage } from "@/lib/successMessage";
 import StandardReportPreview from "../../../../components/reports/previews/StandardReportPreview";
+import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 
 // Types
 interface ReportCardDisplayOptions {
@@ -32,6 +33,7 @@ interface ReportCardDisplayOptions {
     showCA1?: boolean;
     showScoreComponents?: boolean;
     showExam?: boolean;
+    assessmentTypeVisibility?: Record<string, boolean>; // per-field visibility (e.g. { ca1: true, ca2: false, exam: true })
     showSubjectTotal?: boolean;
     showGrade?: boolean;
     showSubjectPosition?: boolean;
@@ -147,6 +149,20 @@ export default function ReportCardSettingsPage() {
             }
         }
     });
+
+    const [settingsAssessmentTypes, setSettingsAssessmentTypes] = useState<any[]>([]);
+
+    const mappedSettingsTypes = useMemo(
+        () => mapAssessmentTypesToScoreFields(settingsAssessmentTypes),
+        [settingsAssessmentTypes]
+    );
+
+    useEffect(() => {
+        fetch("/api/assessment-types")
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (Array.isArray(data)) setSettingsAssessmentTypes(data); })
+            .catch(() => {});
+    }, []);
 
     // Use activeSection as activeTab
     const [activeSection, setActiveSection] = useState<"template" | "saved" | "theme" | "content">("template");
@@ -915,12 +931,57 @@ export default function ReportCardSettingsPage() {
 
                                     {openSections['academic'] && (
                                         <div className="p-3 bg-white space-y-2 border-t border-gray-200">
+                                            {/* Static options before CA block */}
+                                            <label className="flex items-center justify-between cursor-pointer">
+                                                <span className="text-xs text-gray-600">Term History (1st/2nd)</span>
+                                                <input type="checkbox" checked={(config.displayOptions as any).showTermHistory !== false} onChange={(e) => updateDisplayOption('showTermHistory', e.target.checked)} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
+                                            </label>
+
+                                            {/* CA master toggle */}
+                                            <label className="flex items-center justify-between cursor-pointer">
+                                                <span className="text-xs text-gray-600">CA Score Columns</span>
+                                                <input type="checkbox" checked={(config.displayOptions as any).showCA1 !== false} onChange={(e) => updateDisplayOption('showCA1', e.target.checked)} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
+                                            </label>
+
+                                            {/* Per-type individual toggles */}
+                                            {(config.displayOptions as any).showCA1 !== false && mappedSettingsTypes.length > 0 && (
+                                                <div className="pl-3 border-l-2 border-gray-100 ml-1 space-y-1.5">
+                                                    {mappedSettingsTypes.map(at => {
+                                                        const visibility = config.displayOptions?.assessmentTypeVisibility || {};
+                                                        const isVisible = visibility[at.field] !== false;
+                                                        return (
+                                                            <label key={at.field} className="flex items-center justify-between cursor-pointer">
+                                                                <span className="text-[11px] text-gray-500">
+                                                                    {at.name}
+                                                                    <span className="text-gray-400 ml-1">({at.maxScore}pts)</span>
+                                                                </span>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isVisible}
+                                                                    onChange={(e) => {
+                                                                        setConfig(prev => ({
+                                                                            ...prev,
+                                                                            displayOptions: {
+                                                                                ...prev.displayOptions,
+                                                                                assessmentTypeVisibility: {
+                                                                                    ...(prev.displayOptions?.assessmentTypeVisibility || {}),
+                                                                                    [at.field]: e.target.checked
+                                                                                }
+                                                                            }
+                                                                        }));
+                                                                    }}
+                                                                    className="accent-primary-600 h-3.5 w-3.5 rounded border-gray-300"
+                                                                />
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Remaining static academic options */}
                                             {[
-                                                { k: 'showTermHistory', l: 'Term History (1st/2nd)' },
-                                                { k: 'showCA1', l: 'CA Score Columns' },
                                                 { k: 'showScoreComponents', l: 'Score Sub-components (Breakdown)' },
                                                 { k: 'showCA', l: 'Total CA' },
-                                                { k: 'showExam', l: 'Exam Scores' },
                                                 { k: 'showSubjectTotal', l: 'Subject Total' },
                                                 { k: 'showGrade', l: 'Grade (A/B/C)' },
                                                 { k: 'showSubjectPosition', l: 'Subject Position' },
