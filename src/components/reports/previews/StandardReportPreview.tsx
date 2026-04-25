@@ -4,6 +4,7 @@ import { ReportCardData } from "../types";
 import { formatPublishedDate } from "../formatPublishedDate";
 import { formatScore } from "../scoreFormatting";
 import { formatStudentFullName } from "../formatStudentFullName";
+import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 // Props
 interface StandardReportPreviewProps {
     config: {
@@ -87,17 +88,23 @@ interface SectionStyle {
 
 const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, data: liveData }) => {
     const [fetchedSchool, setFetchedSchool] = React.useState<any>(null);
+    const [fetchedAssessmentTypes, setFetchedAssessmentTypes] = React.useState<any[]>([]);
 
     React.useEffect(() => {
         if (!liveData?.school) {
             fetch("/api/school")
                 .then(res => res.ok ? res.json() : null)
-                .then(data => {
-                    if (data) setFetchedSchool(data);
-                })
+                .then(data => { if (data) setFetchedSchool(data); })
                 .catch(err => console.error("Failed to fetch school for preview:", err));
         }
     }, [liveData]);
+
+    React.useEffect(() => {
+        fetch("/api/assessment-types")
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (Array.isArray(data)) setFetchedAssessmentTypes(data); })
+            .catch(() => {});
+    }, []);
 
     // Mock Data for Preview
     const school = liveData?.school || fetchedSchool || {
@@ -129,9 +136,32 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
         return (config.displayOptions as any)[key] !== false;
     };
 
-    const configAssessmentTypes: { field: string; name: string; maxScore: number }[] = (config as any)?.assessmentTypes || [];
-    const caAssessmentTypes = configAssessmentTypes.filter(at => at.field !== "exam");
-    const examLabel = configAssessmentTypes.find(at => at.field === "exam")?.name || (config as any)?.assessmentTypeNames?.["exam"] || "EXAM";
+    const mappedAssessmentTypes = React.useMemo(
+        () => mapAssessmentTypesToScoreFields(fetchedAssessmentTypes),
+        [fetchedAssessmentTypes]
+    );
+    const fallbackCaTypes = [
+        { field: "ca1", name: "CA1", maxScore: 30 },
+        { field: "ca2", name: "CA2", maxScore: 30 },
+        { field: "ca3", name: "CA3", maxScore: 30 },
+    ];
+    const caAssessmentTypes = mappedAssessmentTypes.length > 0
+        ? mappedAssessmentTypes.filter(at => at.field !== "exam")
+        : fallbackCaTypes;
+    const examLabel = mappedAssessmentTypes.find(at => at.field === "exam")?.name
+        || (config as any)?.assessmentTypeNames?.["exam"] || "EXAM";
+
+    // Generate mock score values that match whatever assessment types are configured
+    const mockScoreValues = React.useMemo(() => {
+        const make = (factor: number) => {
+            const sv: Record<string, number> = {};
+            caAssessmentTypes.forEach(at => { sv[at.field] = Math.round(at.maxScore * factor); });
+            const examMax = mappedAssessmentTypes.find(t => t.field === "exam")?.maxScore ?? 40;
+            sv["exam"] = Math.round(examMax * factor);
+            return sv;
+        };
+        return [make(0.72), make(0.62), make(0.58)];
+    }, [caAssessmentTypes, mappedAssessmentTypes]);
 
     // Style resolver
     const getSectionStyle = (sectionKey: string) => {
@@ -200,9 +230,27 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                 average: 70.8
             },
             subjects: [
-                { id: "1", name: "Mathematics", ca: 28, ca1: 10, ca2: 10, ca3: 8, exam: 45, total: 73, grade: "B2", remark: "Very Good", subjectClassAverage: 62, subjectPosition: "5th", subjectLowestScore: 45, subjectHighestScore: 88, cumulativeTotal1: 65, cumulativeTotal2: 70 },
-                { id: "2", name: "English Language", ca: 25, ca1: 8, ca2: 9, ca3: 8, exam: 40, total: 65, grade: "C4", remark: "Good", subjectClassAverage: 58, subjectPosition: "12th", subjectLowestScore: 40, subjectHighestScore: 92 },
-                { id: "3", name: "Physics", ca: 22, ca1: 7, ca2: 8, ca3: 7, exam: 38, total: 60, grade: "C6", remark: "Credit", subjectClassAverage: 55, subjectPosition: "8th", subjectLowestScore: 35, subjectHighestScore: 85 },
+                {
+                    id: "1", name: "Mathematics", scoreValues: mockScoreValues[0],
+                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[0][at.field] ?? 0), 0),
+                    exam: mockScoreValues[0]["exam"],
+                    total: Object.values(mockScoreValues[0]).reduce((s, v) => s + v, 0),
+                    grade: "B2", remark: "Very Good", subjectClassAverage: 62, subjectPosition: "5th", subjectLowestScore: 45, subjectHighestScore: 88, cumulativeTotal1: 65, cumulativeTotal2: 70,
+                },
+                {
+                    id: "2", name: "English Language", scoreValues: mockScoreValues[1],
+                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[1][at.field] ?? 0), 0),
+                    exam: mockScoreValues[1]["exam"],
+                    total: Object.values(mockScoreValues[1]).reduce((s, v) => s + v, 0),
+                    grade: "C4", remark: "Good", subjectClassAverage: 58, subjectPosition: "12th", subjectLowestScore: 40, subjectHighestScore: 92,
+                },
+                {
+                    id: "3", name: "Physics", scoreValues: mockScoreValues[2],
+                    ca: caAssessmentTypes.reduce((s, at) => s + (mockScoreValues[2][at.field] ?? 0), 0),
+                    exam: mockScoreValues[2]["exam"],
+                    total: Object.values(mockScoreValues[2]).reduce((s, v) => s + v, 0),
+                    grade: "C6", remark: "Credit", subjectClassAverage: 55, subjectPosition: "8th", subjectLowestScore: 35, subjectHighestScore: 85,
+                },
             ]
         },
         affective: [
@@ -355,7 +403,7 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                         <tr>
                             <th rowSpan={2} className="border p-2 text-left" style={academicStyles.header}>SUBJECT</th>
                             {showOption('showTermHistory') && <th colSpan={2} className="border p-1 text-center font-bold whitespace-nowrap" style={academicStyles.header}>TERM HISTORY</th>}
-                            {showOption('showCA1') && (caAssessmentTypes.length > 0 ? caAssessmentTypes : [{ field: "ca1", name: "CA1", maxScore: 30 }, { field: "ca2", name: "CA2", maxScore: 30 }, { field: "ca3", name: "CA3", maxScore: 30 }]).map(at => (
+                            {showOption('showCA1') && caAssessmentTypes.map(at => (
                                 <th key={at.field} rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{at.name.toUpperCase()}</th>
                             ))}
                             {showOption('showCA') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>CA</th>}
@@ -391,8 +439,10 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                         <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.cumulativeTotal2)}</td>
                                     </>
                                 )}
-                                {showOption('showCA1') && (caAssessmentTypes.length > 0 ? caAssessmentTypes : [{ field: "ca1", name: "CA1", maxScore: 30 }, { field: "ca2", name: "CA2", maxScore: 30 }, { field: "ca3", name: "CA3", maxScore: 30 }]).map(at => (
-                                    <td key={at.field} className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub[at.field] as number | undefined)}</td>
+                                {showOption('showCA1') && caAssessmentTypes.map(at => (
+                                    <td key={at.field} className="border p-1 text-center" style={academicStyles.borderOnly}>
+                                        {formatScore((sub.scoreValues as Record<string, number> | undefined)?.[at.field] ?? sub[at.field] as number | undefined)}
+                                    </td>
                                 ))}
                                 {showOption('showCA') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca)}</td>}
                                 {showOption('showExam') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.exam)}</td>}
