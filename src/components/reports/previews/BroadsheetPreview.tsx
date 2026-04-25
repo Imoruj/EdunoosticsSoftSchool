@@ -6,8 +6,9 @@ interface BroadsheetPreviewProps {
     config: {
         activeTemplate: string;
         colorScheme: string;
-        showCA1: boolean;
-        showCA2: boolean;
+        showAssessmentScores?: boolean;
+        showCA1?: boolean;
+        showCA2?: boolean;
         showExam: boolean;
         showSubjectTotal: boolean;
         showGrade: boolean;
@@ -111,8 +112,17 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
         if (d.show1stTerm !== false) subCols.push({ key: "term1", label: "1st Term" });
         if (d.show2ndTerm !== false) subCols.push({ key: "term2", label: "2nd Term" });
     }
-    if (config.showCA1 && d.showCA1 !== false) subCols.push({ key: useRealData ? "ca1" : "ca1", label: "CA 1" });
-    if (config.showCA2 && d.showCA2 !== false) subCols.push({ key: useRealData ? "ca2" : "ca2", label: "CA 2" });
+    const showAssessmentScores = (config.showAssessmentScores ?? config.showCA1) !== false && d.showAssessmentScores !== false;
+    if (showAssessmentScores) {
+        if (useRealData) {
+            for (const at of data.assessmentTypes.filter(t => t.field !== "exam")) {
+                subCols.push({ key: at.field, label: at.shortName || at.name });
+            }
+        } else {
+            subCols.push({ key: "ca1", label: "CA 1" });
+            subCols.push({ key: "ca2", label: "CA 2" });
+        }
+    }
     if (d.showDMAT !== false) subCols.push({ key: useRealData ? "caTotal" : "dmat", label: "CA" });
     if (!useRealData || data.reportType === "endOfTerm") {
         if (config.showExam && d.showExam !== false) subCols.push({ key: "exam", label: "EXAM" });
@@ -146,7 +156,10 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
     if (d.showAverage !== false) aggCols.push({ key: "average", label: "AVERAGE" });
     if (d.showOverallPosition !== false) aggCols.push({ key: useRealData ? "overallPosition" : "overallPos", label: "OVERALL POS" });
     if (d.showSubjectCount !== false) aggCols.push({ key: "subjectCount", label: "No. of Subject" });
-    const scoreColumnKeys = new Set(["term1", "term2", "term1Total", "term2Total", "ca1", "ca2", "ca3", "caTotal", "dmat", "exam", "total"]);
+    const scoreColumnKeys = new Set([
+        "term1", "term2", "term1Total", "term2Total", "caTotal", "dmat", "exam", "total",
+        ...(useRealData ? data.assessmentTypes.map(t => t.field) : ["ca1", "ca2"]),
+    ]);
     const aggregateScoreKeys = new Set(["grandTotal", "average"]);
 
     // Calculate ideal table width based on column count
@@ -171,7 +184,8 @@ const BroadsheetPreview: React.FC<BroadsheetPreviewProps> = ({ config, data }) =
             name: `${s.lastName} ${s.firstName}`,
             scores: data.subjects.map((sub) => {
                 const score = s.scores.find(sc => sc.subjectId === sub.id);
-                return score || { ca1: 0, ca2: 0, ca3: 0, caTotal: 0, exam: 0, total: 0, grade: "-", position: 0, term1Total: 0, term2Total: 0 };
+                if (!score) return { caTotal: 0, exam: 0, total: 0, grade: "-", position: 0, term1Total: 0, term2Total: 0 };
+                return { ...score.scoreValues, caTotal: score.caTotal, exam: score.exam, total: score.total, grade: score.grade, position: score.position, term1Total: score.term1Total, term2Total: score.term2Total };
             }),
             grandTotal: s.grandTotal,
             average: s.average,

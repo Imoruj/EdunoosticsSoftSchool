@@ -58,11 +58,13 @@ interface AcademicTableProps {
     academic: Academic;
     displayOptions?: ReportConfig['displayOptions'];
     sectionStyle?: SectionStyle;
+    assessmentTypes?: { field: string; name: string; maxScore: number }[];
 }
 
-export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayOptions = {}, sectionStyle = {} as any }) => {
+export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayOptions = {}, sectionStyle = {} as any, assessmentTypes = [] }) => {
     const showOption = (key: string) => (displayOptions as any)[key] !== false;
-    const { container, header, borderOnly } = sectionStyle as any; // Temporary cast until SectionStyle is fully fleshed out
+    const { container, header, borderOnly } = sectionStyle as any;
+    const caAssessmentTypes = assessmentTypes.filter(at => at.field !== "exam");
 
     return (
         <View style={styles.tableSection}>
@@ -84,21 +86,11 @@ export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayO
                             </View>
                         </>
                     )}
-                    {showOption('showCA1') && (
-                        <View style={[styles.tableCol, header, { width: 20 }]}>
-                            <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: header?.color }]}>CA1</Text>
+                    {showOption('showCA1') && caAssessmentTypes.map(at => (
+                        <View key={at.field} style={[styles.tableCol, header, { width: 20 }]}>
+                            <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: header?.color }]}>{at.name.toUpperCase()}</Text>
                         </View>
-                    )}
-                    {showOption('showCA2') && (
-                        <View style={[styles.tableCol, header, { width: 20 }]}>
-                            <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: header?.color }]}>CA2</Text>
-                        </View>
-                    )}
-                    {showOption('showCA3') && (
-                        <View style={[styles.tableCol, header, { width: 20 }]}>
-                            <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: header?.color }]}>CA3</Text>
-                        </View>
-                    )}
+                    ))}
                     {showOption('showCA') && (
                         <View style={[styles.tableCol, header, { width: 25 }]}>
                             <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: header?.color }]}>CA</Text>
@@ -162,21 +154,11 @@ export const AcademicTable: React.FC<AcademicTableProps> = ({ academic, displayO
                                 </View>
                             </>
                         )}
-                        {showOption('showCA1') && (
-                            <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{formatScore(sub.ca1)}</Text>
+                        {showOption('showCA1') && caAssessmentTypes.map(at => (
+                            <View key={at.field} style={[styles.tableCol, borderOnly, { width: 20 }]}>
+                                <Text style={styles.tableCell}>{formatScore(sub[at.field] as number | undefined)}</Text>
                             </View>
-                        )}
-                        {showOption('showCA2') && (
-                            <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{formatScore(sub.ca2)}</Text>
-                            </View>
-                        )}
-                        {showOption('showCA3') && (
-                            <View style={[styles.tableCol, borderOnly, { width: 20 }]}>
-                                <Text style={styles.tableCell}>{formatScore(sub.ca3)}</Text>
-                            </View>
-                        )}
+                        ))}
                         {showOption('showCA') && (
                             <View style={[styles.tableCol, borderOnly, { width: 25 }]}>
                                 <Text style={styles.tableCell}>{formatScore(sub.ca)}</Text>

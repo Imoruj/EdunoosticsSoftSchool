@@ -6,8 +6,9 @@ import { requireSchoolAdmin } from "@/lib/rbac";
 // GET /api/classes/[id] - Get details for a single class
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -15,7 +16,7 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const classId = params.id;
+        const classId = id;
         const schoolId = (session.user as any).schoolId;
 
         const cls = await prisma.class.findUnique({
@@ -63,8 +64,9 @@ export async function GET(
 // PATCH /api/classes/[id] - Update class details
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -82,7 +84,7 @@ export async function PATCH(
             );
         }
 
-        const classId = params.id;
+        const classId = id;
         const schoolId = (session.user as any).schoolId;
 
         const updatedClass = await prisma.class.update({

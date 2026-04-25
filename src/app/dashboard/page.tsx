@@ -33,8 +33,9 @@ function SkeletonCard({ h = "h-32" }: { h?: string }) {
 export default async function DashboardPage({
     searchParams,
 }: {
-    searchParams?: DashboardSearchParams;
+    searchParams?: Promise<DashboardSearchParams>;
 }) {
+    const resolvedSearchParams = (await searchParams) || {};
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -287,7 +288,7 @@ export default async function DashboardPage({
                     <ProprietorDashboardAsync
                         schoolId={schoolId}
                         userId={userId}
-                        searchParams={searchParams}
+                        searchParams={resolvedSearchParams}
                     />
                 </Suspense>
             )}

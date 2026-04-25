@@ -133,7 +133,7 @@ export const DynamicReportTemplate: React.FC<DynamicReportTemplateProps> = ({ da
         const displayOptions = data.config?.displayOptions || {};
         // Find section style if any
         const sectionStyle = (displayOptions as any).sectionStyles?.global || {}; // Defaulting to global or empty
-        const baseProps = { displayOptions, sectionStyle };
+        const baseProps = { displayOptions, sectionStyle, assessmentTypes: data.config?.assessmentTypes || [] };
 
         switch (componentId) {
             case "SchoolLogo": return { ...baseProps, school: data.school };

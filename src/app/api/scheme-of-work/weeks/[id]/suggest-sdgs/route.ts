@@ -71,7 +71,7 @@ async function generateWithFallback(messages: object[]): Promise<string> {
 }
 
 // POST /api/scheme-of-work/weeks/[id]/suggest-sdgs
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -83,7 +83,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { id: weekId } = await params;
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(weekId, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -95,11 +96,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         const subjectName = (sow as any).subject?.name ?? "the subject";
 
-        const prompt = `Map this lesson to the 1-4 most relevant UN SDGs.
+        const prompt = `Map this lesson to the 1-4 most relevant UN SDGs. Only include SDGs that are genuinely relevant — do not force SDG 4 if the lesson does not directly address learning quality or access to education.
 Subject: ${subjectName} | Topic: ${week.topic}
 Objectives: ${week.objectives || week.content || "N/A"}
-SDGs: 1-Poverty 2-Hunger 3-Health 4-Education 5-Gender 6-Water 7-Energy 8-Work 9-Industry 10-Inequality 11-Cities 12-Consumption 13-Climate 14-Ocean 15-Land 16-Peace 17-Partnerships
-Always include 4. Respond ONLY: {"sdgNumbers":[4,8]}`;
+SDGs: 1-Poverty 2-Hunger 3-Health 4-Quality Education 5-Gender Equality 6-Clean Water 7-Clean Energy 8-Decent Work 9-Industry & Innovation 10-Reduced Inequalities 11-Sustainable Cities 12-Responsible Consumption 13-Climate Action 14-Life Below Water 15-Life On Land 16-Peace & Justice 17-Partnerships
+Respond ONLY with JSON: {"sdgNumbers":[4,8]}`;
 
         const raw = await generateWithFallback([{ role: "user", content: prompt }]);
 
@@ -110,7 +111,8 @@ Always include 4. Respond ONLY: {"sdgNumbers":[4,8]}`;
         }
 
         return NextResponse.json({
-            sdgNumbers: Array.from(new Set([4, ...sdgNumbers]))
+            sdgNumbers: Array.from(new Set(sdgNumbers))
+                .filter((n) => n >= 1 && n <= 17)
                 .sort((a, b) => a - b)
                 .slice(0, 5),
         });

@@ -401,14 +401,14 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
         return (config.displayOptions as any)[key] !== false;
     };
 
-    // Dynamic assessment type labels from school settings
-    const atNames = config?.assessmentTypeNames;
-    const colLabels = {
-        ca1: atNames?.ca1 || "CA1",
-        ca2: atNames?.ca2 || "CA2",
-        ca3: atNames?.ca3 || "CA3",
-        exam: atNames?.exam || "EXAM",
-    };
+    const caAssessmentTypes = (config?.assessmentTypes ?? []).filter(at => at.field !== "exam");
+    const examAssessmentType = (config?.assessmentTypes ?? []).find(at => at.field === "exam");
+    const examLabel = examAssessmentType?.name || config?.assessmentTypeNames?.["exam"] || "EXAM";
+    const showScoreComponents = showOption("showScoreComponents");
+    // Build a flat list of component columns to render in the PDF (from all CA types that have components)
+    const componentColumns: { caField: string; compId: string; name: string; maxScore: number }[] = showScoreComponents
+        ? caAssessmentTypes.flatMap(at => (at.components ?? []).map(c => ({ caField: at.field, compId: c.id, name: c.name, maxScore: c.maxScore })))
+        : [];
 
     // Style resolver for PDF
     const getSectionStyle = (sectionKey: string) => {
@@ -606,21 +606,28 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                                 </View>
                             </>
                         )}
-                        {showOption('showCA1') && (
-                            <View style={[styles.tableCol, academicStyles.header, { width: 20 }]}>
-                                <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{colLabels.ca1.toUpperCase()}</Text>
+                        {showOption('showCA1') && caAssessmentTypes.map(at => (
+                            <View key={at.field}>
+                                {/* If components are shown, render a sub-column per component then the CA total */}
+                                {showScoreComponents && (at.components ?? []).length > 0 ? (
+                                    <>
+                                        {(at.components ?? []).map(comp => (
+                                            <View key={comp.id} style={[styles.tableCol, academicStyles.header, { width: 18 }]}>
+                                                <Text style={[styles.tableCell, styles.bold, { fontSize: 5, color: academicStyles.header.color }]}>{comp.name.toUpperCase()}</Text>
+                                                <Text style={[styles.tableCell, { fontSize: 5, color: academicStyles.header.color }]}>({comp.maxScore})</Text>
+                                            </View>
+                                        ))}
+                                        <View style={[styles.tableCol, academicStyles.header, { width: 20, backgroundColor: (academicStyles.header as any).backgroundColor ?? '#f3f4f6' }]}>
+                                            <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{at.name.toUpperCase()}</Text>
+                                        </View>
+                                    </>
+                                ) : (
+                                    <View style={[styles.tableCol, academicStyles.header, { width: 20 }]}>
+                                        <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{at.name.toUpperCase()}</Text>
+                                    </View>
+                                )}
                             </View>
-                        )}
-                        {showOption('showCA2') && (
-                            <View style={[styles.tableCol, academicStyles.header, { width: 20 }]}>
-                                <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{colLabels.ca2.toUpperCase()}</Text>
-                            </View>
-                        )}
-                        {showOption('showCA3') && (
-                            <View style={[styles.tableCol, academicStyles.header, { width: 20 }]}>
-                                <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{colLabels.ca3.toUpperCase()}</Text>
-                            </View>
-                        )}
+                        ))}
                         {showOption('showCA') && (
                             <View style={[styles.tableCol, academicStyles.header, { width: 25 }]}>
                                 <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>CA</Text>
@@ -628,7 +635,7 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                         )}
                         {showOption('showExam') && !isHalfTerm && (
                             <View style={[styles.tableCol, academicStyles.header, { width: 25 }]}>
-                                <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{colLabels.exam.toUpperCase()}</Text>
+                                <Text style={[styles.tableCell, styles.bold, { fontSize: 6, color: academicStyles.header.color }]}>{examLabel.toUpperCase()}</Text>
                             </View>
                         )}
                         {showOption('showSubjectTotal') && (
@@ -684,21 +691,26 @@ const StandardTemplate: React.FC<StandardTemplateProps> = ({ data }) => {
                                     </View>
                                 </>
                             )}
-                            {showOption('showCA1') && (
-                                <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{formatScore(sub.ca1)}</Text>
+                            {showOption('showCA1') && caAssessmentTypes.map(at => (
+                                <View key={at.field}>
+                                    {showScoreComponents && (at.components ?? []).length > 0 ? (
+                                        <>
+                                            {(at.components ?? []).map(comp => (
+                                                <View key={comp.id} style={[styles.tableCol, academicStyles.borderOnly, { width: 18 }]}>
+                                                    <Text style={styles.tableCell}>{formatScore((sub.componentScores as any)?.[comp.id] as number | undefined)}</Text>
+                                                </View>
+                                            ))}
+                                            <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20, backgroundColor: '#f9fafb' }]}>
+                                                <Text style={[styles.tableCell, styles.bold]}>{formatScore(sub[at.field] as number | undefined)}</Text>
+                                            </View>
+                                        </>
+                                    ) : (
+                                        <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
+                                            <Text style={styles.tableCell}>{formatScore(sub[at.field] as number | undefined)}</Text>
+                                        </View>
+                                    )}
                                 </View>
-                            )}
-                            {showOption('showCA2') && (
-                                <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{formatScore(sub.ca2)}</Text>
-                                </View>
-                            )}
-                            {showOption('showCA3') && (
-                                <View style={[styles.tableCol, academicStyles.borderOnly, { width: 20 }]}>
-                                    <Text style={styles.tableCell}>{formatScore(sub.ca3)}</Text>
-                                </View>
-                            )}
+                            ))}
                             {showOption('showCA') && (
                                 <View style={[styles.tableCol, academicStyles.borderOnly, { width: 25 }]}>
                                     <Text style={styles.tableCell}>{formatScore(sub.ca)}</Text>

@@ -84,7 +84,7 @@ async function resolveAccess(sowId: string, userId: string, schoolId: string) {
 }
 
 // GET /api/scheme-of-work/[id]
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -96,7 +96,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const isStudent = roles.includes(UserRole.STUDENT) || user.loginType === "student";
         if (!schoolId) return NextResponse.json({ error: "No school associated" }, { status: 400 });
 
-        const sowId = params.id?.trim();
+        const { id } = await params;
+        const sowId = id?.trim();
         if (!sowId) {
             return NextResponse.json({ error: "Scheme of work id is required" }, { status: 400 });
         }
@@ -163,7 +164,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // PUT /api/scheme-of-work/[id] — update title or objectives
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -176,7 +177,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { sow, isOwner, isCollaborator } = await resolveAccess(params.id, user.id, schoolId);
+        const { id } = await params;
+        const { sow, isOwner, isCollaborator } = await resolveAccess(id, user.id, schoolId);
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -192,7 +194,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         if (adminNote !== undefined && isAdmin) updateData.adminNote = adminNote;
 
         const updated = await prisma.schemeOfWork.update({
-            where: { id: params.id },
+            where: { id },
             data: updateData,
             include: SOW_FULL_INCLUDE,
         });
@@ -205,7 +207,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/scheme-of-work/[id] — owner only, DRAFT only
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -218,7 +220,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { sow, isOwner } = await resolveAccess(params.id, user.id, schoolId);
+        const { id } = await params;
+        const { sow, isOwner } = await resolveAccess(id, user.id, schoolId);
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -227,7 +230,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
             return NextResponse.json({ error: "Only draft schemes of work can be deleted" }, { status: 409 });
         }
 
-        await prisma.schemeOfWork.delete({ where: { id: params.id } });
+        await prisma.schemeOfWork.delete({ where: { id } });
 
         return NextResponse.json({ message: "Scheme of work deleted" });
     } catch (error) {

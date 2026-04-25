@@ -59,10 +59,7 @@ export interface ReportCommentPayload {
 }
 
 interface RawScoreRecord {
-    ca1: { toNumber?: () => number } | number | null;
-    ca2: { toNumber?: () => number } | number | null;
-    ca3: { toNumber?: () => number } | number | null;
-    exam: { toNumber?: () => number } | number | null;
+    scoreValues?: unknown;
     total: { toNumber?: () => number } | number | null;
     subject: {
         id: string;
@@ -159,8 +156,9 @@ export async function buildReportCommentPayload(params: {
                 ? null
                 : getEndOfTermScoreMetrics(score, assessmentTypes as any);
 
+            const sv = (score.scoreValues ?? {}) as Record<string, unknown>;
             const rawScore = reportType === "halfTerm"
-                ? getScoreFieldNumber(score.ca1)
+                ? Number(sv["ca1"] ?? 0)
                 : metrics?.adjustedTotal ?? 0;
 
             const actualMaxScore = reportType === "halfTerm"

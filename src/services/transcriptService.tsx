@@ -133,7 +133,8 @@ export async function generateTranscriptData(
                     subjects: term3Scores.map(s => {
                         const t1Score = term1Scores.find(ts => ts.subjectId === s.subjectId);
                         const t2Score = term2Scores.find(ts => ts.subjectId === s.subjectId);
-                        const caTotal = s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber();
+                        const sv = (s.scoreValues ?? {}) as Record<string, unknown>;
+                        const caTotal = Object.entries(sv).filter(([k]) => k !== "exam").reduce((acc, [, v]) => acc + Number(v ?? 0), 0);
 
                         return {
                             subjectId: s.subjectId,
@@ -142,7 +143,7 @@ export async function generateTranscriptData(
                             cumulativeTotal1: t1Score ? t1Score.total.toNumber() : undefined,
                             cumulativeTotal2: t2Score ? t2Score.total.toNumber() : undefined,
                             ca: caTotal,
-                            exam: s.exam.toNumber(),
+                            exam: Number(sv["exam"] ?? 0),
                             total: s.total.toNumber(),
                             grade: s.grade || "-",
                             remark: s.remark || "-",
@@ -174,14 +175,17 @@ export async function generateTranscriptData(
                     return {
                         termName: TERM_NAMES[rc.term.termNumber] || `Term ${rc.term.termNumber}`,
                         termNumber: rc.term.termNumber,
-                        subjects: termScores.map(s => ({
-                            subjectName: s.subject.name,
-                            ca: s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber(),
-                            exam: s.exam.toNumber(),
-                            total: s.total.toNumber(),
-                            grade: s.grade || "-",
-                            remark: s.remark || "-",
-                        })),
+                        subjects: termScores.map(s => {
+                            const svT = (s.scoreValues ?? {}) as Record<string, unknown>;
+                            return {
+                                subjectName: s.subject.name,
+                                ca: Object.entries(svT).filter(([k]) => k !== "exam").reduce((acc, [, v]) => acc + Number(v ?? 0), 0),
+                                exam: Number(svT["exam"] ?? 0),
+                                total: s.total.toNumber(),
+                                grade: s.grade || "-",
+                                remark: s.remark || "-",
+                            };
+                        }),
                         summary: {
                             totalScore: Number(totalScore.toFixed(2)),
                             totalObtainable: rc.totalObtainable ?? subjectsCount * 100,

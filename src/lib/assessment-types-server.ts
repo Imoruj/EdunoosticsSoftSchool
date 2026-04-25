@@ -95,6 +95,7 @@ export async function getResolvedAssessmentTypesForClassContext(
                 isActive: true,
             },
             orderBy: { order: "asc" },
+            include: { components: { orderBy: { order: "asc" } } },
         })
     ) as Promise<ResolvedAssessmentType[]>;
 }

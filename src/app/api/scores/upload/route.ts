@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
-import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, mapAssessmentTypesToScoreFields, isExamAssessmentType } from "@/lib/assessment-types";
 import {
     recomputeCompositeParentScores,
     resolveSubjectScoreProfile,
@@ -171,25 +171,15 @@ export async function POST(req: NextRequest) {
         }
 
         const assessmentTypes = resolvedProfile.assessmentTypes;
+        const mappedAssessmentTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
 
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-        const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
-
-        // Map header columns to score fields
-        // Match by checking if header contains the assessment type name (case-insensitive)
+        // Map header columns to score fields by matching column header against assessment type names
         const columnMap: { index: number; field: string; maxScore: number }[] = [];
         for (let i = 0; i < headerFields.length; i++) {
             const header = headerFields[i].toLowerCase();
-            if (caTypes[0] && header.includes(caTypes[0].name.toLowerCase())) {
-                columnMap.push({ index: i, field: "ca1", maxScore: caTypes[0].maxScore });
-            } else if (caTypes[1] && header.includes(caTypes[1].name.toLowerCase())) {
-                columnMap.push({ index: i, field: "ca2", maxScore: caTypes[1].maxScore });
-            } else if (caTypes[2] && header.includes(caTypes[2].name.toLowerCase())) {
-                columnMap.push({ index: i, field: "ca3", maxScore: caTypes[2].maxScore });
-            } else if (examType && header.includes(examType.name.toLowerCase())) {
-                columnMap.push({ index: i, field: "exam", maxScore: examType.maxScore });
+            const match = mappedAssessmentTypes.find(at => header.includes(at.name.toLowerCase()));
+            if (match) {
+                columnMap.push({ index: i, field: match.field, maxScore: match.maxScore });
             }
         }
 
@@ -222,7 +212,7 @@ export async function POST(req: NextRequest) {
 
         // Parse data rows
         const errors: string[] = [];
-        const parsedScores: { studentId: string; admissionNumber: string; ca1?: number; ca2?: number; ca3?: number; exam?: number }[] = [];
+        const parsedScores: { studentId: string; admissionNumber: string; [field: string]: number | string }[] = [];
 
         for (let i = 1; i < lines.length; i++) {
             const fields = parseCSVLine(lines[i]);
@@ -292,10 +282,8 @@ export async function POST(req: NextRequest) {
         // Find conflicts: existing scores with any non-zero values in the fields being uploaded
         const uploadedFields = columnMap.map(c => c.field);
         const conflictScores = existingScores.filter(s => {
-            return uploadedFields.some(field => {
-                const val = Number((s as any)[field]);
-                return val > 0;
-            });
+            const sv = (s.scoreValues ?? {}) as Record<string, unknown>;
+            return uploadedFields.some(field => Number(sv[field] ?? 0) > 0);
         });
 
         const hasConflicts = conflictScores.length > 0;
@@ -403,14 +391,21 @@ export async function POST(req: NextRequest) {
             ? categoryRules
             : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
+        const uploadMappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+
         const scoreOps = parsedScores.map(scoreEntry => {
                 // Fetch existing score to merge with (for partial uploads)
                 const existing = existingScores.find(s => s.studentId === scoreEntry.studentId);
-                const ca1 = scoreEntry.ca1 ?? (existing ? Number(existing.ca1) : 0);
-                const ca2 = scoreEntry.ca2 ?? (existing ? Number(existing.ca2) : 0);
-                const ca3 = scoreEntry.ca3 ?? (existing ? Number(existing.ca3) : 0);
-                const exam = scoreEntry.exam ?? (existing ? Number(existing.exam) : 0);
-                const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
+                const existingSv = (existing?.scoreValues ?? {}) as Record<string, unknown>;
+                const scoreValues: Record<string, number> = {};
+                for (const at of uploadMappedTypes) {
+                    const uploaded = (scoreEntry as any)[at.field];
+                    scoreValues[at.field] = uploaded !== undefined
+                        ? Number(uploaded)
+                        : Number(existingSv[at.field] ?? 0);
+                }
+                const exam = scoreValues["exam"] ?? 0;
+                const totals = calculateEndOfTermScoreTotals(scoreValues, assessmentTypes);
 
                 const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
@@ -423,10 +418,7 @@ export async function POST(req: NextRequest) {
                         },
                     },
                     update: {
-                        ...(scoreEntry.ca1 !== undefined && { ca1: scoreEntry.ca1 }),
-                        ...(scoreEntry.ca2 !== undefined && { ca2: scoreEntry.ca2 }),
-                        ...(scoreEntry.ca3 !== undefined && { ca3: scoreEntry.ca3 }),
-                        ...(scoreEntry.exam !== undefined && { exam: scoreEntry.exam }),
+                        scoreValues,
                         total: totals.adjustedTotal,
                         grade,
                         remark,
@@ -438,10 +430,7 @@ export async function POST(req: NextRequest) {
                         studentId: scoreEntry.studentId,
                         subjectId,
                         termId,
-                        ca1: ca1,
-                        ca2: ca2,
-                        ca3: ca3,
-                        exam: exam,
+                        scoreValues,
                         total: totals.adjustedTotal,
                         grade,
                         remark,

@@ -23,8 +23,7 @@ interface BroadsheetDisplayOptions {
     // Per-Subject Columns
     show1stTerm?: boolean;
     show2ndTerm?: boolean;
-    showCA1?: boolean;
-    showCA2?: boolean;
+    showAssessmentScores?: boolean;
     showDMAT?: boolean;
     showExam?: boolean;
     showSubjectTotal?: boolean;
@@ -69,8 +68,7 @@ interface BroadsheetConfig {
     name: string;
     activeTemplate: "standard";
     colorScheme: string;
-    showCA1: boolean;
-    showCA2: boolean;
+    showAssessmentScores: boolean;
     showExam: boolean;
     showSubjectTotal: boolean;
     showGrade: boolean;
@@ -90,8 +88,7 @@ export default function BroadsheetSettingsPage() {
         name: "Standard Broadsheet",
         activeTemplate: "standard",
         colorScheme: "blue",
-        showCA1: true,
-        showCA2: true,
+        showAssessmentScores: true,
         showExam: true,
         showSubjectTotal: true,
         showGrade: true,
@@ -103,7 +100,7 @@ export default function BroadsheetSettingsPage() {
             // Header
             showSessionInfo: true, showTermInfo: true, showClassInfo: true,
             // Per-Subject Columns
-            show1stTerm: true, show2ndTerm: true, showCA1: true, showCA2: true, showDMAT: true, showExam: true, showSubjectTotal: true, showGrade: true, showSubjectPosition: true,
+            show1stTerm: true, show2ndTerm: true, showAssessmentScores: true, showDMAT: true, showExam: true, showSubjectTotal: true, showGrade: true, showSubjectPosition: true,
             // Summary
             showHighestScore: true, showLowestScore: true, showStudentCount: true,
             // Aggregates
@@ -177,8 +174,7 @@ export default function BroadsheetSettingsPage() {
                         name: data.name || prev.name,
                         activeTemplate: "standard",
                         colorScheme: data.colorScheme || prev.colorScheme,
-                        showCA1: data.showCA1 ?? prev.showCA1,
-                        showCA2: data.showCA2 ?? prev.showCA2,
+                        showAssessmentScores: data.showCA1 ?? prev.showAssessmentScores,
                         showExam: data.showExam ?? prev.showExam,
                         showSubjectTotal: data.showSubjectTotal ?? prev.showSubjectTotal,
                         showGrade: data.showGrade ?? prev.showGrade,
@@ -226,6 +222,8 @@ export default function BroadsheetSettingsPage() {
 
             const payload = {
                 ...cleanConfig,
+                showCA1: cleanConfig.showAssessmentScores,
+                showCA2: cleanConfig.showAssessmentScores,
                 activeTemplateId: newActiveId,
                 customTemplates: newTemplates
             };
@@ -776,12 +774,8 @@ export default function BroadsheetSettingsPage() {
                                                 <input type="checkbox" checked={config.displayOptions.show2ndTerm !== false} onChange={(e) => updateDisplayOption('show2ndTerm', e.target.checked)} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
                                             </label>
                                             <label className="flex items-center justify-between cursor-pointer">
-                                                <span className="text-xs font-semibold text-gray-700">CA 1 (15)</span>
-                                                <input type="checkbox" checked={config.showCA1} onChange={(e) => setConfig({ ...config, showCA1: e.target.checked, displayOptions: { ...config.displayOptions, showCA1: e.target.checked } })} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
-                                            </label>
-                                            <label className="flex items-center justify-between cursor-pointer">
-                                                <span className="text-xs font-semibold text-gray-700">CA 2 (15)</span>
-                                                <input type="checkbox" checked={config.showCA2} onChange={(e) => setConfig({ ...config, showCA2: e.target.checked, displayOptions: { ...config.displayOptions, showCA2: e.target.checked } })} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
+                                                <span className="text-xs font-semibold text-gray-700">Assessment Scores (CA columns)</span>
+                                                <input type="checkbox" checked={config.showAssessmentScores} onChange={(e) => setConfig({ ...config, showAssessmentScores: e.target.checked, displayOptions: { ...config.displayOptions, showAssessmentScores: e.target.checked } })} className="accent-primary-600 h-4 w-4 rounded border-gray-300" />
                                             </label>
                                             <label className="flex items-center justify-between cursor-pointer">
                                                 <span className="text-xs font-semibold text-gray-700">CA Subtotal (30)</span>

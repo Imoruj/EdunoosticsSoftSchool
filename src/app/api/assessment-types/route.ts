@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
         const assessmentTypes = await prisma.assessmentType.findMany({
             where: { schoolId, isActive: true },
             orderBy: { order: "asc" },
+            include: { components: { orderBy: { order: "asc" } } },
         });
 
         return NextResponse.json(assessmentTypes);

@@ -114,7 +114,7 @@ const stats = [
 export default function Home() {
     return (
         <main className="min-h-screen bg-slate-950 text-slate-100">
-            <section className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.35),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(34,211,238,0.2),_transparent_24%),linear-gradient(180deg,_#1e3a8a_0%,_#172554_48%,_#020617_100%)]">
+            <section className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.35),transparent_30%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.2),transparent_24%),linear-gradient(180deg,#1e3a8a_0%,#172554_48%,#020617_100%)]">
                 <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-15" />
                 <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
 

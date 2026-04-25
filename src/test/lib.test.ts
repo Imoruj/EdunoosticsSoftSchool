@@ -40,7 +40,7 @@ describe('getScoreFieldNumber', () => {
 
 describe('getHalfTermSummaryFromScores', () => {
   it('computes average correctly', () => {
-    const scores = [{ ca1: 15 }, { ca1: 10 }];
+    const scores = [{ scoreValues: { ca1: 15 } }, { scoreValues: { ca1: 10 } }];
     // AssessmentTypeLike requires id, name, maxScore, order
     const assessmentTypes = [{ id: '1', name: 'CA1', maxScore: 20, order: 1 }];
     const result = getHalfTermSummaryFromScores(scores, assessmentTypes);

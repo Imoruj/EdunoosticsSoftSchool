@@ -16,8 +16,9 @@ type SessionUser = {
 // GET /api/admin/schools/[id]/features
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         const user = session?.user as SessionUser | undefined;
@@ -25,7 +26,7 @@ export async function GET(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const features = await getSchoolFeatures(params.id);
+        const features = await getSchoolFeatures(id);
         const response = NextResponse.json({ features: extractFeatureFlags(features) });
 
         // Ensure browser never caches this admin route
@@ -46,8 +47,9 @@ export async function GET(
 // PUT /api/admin/schools/[id]/features
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         const user = session?.user as SessionUser | undefined;
@@ -66,9 +68,9 @@ export async function PUT(
 
         const client = prisma as any;
         const updated = await client.schoolFeatureControl.upsert({
-            where: { schoolId: params.id },
+            where: { schoolId: id },
             update: updateData,
-            create: { schoolId: params.id, ...updateData },
+            create: { schoolId: id, ...updateData },
             select: SCHOOL_FEATURE_SELECT,
         });
 

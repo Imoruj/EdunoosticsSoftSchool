@@ -29,7 +29,8 @@ async function resolveWeekAccess(weekId: string, userId: string, schoolId: strin
 }
 
 // GET /api/scheme-of-work/weeks/[id]/references
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const references = await prisma.schemeOfWorkWeekReference.findMany({
-            where: { weekId: params.id },
+            where: { weekId: id },
             orderBy: { sortOrder: "asc" },
         });
 
@@ -58,7 +59,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST /api/scheme-of-work/weeks/[id]/references
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         const reference = await prisma.schemeOfWorkWeekReference.create({
             data: {
-                weekId: params.id,
+                weekId: id,
                 type,
                 title: title.trim(),
                 url: url ?? null,

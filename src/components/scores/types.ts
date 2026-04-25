@@ -6,15 +6,12 @@ export interface StudentScore {
     firstName: string;
     lastName: string;
     admissionNumber: string;
-    ca1: number;
-    ca2: number;
-    ca3: number;
-    exam: number;
     total: number;
     adjustedTotal?: number;
     isAdjusted?: boolean;
     grade: string;
     remark: string;
+    [field: string]: unknown;
 }
 
 export interface EnrollmentStudent {
@@ -25,6 +22,13 @@ export interface EnrollmentStudent {
     isEnrolled: boolean;
 }
 
+export interface AssessmentTypeComponent {
+    id: string;
+    name: string;
+    maxScore: number;
+    order: number;
+}
+
 export interface AssessmentType {
     id: string;
     name: string;
@@ -32,6 +36,7 @@ export interface AssessmentType {
     maxScore: number;
     order: number;
     includeInTotal: boolean;
+    components?: AssessmentTypeComponent[];
 }
 
 export interface ClassLink {

@@ -30,7 +30,8 @@ async function resolveWeekAccess(weekId: string, userId: string, schoolId: strin
 }
 
 // PUT /api/scheme-of-work/weeks/[id]/objectives — save objectives fields
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -42,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -58,7 +59,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         });
 
         const updated = await prisma.schemeOfWorkWeek.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
                 objectives: objectives !== undefined ? normalized.objectives : undefined,
                 waecObjectives: waecObjectives !== undefined ? normalized.waecObjectives : undefined,

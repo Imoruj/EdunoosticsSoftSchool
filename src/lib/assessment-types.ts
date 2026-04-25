@@ -1,4 +1,11 @@
-export type ScoreFieldKey = "ca1" | "ca2" | "ca3" | "exam";
+export type ScoreFieldKey = string;
+
+export interface AssessmentTypeComponentLike {
+    id: string;
+    name: string;
+    maxScore: number;
+    order: number;
+}
 
 export interface AssessmentTypeLike {
     id: string;
@@ -7,22 +14,16 @@ export interface AssessmentTypeLike {
     maxScore: number;
     order: number;
     includeInTotal?: boolean;
+    components?: AssessmentTypeComponentLike[];
 }
 
 export interface AssessmentTypeField extends AssessmentTypeLike {
     field: ScoreFieldKey;
 }
 
-export const MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES = 4;
-export const MAX_CONTINUOUS_ASSESSMENT_TYPES = 3;
 export const MAX_EXAM_ASSESSMENT_TYPES = 1;
 
-export interface ScoreFieldValues {
-    ca1?: number;
-    ca2?: number;
-    ca3?: number;
-    exam?: number;
-}
+export type ScoreFieldValues = Record<string, number>;
 
 export interface EndOfTermScoreTotals {
     rawTotal: number;
@@ -49,7 +50,7 @@ export function countsTowardTotal(type: { includeInTotal?: boolean }) {
 export function mapAssessmentTypesToScoreFields<T extends AssessmentTypeLike>(types: T[]): Array<T & { field: ScoreFieldKey }> {
     const sortedTypes = sortAssessmentTypes(types);
     const mapped: Array<T & { field: ScoreFieldKey }> = [];
-    let continuousAssessmentCount = 0;
+    let caCount = 0;
     let examAdded = false;
 
     for (const type of sortedTypes) {
@@ -61,19 +62,8 @@ export function mapAssessmentTypesToScoreFields<T extends AssessmentTypeLike>(ty
             continue;
         }
 
-        if (continuousAssessmentCount >= MAX_CONTINUOUS_ASSESSMENT_TYPES) {
-            continue;
-        }
-
-        const field: ScoreFieldKey =
-            continuousAssessmentCount === 0
-                ? "ca1"
-                : continuousAssessmentCount === 1
-                    ? "ca2"
-                    : "ca3";
-
-        mapped.push({ ...type, field });
-        continuousAssessmentCount += 1;
+        caCount += 1;
+        mapped.push({ ...type, field: `ca${caCount}` });
     }
 
     return mapped;
@@ -145,15 +135,6 @@ export function calculateEndOfTermScoreTotals(values: ScoreFieldValues, types: A
 }
 
 export function validateAssessmentTypeCollection(types: Array<Pick<AssessmentTypeLike, "name">>) {
-    if (types.length > MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES) {
-        return `You can only use up to ${MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES} score components per class.`;
-    }
-
-    const continuousAssessmentCount = types.filter((type) => !isExamAssessmentType(type)).length;
-    if (continuousAssessmentCount > MAX_CONTINUOUS_ASSESSMENT_TYPES) {
-        return `You can only use up to ${MAX_CONTINUOUS_ASSESSMENT_TYPES} continuous-assessment components per class.`;
-    }
-
     const examCount = types.filter((type) => isExamAssessmentType(type)).length;
     if (examCount > MAX_EXAM_ASSESSMENT_TYPES) {
         return "You can only use one exam component per class.";

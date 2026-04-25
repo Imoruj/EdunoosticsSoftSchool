@@ -14,8 +14,9 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -50,7 +51,7 @@ export async function PATCH(
 
         const requestRecord = await prisma.studentChangeRequest.findFirst({
             where: {
-                id: params.id,
+                id: id,
                 schoolId,
             },
         });

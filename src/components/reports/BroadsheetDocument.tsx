@@ -34,8 +34,11 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
         if (d.show1stTerm !== false) subCols.push({ key: "term1Total", label: "1st Term" });
         if (d.show2ndTerm !== false) subCols.push({ key: "term2Total", label: "2nd Term" });
     }
-    if (data.config.showCA1 && d.showCA1 !== false) subCols.push({ key: "ca1", label: "CA 1" });
-    if (data.config.showCA2 && d.showCA2 !== false) subCols.push({ key: "ca2", label: "CA 2" });
+    if (data.config.showAssessmentScores !== false && d.showAssessmentScores !== false) {
+        for (const at of data.assessmentTypes.filter(t => t.field !== "exam")) {
+            subCols.push({ key: at.field, label: at.shortName || at.name });
+        }
+    }
     if (d.showDMAT !== false) subCols.push({ key: "caTotal", label: "CA" });
     if (data.reportType === "endOfTerm") {
         if (data.config.showExam && d.showExam !== false) subCols.push({ key: "exam", label: "EXAM" });
@@ -52,7 +55,10 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
     if (d.showAverage !== false) aggCols.push({ key: "average", label: "AVG" });
     if (d.showOverallPosition !== false) aggCols.push({ key: "overallPosition", label: "POS" });
     if (d.showSubjectCount !== false) aggCols.push({ key: "subjectCount", label: "SUBJ" });
-    const scoreColumnKeys = new Set(["term1Total", "term2Total", "ca1", "ca2", "ca3", "caTotal", "exam", "total"]);
+    const scoreColumnKeys = new Set([
+        "term1Total", "term2Total", "caTotal", "exam", "total",
+        ...data.assessmentTypes.map(t => t.field),
+    ]);
     const aggregateScoreKeys = new Set(["grandTotal", "average"]);
 
     const availableSubCols = new Set(subCols.map((col) => col.key));
@@ -352,8 +358,9 @@ const BroadsheetDocument: React.FC<BroadsheetDocumentProps> = ({ data }) => {
                             {/* Per-subject scores */}
                             {data.subjects.map((sub) => {
                                 const score = student.scores.find(s => s.subjectId === sub.id);
+                                const flatScore = score ? { ...score.scoreValues, caTotal: score.caTotal, exam: score.exam, total: score.total, grade: score.grade, position: score.position, term1Total: score.term1Total, term2Total: score.term2Total } : {};
                                 return subCols.map((col) => {
-                                    const val = score ? (score as any)[col.key] : "";
+                                    const val = (flatScore as any)[col.key] ?? "";
                                     let displayVal = "";
                                     if (col.key === "position") {
                                         displayVal = formatPosition(val);

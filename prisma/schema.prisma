@@ -363,10 +363,8 @@ model SubjectEnrollment {
 
 model Score {
   id                           String                  @id @default(cuid())
-  ca1                          Decimal                 @default(0) @db.Decimal(5, 2)
-  ca2                          Decimal                 @default(0) @db.Decimal(5, 2)
-  ca3                          Decimal                 @default(0) @db.Decimal(5, 2)
-  exam                         Decimal                 @default(0) @db.Decimal(5, 2)
+  scoreValues                  Json                    @default("{}")
+  componentScores              Json                    @default("{}")
   total                        Decimal                 @default(0) @db.Decimal(5, 2)
   grade                        String?
   remark                       String?
@@ -526,8 +524,23 @@ model AssessmentType {
   updatedAt      DateTime @updatedAt
   schoolId       String
   school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  components     AssessmentTypeComponent[]
 
   @@unique([schoolId, name])
+}
+
+model AssessmentTypeComponent {
+  id               String         @id @default(cuid())
+  assessmentTypeId String
+  assessmentType   AssessmentType @relation(fields: [assessmentTypeId], references: [id], onDelete: Cascade)
+  name             String
+  maxScore         Float
+  order            Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([assessmentTypeId, name])
+  @@index([assessmentTypeId])
 }
 
 model ClassAssessmentType {

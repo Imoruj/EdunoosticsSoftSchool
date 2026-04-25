@@ -6,7 +6,8 @@ import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
 // GET /api/scheme-of-work/[id]/collaborators
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const sow = await prisma.schemeOfWork.findFirst({ where: { id: params.id, schoolId } });
+        const sow = await prisma.schemeOfWork.findFirst({ where: { id: id, schoolId } });
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && sow.ownerId !== user.id) {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const collaborators = await prisma.schemeOfWorkCollaborator.findMany({
-            where: { schemeOfWorkId: params.id },
+            where: { schemeOfWorkId: id },
             include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
             orderBy: { createdAt: "asc" },
         });
@@ -37,7 +38,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST /api/scheme-of-work/[id]/collaborators — add collaborator
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const sow = await prisma.schemeOfWork.findFirst({ where: { id: params.id, schoolId } });
+        const sow = await prisma.schemeOfWork.findFirst({ where: { id: id, schoolId } });
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && sow.ownerId !== user.id) {
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
 
         const collaborator = await prisma.schemeOfWorkCollaborator.create({
-            data: { schemeOfWorkId: params.id, userId, invitedById: user.id },
+            data: { schemeOfWorkId: id, userId, invitedById: user.id },
             include: { user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } } },
         });
 
@@ -93,7 +95,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // DELETE /api/scheme-of-work/[id]/collaborators?userId=xxx
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -106,7 +109,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const sow = await prisma.schemeOfWork.findFirst({ where: { id: params.id, schoolId } });
+        const sow = await prisma.schemeOfWork.findFirst({ where: { id: id, schoolId } });
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && sow.ownerId !== user.id) {
@@ -118,7 +121,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         if (!userId) return NextResponse.json({ error: "userId query param required" }, { status: 400 });
 
         await prisma.schemeOfWorkCollaborator.deleteMany({
-            where: { schemeOfWorkId: params.id, userId },
+            where: { schemeOfWorkId: id, userId },
         });
 
         return NextResponse.json({ message: "Collaborator removed" });

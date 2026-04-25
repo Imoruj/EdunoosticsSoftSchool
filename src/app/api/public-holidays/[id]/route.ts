@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
 // DELETE: Remove a public holiday (admin only)
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -21,13 +22,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         }
 
         const holiday = await prisma.publicHoliday.findFirst({
-            where: { id: params.id, schoolId },
+            where: { id: id, schoolId },
         });
         if (!holiday) {
             return NextResponse.json({ error: "Holiday not found" }, { status: 404 });
         }
 
-        await prisma.publicHoliday.delete({ where: { id: params.id } });
+        await prisma.publicHoliday.delete({ where: { id: id } });
 
         return NextResponse.json({ message: "Holiday deleted" });
     } catch (error) {

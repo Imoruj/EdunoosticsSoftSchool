@@ -10,7 +10,8 @@ import { resolveAudienceStudents } from "@/lib/studentAudience";
 // POST /api/scheme-of-work/terms/[termId]/approve
 // Admin approves a term. Takes a frozen snapshot of all week data for lesson building.
 // After approval the teacher can still freely edit the live week data.
-export async function POST(req: NextRequest, { params }: { params: { termId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ termId: string }> }) {
+    const { termId } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         }
 
         const term = await prisma.schemeOfWorkTerm.findFirst({
-            where: { id: params.termId },
+            where: { id: termId },
             include: {
                 schemeOfWork: {
                     select: {
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         };
 
         const updated = await prisma.schemeOfWorkTerm.update({
-            where: { id: params.termId },
+            where: { id: termId },
             data: {
                 status: SowStatus.APPROVED,
                 approvedAt: new Date(),

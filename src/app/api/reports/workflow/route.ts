@@ -643,10 +643,7 @@ async function buildCommentContext(params: {
             : null,
         term: { termNumber: term?.termNumber || 1, name: term?.name || "" },
         scores: scores.map((s) => ({
-            ca1: s.ca1,
-            ca2: s.ca2,
-            ca3: s.ca3,
-            exam: s.exam,
+            scoreValues: s.scoreValues,
             total: s.total,
             subject: s.subject,
         })),
@@ -1039,7 +1036,7 @@ export async function POST(req: NextRequest) {
                         : null,
                     term: { termNumber: sharedTerm?.termNumber || 1, name: sharedTerm?.name || "" },
                     scores: scores.map((s: any) => ({
-                        ca1: s.ca1, ca2: s.ca2, ca3: s.ca3, exam: s.exam, total: s.total, subject: s.subject,
+                        scoreValues: s.scoreValues, total: s.total, subject: s.subject,
                     })),
                     enrollments,
                     classArmId,

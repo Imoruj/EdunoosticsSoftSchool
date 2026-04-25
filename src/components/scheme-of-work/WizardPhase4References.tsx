@@ -824,8 +824,8 @@ function WeekResourcesCard({
     onUpdated: (updates: Partial<{ references: Reference[]; sdgMappings: SdgEntry[] }>) => void;
 }) {
     const [open, setOpen] = useState(false);
-    const [refs, setRefs] = useState<Reference[]>(week.references);
-    const [sdgs, setSdgs] = useState<SdgEntry[]>(week.sdgMappings);
+    const [refs, setRefs] = useState<Reference[]>(week.references ?? []);
+    const [sdgs, setSdgs] = useState<SdgEntry[]>(week.sdgMappings ?? []);
     const [showAddRef, setShowAddRef] = useState(false);
     const [suggestingSDG, setSuggestingSDG] = useState(false);
     const [deletingRefId, setDeletingRefId] = useState<string | null>(null);

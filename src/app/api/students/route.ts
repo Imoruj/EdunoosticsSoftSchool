@@ -460,10 +460,7 @@ export async function GET(req: NextRequest) {
                 select: {
                     studentId: true,
                     subjectId: true,
-                    ca1: true,
-                    ca2: true,
-                    ca3: true,
-                    exam: true,
+                    scoreValues: true,
                 },
             });
 
@@ -486,7 +483,8 @@ export async function GET(req: NextRequest) {
                 if (reportType === "halfTerm") {
                     const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
                     const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type?.maxScore) : 10;
-                    const ca1 = getScoreFieldNumber(score.ca1);
+                    const sv = (score.scoreValues ?? {}) as Record<string, unknown>;
+                    const ca1 = Number(sv["ca1"] ?? 0);
                     const percent = maxPerSubject > 0 ? (ca1 / maxPerSubject) * 100 : 0;
                     scoreTotalsByStudent.get(score.studentId)!.push(percent);
                     continue;

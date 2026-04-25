@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const schoolId = user.schoolId;
 
         const sow = await prisma.schemeOfWork.findFirst({
-            where: { id: params.id, schoolId },
+            where: { id: id, schoolId },
             include: { terms: { include: { weeks: { select: { id: true } } } } },
         });
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
 
         const updated = await prisma.schemeOfWork.update({
-            where: { id: params.id },
+            where: { id: id },
             data: { status: SowStatus.SUBMITTED, submittedAt: new Date(), adminNote: null },
         });
 

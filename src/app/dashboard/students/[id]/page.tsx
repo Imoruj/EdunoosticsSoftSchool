@@ -41,8 +41,9 @@ function InfoCard({
 export default async function StudentDetailPage({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -76,7 +77,7 @@ export default async function StudentDetailPage({
 
     const student = await prisma.student.findFirst({
         where: {
-            id: params.id,
+            id,
             schoolId,
             ...(!isAdmin ? { classArmId: { in: assignedClassArmIds } } : {}),
         },

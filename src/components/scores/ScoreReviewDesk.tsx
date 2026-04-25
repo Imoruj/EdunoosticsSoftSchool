@@ -62,7 +62,7 @@ interface ReviewAssessmentColumn {
     id: string;
     label: string;
     maxScore: number;
-    field: "ca1" | "ca2" | "ca3" | "exam";
+    field: string;
 }
 
 interface ScoreReviewDeskProps {

@@ -30,8 +30,7 @@ interface ReportCardDisplayOptions {
     showTermHistory?: boolean;
     showCA?: boolean;
     showCA1?: boolean;
-    showCA2?: boolean;
-    showCA3?: boolean;
+    showScoreComponents?: boolean;
     showExam?: boolean;
     showSubjectTotal?: boolean;
     showGrade?: boolean;
@@ -130,7 +129,7 @@ export default function ReportCardSettingsPage() {
             showLogo: true, showSchoolName: true, showSchoolAddress: true, showSchoolMotto: true, showSchoolContact: true,
             showName: true, showDOB: true, showSex: true, showClass: true, showAdmNo: true,
             showAttOpened: true, showAttPresent: true, showAttAbsent: true,
-            showTermHistory: true, showCA1: true, showCA2: true, showCA3: true, showCA: true, showExam: true, showSubjectTotal: true, showGrade: true, showSubjectPosition: true, showSubjectAverage: true, showSubjectLowHigh: true, showRemarks: true, showAcademicKey: true, showAffectiveKey: true,
+            showTermHistory: true, showCA1: true, showScoreComponents: false, showCA: true, showExam: true, showSubjectTotal: true, showGrade: true, showSubjectPosition: true, showSubjectAverage: true, showSubjectLowHigh: true, showRemarks: true, showAcademicKey: true, showAffectiveKey: true,
             showTeacherSection: true, showPrincipalSection: true,
             showTeacherComment: true, showPrincipalComment: true, showTeacherSign: true, showPrincipalSign: true, showTeacherDate: true, showPrincipalDate: true,
             showTermHeader: true, showPromotionStatus: true,
@@ -295,6 +294,32 @@ export default function ReportCardSettingsPage() {
             }
         } catch (error) {
             toast.error("Failed to delete template");
+        }
+    };
+
+    const duplicateTemplate = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const source = customTemplates[id];
+        if (!source) return;
+
+        const newId = `tmpl-${Date.now()}`;
+        const duplicate = { ...source, id: newId, name: `${source.name} (Copy)`, createdAt: Date.now() };
+        const newTemplates = { ...customTemplates, [newId]: duplicate };
+
+        try {
+            const res = await fetch("/api/settings/report-card", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activeTemplateId, customTemplates: newTemplates }),
+            });
+            if (res.ok) {
+                setCustomTemplates(newTemplates);
+                setActiveTemplateId(newId);
+                setConfig(duplicate);
+                showSuccessMessage("Template duplicated", { title: "Template Duplicated!" });
+            }
+        } catch {
+            toast.error("Failed to duplicate template");
         }
     };
 
@@ -504,7 +529,17 @@ export default function ReportCardSettingsPage() {
                                                                 </div>
                                                             )}
                                                             <button
+                                                                onClick={(e) => duplicateTemplate(tmpl.id, e)}
+                                                                title="Duplicate"
+                                                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-all border border-transparent hover:border-blue-100"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
                                                                 onClick={(e) => deleteTemplate(tmpl.id, e)}
+                                                                title="Delete"
                                                                 className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 rounded-lg text-red-500 transition-all border border-transparent hover:border-red-100"
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -882,9 +917,8 @@ export default function ReportCardSettingsPage() {
                                         <div className="p-3 bg-white space-y-2 border-t border-gray-200">
                                             {[
                                                 { k: 'showTermHistory', l: 'Term History (1st/2nd)' },
-                                                { k: 'showCA1', l: 'CA 1' },
-                                                { k: 'showCA2', l: 'CA 2' },
-                                                { k: 'showCA3', l: 'CA 3' },
+                                                { k: 'showCA1', l: 'CA Score Columns' },
+                                                { k: 'showScoreComponents', l: 'Score Sub-components (Breakdown)' },
                                                 { k: 'showCA', l: 'Total CA' },
                                                 { k: 'showExam', l: 'Exam Scores' },
                                                 { k: 'showSubjectTotal', l: 'Subject Total' },

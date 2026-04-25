@@ -129,14 +129,9 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
         return (config.displayOptions as any)[key] !== false;
     };
 
-    // Dynamic assessment type labels from school settings
-    const atNames = (config as any)?.assessmentTypeNames;
-    const colLabels = {
-        ca1: atNames?.ca1 || "CA1",
-        ca2: atNames?.ca2 || "CA2",
-        ca3: atNames?.ca3 || "CA3",
-        exam: atNames?.exam || "EXAM",
-    };
+    const configAssessmentTypes: { field: string; name: string; maxScore: number }[] = (config as any)?.assessmentTypes || [];
+    const caAssessmentTypes = configAssessmentTypes.filter(at => at.field !== "exam");
+    const examLabel = configAssessmentTypes.find(at => at.field === "exam")?.name || (config as any)?.assessmentTypeNames?.["exam"] || "EXAM";
 
     // Style resolver
     const getSectionStyle = (sectionKey: string) => {
@@ -360,11 +355,11 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                         <tr>
                             <th rowSpan={2} className="border p-2 text-left" style={academicStyles.header}>SUBJECT</th>
                             {showOption('showTermHistory') && <th colSpan={2} className="border p-1 text-center font-bold whitespace-nowrap" style={academicStyles.header}>TERM HISTORY</th>}
-                            {showOption('showCA1') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{colLabels.ca1.toUpperCase()}</th>}
-                            {showOption('showCA2') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{colLabels.ca2.toUpperCase()}</th>}
-                            {showOption('showCA3') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{colLabels.ca3.toUpperCase()}</th>}
+                            {showOption('showCA1') && (caAssessmentTypes.length > 0 ? caAssessmentTypes : [{ field: "ca1", name: "CA1", maxScore: 30 }, { field: "ca2", name: "CA2", maxScore: 30 }, { field: "ca3", name: "CA3", maxScore: 30 }]).map(at => (
+                                <th key={at.field} rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={academicStyles.header}>{at.name.toUpperCase()}</th>
+                            ))}
                             {showOption('showCA') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>CA</th>}
-                            {showOption('showExam') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>{colLabels.exam.toUpperCase()}</th>}
+                            {showOption('showExam') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>{examLabel.toUpperCase()}</th>}
                             {showOption('showSubjectTotal') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>TOTAL</th>}
                             {showOption('showGrade') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>GRADE</th>}
                             {showOption('showSubjectPosition') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={academicStyles.header}>POS</th>}
@@ -396,9 +391,9 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                         <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.cumulativeTotal2)}</td>
                                     </>
                                 )}
-                                {showOption('showCA1') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca1)}</td>}
-                                {showOption('showCA2') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca2)}</td>}
-                                {showOption('showCA3') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca3)}</td>}
+                                {showOption('showCA1') && (caAssessmentTypes.length > 0 ? caAssessmentTypes : [{ field: "ca1", name: "CA1", maxScore: 30 }, { field: "ca2", name: "CA2", maxScore: 30 }, { field: "ca3", name: "CA3", maxScore: 30 }]).map(at => (
+                                    <td key={at.field} className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub[at.field] as number | undefined)}</td>
+                                ))}
                                 {showOption('showCA') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.ca)}</td>}
                                 {showOption('showExam') && <td className="border p-1 text-center" style={academicStyles.borderOnly}>{formatScore(sub.exam)}</td>}
                                 {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>{formatScore(sub.total)}</td>}

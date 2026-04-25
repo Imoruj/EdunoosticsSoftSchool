@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 
-export default async function WardDetailsPage({ params }: { params: { id: string } }) {
+export default async function WardDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -21,7 +22,7 @@ export default async function WardDetailsPage({ params }: { params: { id: string
         where: { userId: (session.user as any).id },
         include: {
             students: {
-                where: { id: params.id }
+                where: { id }
             }
         }
     });
@@ -31,7 +32,7 @@ export default async function WardDetailsPage({ params }: { params: { id: string
     }
 
     const student = await prisma.student.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
             classArm: {
                 include: {

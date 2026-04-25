@@ -7,6 +7,7 @@ import {
     StudentScore,
     EnrollmentStudent,
     AssessmentType,
+    AssessmentTypeComponent,
     ClassLink,
     GradingRule,
     Subject,
@@ -16,6 +17,16 @@ import {
     ScoreWorkflowState,
     ScoreSubjectMeta,
 } from "./types";
+
+interface ScoreColumn {
+    kind: "assessment" | "component" | "ca-total";
+    field: string;
+    name: string;
+    maxScore: number;
+    isReadOnly?: boolean;
+    parentField?: string;
+    componentId?: string;
+}
 
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/Table";
@@ -75,6 +86,23 @@ export default function ScoresClient({
         () => mapAssessmentTypesToScoreFields(assessmentTypes),
         [assessmentTypes]
     );
+
+    // Expand assessment columns: CA types with sub-components become grouped sub-columns + read-only total
+    const scoreColumns = useMemo((): ScoreColumn[] => {
+        const cols: ScoreColumn[] = [];
+        for (const at of assessmentColumns) {
+            const comps: AssessmentTypeComponent[] = assessmentTypes.find(t => t.id === at.id)?.components || [];
+            if (comps.length > 0 && at.field !== "exam") {
+                for (const comp of comps) {
+                    cols.push({ kind: "component", field: `comp_${comp.id}`, name: comp.name, maxScore: comp.maxScore, parentField: at.field, componentId: comp.id });
+                }
+                cols.push({ kind: "ca-total", field: at.field, name: at.shortName || at.name, maxScore: at.maxScore, isReadOnly: true, parentField: at.field });
+            } else {
+                cols.push({ kind: "assessment", field: at.field, name: at.shortName || at.name, maxScore: at.maxScore });
+            }
+        }
+        return cols;
+    }, [assessmentColumns, assessmentTypes]);
 
     // Selection state
     const [selectedArmId, setSelectedArmId] = useState("");
@@ -238,29 +266,48 @@ export default function ScoresClient({
                 activeFields.add(type.field);
             });
 
-            // Clean data: Set inactive fields to 0 and recalculate total
+            // Expand columns with sub-components
+            const resolvedScoreColumns: ScoreColumn[] = [];
+            for (const at of resolvedAssessmentColumns) {
+                const comps: AssessmentTypeComponent[] = resolvedAssessmentTypes.find((t: any) => t.id === at.id)?.components || [];
+                if (comps.length > 0 && at.field !== "exam") {
+                    for (const comp of comps) {
+                        resolvedScoreColumns.push({ kind: "component", field: `comp_${comp.id}`, name: comp.name, maxScore: comp.maxScore, parentField: at.field, componentId: comp.id });
+                    }
+                    resolvedScoreColumns.push({ kind: "ca-total", field: at.field, name: at.shortName || at.name, maxScore: at.maxScore, isReadOnly: true, parentField: at.field });
+                } else {
+                    resolvedScoreColumns.push({ kind: "assessment", field: at.field, name: at.name, maxScore: at.maxScore });
+                }
+            }
+
+            // Flatten scoreValues + componentScores onto student and recalculate totals
             const dynamicStudents = (data.students || []).map((s: any) => {
-                const cleaned = { ...s };
+                const sv: Record<string, number> = typeof s.scoreValues === "object" && s.scoreValues !== null ? s.scoreValues as Record<string, number> : {};
+                const cs: Record<string, number> = typeof s.componentScores === "object" && s.componentScores !== null ? s.componentScores as Record<string, number> : {};
+                const fieldValues: Record<string, number> = {};
 
-                // Zero out inactive fields
-                if (!activeFields.has("ca1")) cleaned.ca1 = 0;
-                if (!activeFields.has("ca2")) cleaned.ca2 = 0;
-                if (!activeFields.has("ca3")) cleaned.ca3 = 0;
-                if (!activeFields.has("exam")) cleaned.exam = 0;
+                // Load component fields first
+                for (const col of resolvedScoreColumns) {
+                    if (col.kind === "component" && col.componentId) {
+                        fieldValues[col.field] = Number(cs[col.componentId] ?? 0);
+                    }
+                }
+                // Derive CA totals from components; fall back to scoreValues for types without components
+                for (const col of resolvedScoreColumns) {
+                    if (col.kind === "ca-total" && col.parentField) {
+                        const compCols = resolvedScoreColumns.filter(c => c.parentField === col.parentField && c.kind === "component");
+                        fieldValues[col.field] = compCols.reduce((sum, c) => sum + (fieldValues[c.field] || 0), 0);
+                    } else if (col.kind === "assessment") {
+                        fieldValues[col.field] = activeFields.has(col.field) ? (sv[col.field] ?? 0) : 0;
+                    }
+                }
 
-                const totals = calculateEndOfTermScoreTotals({
-                    ca1: cleaned.ca1 || 0,
-                    ca2: cleaned.ca2 || 0,
-                    ca3: cleaned.ca3 || 0,
-                    exam: cleaned.exam || 0,
-                }, resolvedAssessmentTypes);
-                cleaned.total = totals.rawTotal;
-                cleaned.adjustedTotal = totals.adjustedTotal;
-                cleaned.isAdjusted = totals.isAdjusted;
-                const { grade, remark } = shouldShowGradeAndRemark(cleaned.exam || 0, resolvedAssessmentTypes)
+                const totals = calculateEndOfTermScoreTotals(fieldValues, resolvedAssessmentTypes);
+                const examVal = fieldValues["exam"] ?? 0;
+                const { grade, remark } = shouldShowGradeAndRemark(examVal, resolvedAssessmentTypes)
                     ? calculateGrade(totals.adjustedTotal)
                     : { grade: "", remark: "" };
-                return { ...cleaned, grade, remark };
+                return { ...s, ...fieldValues, total: totals.rawTotal, adjustedTotal: totals.adjustedTotal, isAdjusted: totals.isAdjusted, grade, remark };
             });
 
             setStudents(dynamicStudents);
@@ -281,9 +328,9 @@ export default function ScoresClient({
     }, [fetchScores, selectedArmId, selectedSubjectId]);
 
     useEffect(() => {
-        const allowedFields = new Set<string>(assessmentColumns.map((column) => column.field));
+        const allowedFields = new Set<string>(scoreColumns.map((col) => col.field));
         setSelectedColumns((previous) => previous.filter((field) => allowedFields.has(field)));
-    }, [assessmentColumns]);
+    }, [scoreColumns]);
 
     const fetchParentPreview = useCallback(async () => {
         if (!selectedArmId || !selectedTermId || !selectedSubjectId || !parentPreviewSubjectId) {
@@ -362,38 +409,39 @@ export default function ScoresClient({
         return { grade: "-", remark: "-", color: "bg-gray-100 text-gray-800" };
     };
 
-    const handleScoreChange = (studentId: string, field: "ca1" | "ca2" | "ca3" | "exam", value: string) => {
+    const handleScoreChange = (studentId: string, field: string, value: string) => {
         let numValue = value === "" ? 0 : parseFloat(value);
         if (isNaN(numValue)) numValue = 0;
 
-        // Validation caps from assessmentTypes
-        const type = getAssessmentTypeForField(assessmentTypes, field);
-        const max = type?.maxScore || 100;
+        // Find column definition for validation
+        const col = scoreColumns.find(c => c.field === field);
+        const max = col?.maxScore ?? getAssessmentTypeForField(assessmentTypes, field)?.maxScore ?? 100;
 
         if (numValue > max) numValue = max;
         if (numValue < 0) numValue = 0;
         numValue = Math.round(numValue * 10) / 10;
 
         setStudents(prev => prev.map(s => {
-            if (s.id === studentId) {
-                const updated = { ...s, [field]: numValue };
-                const totals = calculateEndOfTermScoreTotals({
-                    ca1: updated.ca1 || 0,
-                    ca2: updated.ca2 || 0,
-                    ca3: updated.ca3 || 0,
-                    exam: updated.exam || 0,
-                }, assessmentTypes);
-                updated.total = totals.rawTotal;
-                updated.adjustedTotal = totals.adjustedTotal;
-                updated.isAdjusted = totals.isAdjusted;
-                const { grade, remark } = shouldShowGradeAndRemark(updated.exam || 0, assessmentTypes)
-                    ? calculateGrade(totals.adjustedTotal)
-                    : { grade: "", remark: "" };
-                updated.grade = grade;
-                updated.remark = remark;
-                return updated;
+            if (s.id !== studentId) return s;
+            const updated: Record<string, unknown> = { ...s, [field]: numValue };
+
+            // If this is a component field, recompute the parent CA total
+            if (col?.kind === "component" && col.parentField) {
+                const siblingComponents = scoreColumns.filter(c => c.parentField === col.parentField && c.kind === "component");
+                const caTotal = siblingComponents.reduce((sum, c) => sum + (c.field === field ? numValue : Number(updated[c.field]) || 0), 0);
+                const parentAt = assessmentTypes.find(at => at.id === assessmentColumns.find(a => a.field === col.parentField)?.id);
+                updated[col.parentField] = Math.min(caTotal, parentAt?.maxScore ?? 9999);
             }
-            return s;
+
+            const mappedCols = mapAssessmentTypesToScoreFields(assessmentTypes);
+            const fieldValues: Record<string, number> = {};
+            for (const mc of mappedCols) { fieldValues[mc.field] = Number(updated[mc.field]) || 0; }
+            const totals = calculateEndOfTermScoreTotals(fieldValues, assessmentTypes);
+            const examVal = fieldValues["exam"] ?? 0;
+            const { grade, remark } = shouldShowGradeAndRemark(examVal, assessmentTypes)
+                ? calculateGrade(totals.adjustedTotal)
+                : { grade: "", remark: "" };
+            return { ...(updated as any), total: totals.rawTotal, adjustedTotal: totals.adjustedTotal, isAdjusted: totals.isAdjusted, grade, remark };
         }));
     };
 
@@ -406,13 +454,19 @@ export default function ScoresClient({
 
         try {
             const payload = {
-                scores: students.map(s => ({
-                    studentId: s.id,
-                    ca1: s.ca1,
-                    ca2: s.ca2,
-                    ca3: s.ca3,
-                    exam: s.exam
-                })),
+                scores: students.map(s => {
+                    const scoreFields: Record<string, unknown> = { studentId: s.id };
+                    for (const col of assessmentColumns) { scoreFields[col.field] = s[col.field] ?? 0; }
+                    // Include component scores keyed by component ID
+                    const componentScores: Record<string, number> = {};
+                    for (const col of scoreColumns) {
+                        if (col.kind === "component" && col.componentId) {
+                            componentScores[col.componentId] = Number((s as any)[col.field]) || 0;
+                        }
+                    }
+                    scoreFields.componentScores = componentScores;
+                    return scoreFields;
+                }),
                 subjectId: selectedSubjectId,
                 termId: selectedTermId,
                 classArmId: selectedArmId
@@ -596,12 +650,14 @@ export default function ScoresClient({
         );
     });
 
-    // Helper: map assessment type to score field key
+    // Helper: map score columns for the column picker (skip read-only CA totals when components exist)
     const getColumnOptions = () => {
-        return assessmentColumns.map((type) => ({
-            key: type.field,
-            label: type.name,
-        }));
+        return scoreColumns
+            .filter(col => col.kind !== "ca-total")
+            .map((col) => ({
+                key: col.field,
+                label: col.name,
+            }));
     };
 
     const handleDownloadTemplate = () => {
@@ -1075,9 +1131,10 @@ export default function ScoresClient({
                                 <TableRow>
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
-                                    {assessmentColumns.map((type) => (
-                                        <TableHead key={type.id} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24">
-                                            {type.name} ({type.maxScore})
+                                    {scoreColumns.map((col) => (
+                                        <TableHead key={col.field} className={`px-2 py-3 text-center text-xs font-semibold uppercase w-24 ${col.kind === "component" ? "text-blue-500" : col.kind === "ca-total" ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}>
+                                            {col.name} ({col.maxScore})
+                                            {col.kind === "ca-total" && <span className="block text-gray-400 font-normal normal-case" style={{ fontSize: 9 }}>auto</span>}
                                         </TableHead>
                                     ))}
                                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
@@ -1088,7 +1145,7 @@ export default function ScoresClient({
                             <TableBody>
                                 {students.map((student, index) => {
                                     const displayTotal = student.adjustedTotal ?? student.total;
-                                    const showGradeAndRemark = shouldShowGradeAndRemark(student.exam || 0, assessmentTypes);
+                                    const showGradeAndRemark = shouldShowGradeAndRemark(Number(student.exam) || 0, assessmentTypes);
                                     const { color } = showGradeAndRemark
                                         ? calculateGrade(displayTotal)
                                         : { color: "bg-gray-100 text-gray-400" };
@@ -1099,18 +1156,29 @@ export default function ScoresClient({
                                                 <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
                                                 <div className="text-xs text-gray-400">{student.admissionNumber}</div>
                                             </TableCell>
-                                            {assessmentColumns.map((type) => {
+                                            {scoreColumns.map((col) => {
+                                                const rawVal = Number((student as any)[col.field]) || 0;
+                                                const displayVal = rawVal === 0 ? "" : rawVal.toFixed(1).replace(/\.0$/, "");
+                                                if (col.isReadOnly) {
+                                                    return (
+                                                        <TableCell key={col.field} className="px-2 py-3 bg-gray-50">
+                                                            <div className="w-full h-8 flex items-center justify-center text-sm font-semibold text-gray-700">
+                                                                {rawVal > 0 ? displayVal : "—"}
+                                                            </div>
+                                                        </TableCell>
+                                                    );
+                                                }
                                                 return (
-                                                    <TableCell key={type.id} className="px-2 py-3">
+                                                    <TableCell key={col.field} className="px-2 py-3">
                                                         <input
                                                             type="number"
                                                             step="0.1"
-                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
-                                                            value={student[type.field] === 0 ? "" : Number(student[type.field]).toFixed(1).replace(/\.0$/, "")}
+                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${col.kind === "component" ? "border-blue-200 bg-blue-50" : ""} ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
+                                                            value={displayVal}
                                                             placeholder="0"
-                                                            max={type.maxScore}
+                                                            max={col.maxScore}
                                                             disabled={!canEditScores}
-                                                            onChange={(e) => handleScoreChange(student.id, type.field, e.target.value)}
+                                                            onChange={(e) => handleScoreChange(student.id, col.field, e.target.value)}
                                                         />
                                                     </TableCell>
                                                 );
@@ -1255,7 +1323,7 @@ export default function ScoresClient({
                                         <TableBody>
                                             {parentPreviewData.students.map((student, index) => {
                                                 const displayTotal = student.adjustedTotal ?? student.total;
-                                                const showGradeAndRemark = shouldShowGradeAndRemark(student.exam || 0, parentPreviewData.assessmentTypes);
+                                                const showGradeAndRemark = shouldShowGradeAndRemark(Number(student.exam) || 0, parentPreviewData.assessmentTypes);
                                                 const { color } = showGradeAndRemark
                                                     ? calculateGrade(displayTotal)
                                                     : { color: "bg-gray-100 text-gray-400" };
@@ -1269,7 +1337,7 @@ export default function ScoresClient({
                                                         </TableCell>
                                                         {parentPreviewColumns.map((type) => (
                                                             <TableCell key={type.id} className="px-2 py-3 text-center text-sm font-medium text-slate-700">
-                                                                {student[type.field]}
+                                                                {String(student[type.field] ?? "")}
                                                             </TableCell>
                                                         ))}
                                                         <TableCell className="px-4 py-3 text-center">

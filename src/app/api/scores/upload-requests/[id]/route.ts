@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createUserNotification, getSchoolAdminUserIds } from "@/lib/userNotifications";
 import { publishNotificationRefresh } from "@/lib/realtimeNotifications";
-import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 import {
     recomputeCompositeParentScores,
     resolveSubjectScoreProfile,
@@ -37,8 +37,9 @@ function classLevelToCategory(level: string | undefined | null): string | null {
 // PATCH: Approve or reject an upload request
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -60,7 +61,7 @@ export async function PATCH(
         }
 
         const request = await prisma.scoreUploadRequest.findUnique({
-            where: { id: params.id },
+            where: { id: id },
         });
 
         if (!request) {
@@ -81,7 +82,7 @@ export async function PATCH(
         if (action === "reject") {
             const adminIds = await getSchoolAdminUserIds(request.schoolId);
             const updated = await prisma.scoreUploadRequest.update({
-                where: { id: params.id },
+                where: { id: id },
                 data: {
                     status: "REJECTED",
                     reviewedAt: new Date(),
@@ -175,13 +176,20 @@ export async function PATCH(
             },
         });
 
+        const approvalMappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+
         const upsertOps = scoreData.map((entry: any) => {
             const existing = existingScores.find(s => s.studentId === entry.studentId);
-            const ca1 = entry.ca1 ?? (existing ? Number(existing.ca1) : 0);
-            const ca2 = entry.ca2 ?? (existing ? Number(existing.ca2) : 0);
-            const ca3 = entry.ca3 ?? (existing ? Number(existing.ca3) : 0);
-            const exam = entry.exam ?? (existing ? Number(existing.exam) : 0);
-            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
+            const existingSv = (existing?.scoreValues ?? {}) as Record<string, unknown>;
+            const scoreValues: Record<string, number> = {};
+            for (const at of approvalMappedTypes) {
+                const uploaded = entry[at.field];
+                scoreValues[at.field] = uploaded !== undefined
+                    ? Number(uploaded)
+                    : Number(existingSv[at.field] ?? 0);
+            }
+            const exam = scoreValues["exam"] ?? 0;
+            const totals = calculateEndOfTermScoreTotals(scoreValues, assessmentTypes);
 
             const { grade, remark } = calculateGrade(totals.adjustedTotal, gradingRules);
 
@@ -194,10 +202,7 @@ export async function PATCH(
                     },
                 },
                 update: {
-                    ...(entry.ca1 !== undefined && { ca1: entry.ca1 }),
-                    ...(entry.ca2 !== undefined && { ca2: entry.ca2 }),
-                    ...(entry.ca3 !== undefined && { ca3: entry.ca3 }),
-                    ...(entry.exam !== undefined && { exam: entry.exam }),
+                    scoreValues,
                     total: totals.adjustedTotal,
                     grade,
                     remark,
@@ -209,10 +214,7 @@ export async function PATCH(
                     studentId: entry.studentId,
                     subjectId: request.subjectId,
                     termId: request.termId,
-                    ca1,
-                    ca2,
-                    ca3,
-                    exam,
+                    scoreValues,
                     total: totals.adjustedTotal,
                     grade,
                     remark,
@@ -249,7 +251,7 @@ export async function PATCH(
             ...upsertOps,
             ...reportCardOps,
             prisma.scoreUploadRequest.update({
-                where: { id: params.id },
+                where: { id: id },
                 data: {
                     status: "APPROVED",
                     reviewedAt: new Date(),
@@ -398,8 +400,9 @@ export async function PATCH(
 // GET: Get a single upload request with details
 export async function GET(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -415,7 +418,7 @@ export async function GET(
         }
 
         const request = await prisma.scoreUploadRequest.findUnique({
-            where: { id: params.id },
+            where: { id: id },
             include: {
                 uploader: { select: { firstName: true, lastName: true, email: true } },
                 subject: { select: { name: true, code: true } },

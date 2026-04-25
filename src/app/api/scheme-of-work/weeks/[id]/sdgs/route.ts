@@ -27,7 +27,8 @@ async function resolveWeekAccess(weekId: string, userId: string, schoolId: strin
 }
 
 // GET /api/scheme-of-work/weeks/[id]/sdgs
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         }
 
         const sdgs = await prisma.schemeOfWorkWeekSdg.findMany({
-            where: { weekId: params.id },
+            where: { weekId: id },
             orderBy: { sdgNumber: "asc" },
         });
 
@@ -56,7 +57,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // POST /api/scheme-of-work/weeks/[id]/sdgs — upsert an SDG entry
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -82,9 +84,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
 
         const sdg = await prisma.schemeOfWorkWeekSdg.upsert({
-            where: { weekId_sdgNumber: { weekId: params.id, sdgNumber } },
+            where: { weekId_sdgNumber: { weekId: id, sdgNumber } },
             create: {
-                weekId: params.id,
+                weekId: id,
                 sdgNumber,
                 aiSuggested: aiSuggested ?? false,
                 approved: approved ?? false,
@@ -103,7 +105,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // DELETE /api/scheme-of-work/weeks/[id]/sdgs?sdgNumber=N
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -115,7 +118,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -127,7 +130,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         }
 
         await prisma.schemeOfWorkWeekSdg.deleteMany({
-            where: { weekId: params.id, sdgNumber },
+            where: { weekId: id, sdgNumber },
         });
 
         return NextResponse.json({ message: "SDG removed" });

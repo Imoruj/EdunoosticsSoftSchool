@@ -73,7 +73,8 @@ function resolveSubjectAssignments(
     return normalizeSubjectAssignments(generatedAssignments);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -84,7 +85,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const actor = session.user as any;
 
         const schoolId = actor.schoolId;
-        const teacherId = params.id;
+        const teacherId = id;
         const body = await req.json();
         const {
             firstName,
@@ -303,7 +304,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -314,7 +316,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const actor = session.user as any;
 
         const schoolId = actor.schoolId;
-        const teacherId = params.id;
+        const teacherId = id;
 
         // Verify the teacher belongs to the same school
         const existingTeacher = await prisma.user.findFirst({

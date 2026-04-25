@@ -22,7 +22,7 @@ export const WebDynamicReportTemplate: React.FC<WebDynamicReportTemplateProps> =
             ? { ...rawDisplayOptions, showTermHistory: false, showExam: false, showGrade: false, showRemarks: false, showPromotionStatus: false }
             : rawDisplayOptions;
         const sectionStyle = (displayOptions as any).sectionStyles?.global || {};
-        const baseProps = { displayOptions, sectionStyle, reportType: data.reportType };
+        const baseProps = { displayOptions, sectionStyle, reportType: data.reportType, assessmentTypes: data.config?.assessmentTypes || [] };
 
         switch (componentId) {
             case "SchoolLogo": return { ...baseProps, school: data.school };

@@ -109,12 +109,8 @@ export class CompositeNotFoundError extends Error {
     }
 }
 
-const ZERO_FIELD_TOTALS: Record<ScoreFieldKey, number> = {
-    ca1: 0,
-    ca2: 0,
-    ca3: 0,
-    exam: 0,
-};
+// Composite score slots: fixed 4 positional fields for composite subject aggregation
+const COMPOSITE_SCORE_FIELDS = ["ca1", "ca2", "ca3", "exam"] as const;
 
 function roundCompositeMax(value: number) {
     return Math.round(value * 100) / 100;
@@ -452,7 +448,7 @@ export async function resolveSubjectScoreProfile(db: any, params: ResolveSubject
         };
     }
 
-    const fieldOverrides: Record<ScoreFieldKey, number> = {
+    const fieldOverrides: Record<string, number> = {
         ca1: context.component.ca1Max,
         ca2: context.component.ca2Max,
         ca3: context.component.ca3Max,
@@ -462,7 +458,7 @@ export async function resolveSubjectScoreProfile(db: any, params: ResolveSubject
     const mappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
     const overridden = mappedTypes.map(({ field, ...type }) => ({
         ...type,
-        maxScore: fieldOverrides[field],
+        maxScore: fieldOverrides[field] ?? 0,
     }));
 
     return {
@@ -479,7 +475,7 @@ export function buildSubjectAssessmentTotals(
     const parentMaxByField = new Map<ScoreFieldKey, number>();
     mappedTypes.forEach((type) => parentMaxByField.set(type.field, roundCompositeMax(Number(type.maxScore) || 0)));
 
-    const componentTotals: Record<ScoreFieldKey, number> = { ...ZERO_FIELD_TOTALS };
+    const componentTotals: Record<string, number> = { ca1: 0, ca2: 0, ca3: 0, exam: 0 };
     components.forEach((component) => {
         componentTotals.ca1 = roundCompositeMax(componentTotals.ca1 + (Number(component.ca1Max) || 0));
         componentTotals.ca2 = roundCompositeMax(componentTotals.ca2 + (Number(component.ca2Max) || 0));
@@ -498,7 +494,7 @@ export function validateCompositeComponentMaxima(
     components: Array<Pick<CompositeComponentDefinition, "componentSubjectId" | "ca1Max" | "ca2Max" | "ca3Max" | "examMax">>
 ) {
     const { parentMaxByField, componentTotals } = buildSubjectAssessmentTotals(parentAssessmentTypes, components as any);
-    const fields: ScoreFieldKey[] = ["ca1", "ca2", "ca3", "exam"];
+    const fields = COMPOSITE_SCORE_FIELDS;
 
     for (const field of fields) {
         const parentMax = parentMaxByField.get(field);
@@ -1307,10 +1303,7 @@ export async function recomputeCompositeParentScores(db: any, params: RecomputeC
         select: {
             studentId: true,
             subjectId: true,
-            ca1: true,
-            ca2: true,
-            ca3: true,
-            exam: true,
+            scoreValues: true,
         },
     });
 
@@ -1324,12 +1317,15 @@ export async function recomputeCompositeParentScores(db: any, params: RecomputeC
 
     const upsertOperations = targetStudentIds.map((studentId) => {
         const parts = scoresByStudent.get(studentId) || [];
-        const totals = parts.reduce((acc: typeof ZERO_FIELD_TOTALS, score: any) => ({
-            ca1: acc.ca1 + Number(score.ca1 || 0),
-            ca2: acc.ca2 + Number(score.ca2 || 0),
-            ca3: acc.ca3 + Number(score.ca3 || 0),
-            exam: acc.exam + Number(score.exam || 0),
-        }), { ...ZERO_FIELD_TOTALS });
+        const totals = parts.reduce((acc: Record<string, number>, score: any) => {
+            const sv = (score.scoreValues ?? {}) as Record<string, unknown>;
+            return {
+                ca1: acc.ca1 + Number(sv["ca1"] ?? 0),
+                ca2: acc.ca2 + Number(sv["ca2"] ?? 0),
+                ca3: acc.ca3 + Number(sv["ca3"] ?? 0),
+                exam: acc.exam + Number(sv["exam"] ?? 0),
+            };
+        }, { ca1: 0, ca2: 0, ca3: 0, exam: 0 });
 
         const totalSummary = calculateEndOfTermScoreTotals(totals, parentAssessmentTypes);
         const { grade, remark } = calculateGrade(totalSummary.adjustedTotal, gradingRules);
@@ -1343,10 +1339,7 @@ export async function recomputeCompositeParentScores(db: any, params: RecomputeC
                 },
             },
             update: {
-                ca1: totals.ca1,
-                ca2: totals.ca2,
-                ca3: totals.ca3,
-                exam: totals.exam,
+                scoreValues: totals,
                 total: totalSummary.adjustedTotal,
                 grade,
                 remark,
@@ -1358,10 +1351,7 @@ export async function recomputeCompositeParentScores(db: any, params: RecomputeC
                 studentId,
                 subjectId: compositeConfig.parentSubjectId,
                 termId: params.termId,
-                ca1: totals.ca1,
-                ca2: totals.ca2,
-                ca3: totals.ca3,
-                exam: totals.exam,
+                scoreValues: totals,
                 total: totalSummary.adjustedTotal,
                 grade,
                 remark,

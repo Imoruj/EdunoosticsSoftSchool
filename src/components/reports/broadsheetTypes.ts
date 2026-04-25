@@ -17,8 +17,7 @@ export interface BroadsheetDisplayOptions {
     showClassInfo?: boolean;
     show1stTerm?: boolean;
     show2ndTerm?: boolean;
-    showCA1?: boolean;
-    showCA2?: boolean;
+    showAssessmentScores?: boolean;
     showDMAT?: boolean;
     showExam?: boolean;
     showSubjectTotal?: boolean;
@@ -45,9 +44,7 @@ export interface BroadsheetSubject {
 
 export interface BroadsheetStudentScore {
     subjectId: string;
-    ca1: number;
-    ca2: number;
-    ca3: number;
+    scoreValues: Record<string, number>;
     caTotal: number;
     exam: number;
     total: number;
@@ -79,14 +76,20 @@ export interface BroadsheetSummary {
 export interface BroadsheetConfig {
     activeTemplate: string;
     colorScheme: string;
-    showCA1: boolean;
-    showCA2: boolean;
+    showAssessmentScores: boolean;
     showExam: boolean;
     showSubjectTotal: boolean;
     showGrade: boolean;
     showPosition: boolean;
     customTitles?: Record<string, string>;
     displayOptions?: BroadsheetDisplayOptions;
+}
+
+export interface BroadsheetAssessmentType {
+    name: string;
+    shortName?: string;
+    maxScore: number;
+    field: string;
 }
 
 export interface BroadsheetData {
@@ -111,11 +114,7 @@ export interface BroadsheetData {
         level?: string;
     };
     reportType: "halfTerm" | "endOfTerm";
-    assessmentTypes: {
-        name: string;
-        shortName?: string;
-        maxScore: number;
-    }[];
+    assessmentTypes: BroadsheetAssessmentType[];
     subjects: BroadsheetSubject[];
     students: BroadsheetStudent[];
     summary: BroadsheetSummary;

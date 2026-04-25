@@ -84,6 +84,8 @@ export interface SubjectData {
     ca3?: number;
     exam?: number;
     total: number;
+    componentScores?: Record<string, number>; // keyed by component ID
+    [field: string]: unknown;
     cumulativeTotal1?: number; // Term 1 Total
     cumulativeTotal2?: number; // Term 2 Total
     subjectClassAverage?: number;
@@ -137,6 +139,7 @@ export interface ReportConfig {
     customLayout?: LayoutConfig;
     displayOptions?: any;
     assessmentTypeNames?: Record<string, string | undefined>;
+    assessmentTypes?: { field: string; name: string; maxScore: number; components?: { id: string; name: string; maxScore: number }[] }[];
 }
 
 export interface ReportCardData {

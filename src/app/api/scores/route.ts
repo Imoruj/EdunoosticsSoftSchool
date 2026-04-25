@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { createUserNotification } from "@/lib/userNotifications";
 import { checkCsrf } from "@/lib/csrf";
-import { calculateEndOfTermScoreTotals, getAssessmentTypeForField } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 import {
     recomputeCompositeParentScores,
     resolveCompositeSubjectContext,
@@ -279,10 +279,8 @@ export async function GET(req: NextRequest) {
                     },
                     select: {
                         id: true,
-                        ca1: true,
-                        ca2: true,
-                        ca3: true,
-                        exam: true,
+                        scoreValues: true,
+                        componentScores: true,
                         subjectId: true,
                         termId: true,
                         studentId: true,
@@ -330,27 +328,35 @@ export async function GET(req: NextRequest) {
             ? categoryRules
             : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
+        const mappedAssessmentTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+
         // Map to a cleaner format for the frontend
         const data = students.map((student: any) => {
             const score = student.scores[0]; // Should be only one score per subject/term
-            const ca1 = score?.ca1 ? Number(score.ca1) : 0;
-            const ca2 = score?.ca2 ? Number(score.ca2) : 0;
-            const ca3 = score?.ca3 ? Number(score.ca3) : 0;
-            const exam = score?.exam ? Number(score.exam) : 0;
-            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
+            const rawScoreValues = (score?.scoreValues ?? {}) as Record<string, unknown>;
+            const scoreValues: Record<string, number> = {};
+            for (const at of mappedAssessmentTypes) {
+                scoreValues[at.field] = Number(rawScoreValues[at.field] ?? 0);
+            }
+            const exam = scoreValues["exam"] ?? 0;
+            const totals = calculateEndOfTermScoreTotals(scoreValues, assessmentTypes);
             const { grade, remark } = shouldShowGradeAndRemark(exam, assessmentTypes)
                 ? calculateGrade(totals.adjustedTotal, gradingRules)
                 : { grade: "", remark: "" };
+
+            const rawComponentScores = (score?.componentScores ?? {}) as Record<string, unknown>;
+            const componentScores: Record<string, number> = {};
+            for (const [k, v] of Object.entries(rawComponentScores)) {
+                componentScores[k] = Number(v) || 0;
+            }
 
             return {
                 id: student.id,
                 firstName: student.firstName,
                 lastName: student.lastName,
                 admissionNumber: student.admissionNumber,
-                ca1,
-                ca2,
-                ca3,
-                exam,
+                ...scoreValues,
+                componentScores,
                 total: totals.rawTotal,
                 adjustedTotal: totals.adjustedTotal,
                 isAdjusted: totals.isAdjusted,
@@ -640,19 +646,30 @@ export async function POST(req: NextRequest) {
             ? categoryRules
             : allGradingRules.filter(r => r.schoolCategory === null);
 
+        const postMappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+
         // Execute queries in a transaction
         // Loop through scores and upsert each one
         const scoreOps = scores.map((item: any) => {
-            const ca1 = Number(item.ca1) || 0;
-            const ca2 = Number(item.ca2) || 0;
-            const ca3 = Number(item.ca3) || 0;
-            const exam = Number(item.exam) || 0;
-            const totals = calculateEndOfTermScoreTotals({ ca1, ca2, ca3, exam }, assessmentTypes);
+            const scoreValues: Record<string, number> = {};
+            for (const at of postMappedTypes) {
+                scoreValues[at.field] = Number(item[at.field]) || 0;
+            }
+            const exam = scoreValues["exam"] ?? 0;
+            const totals = calculateEndOfTermScoreTotals(scoreValues, assessmentTypes);
 
             // Use adjusted total for grading
             const { grade, remark } = shouldShowGradeAndRemark(exam, assessmentTypes)
                 ? calculateGrade(totals.adjustedTotal, gradingRules)
                 : { grade: null, remark: null };
+
+            // Extract component scores from payload (keyed by component ID)
+            const componentScores: Record<string, number> = {};
+            if (item.componentScores && typeof item.componentScores === "object") {
+                for (const [k, v] of Object.entries(item.componentScores)) {
+                    componentScores[k] = Number(v) || 0;
+                }
+            }
 
             return prisma.score.upsert({
                 where: {
@@ -663,10 +680,8 @@ export async function POST(req: NextRequest) {
                     },
                 },
                 update: {
-                    ca1,
-                    ca2,
-                    ca3,
-                    exam,
+                    scoreValues,
+                    componentScores,
                     total: totals.adjustedTotal,
                     grade,
                     remark,
@@ -678,10 +693,8 @@ export async function POST(req: NextRequest) {
                     studentId: item.studentId || item.id,
                     subjectId: subjectId,
                     termId: termId,
-                    ca1,
-                    ca2,
-                    ca3,
-                    exam,
+                    scoreValues,
+                    componentScores,
                     total: totals.adjustedTotal,
                     grade,
                     remark,

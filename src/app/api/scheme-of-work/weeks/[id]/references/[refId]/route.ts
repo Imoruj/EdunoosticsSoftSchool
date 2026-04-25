@@ -29,8 +29,9 @@ async function resolveWeekAccess(weekId: string, userId: string, schoolId: strin
 // DELETE /api/scheme-of-work/weeks/[id]/references/[refId]
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string; refId: string } }
+    { params }: { params: Promise<{ id: string; refId: string }> }
 ) {
+    const { id, refId } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -42,18 +43,18 @@ export async function DELETE(
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
         const ref = await prisma.schemeOfWorkWeekReference.findFirst({
-            where: { id: params.refId, weekId: params.id },
+            where: { id: refId, weekId: id },
         });
         if (!ref) return NextResponse.json({ error: "Reference not found" }, { status: 404 });
 
-        await prisma.schemeOfWorkWeekReference.delete({ where: { id: params.refId } });
+        await prisma.schemeOfWorkWeekReference.delete({ where: { id: refId } });
         await prisma.schemeOfWork.update({ where: { id: sow.id }, data: { updatedAt: new Date() } });
 
         return NextResponse.json({ message: "Reference deleted" });

@@ -6,10 +6,10 @@ import ReportCardDocument from "@/components/reports/ReportCardDocument";
 import { resolveTemplateForTerm, resolveClassArmOverride } from "@/lib/templateResolver";
 import React from "react";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, getAssessmentTypeSummary } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, getAssessmentTypeSummary, mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 import { scaleAttendanceSummaryToPoints } from "@/lib/attendance-points";
 import { normalizeSignatureSource } from "@/lib/signature-images";
-import { getScoreFieldNumber, getHalfTermSummaryFromScores, getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
+import { getScoreFieldNumber, getScoreValuesFromRecord, getHalfTermSummaryFromScores, getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
 
 const SCHOOL_TIMEZONE = "Africa/Lagos";
 
@@ -522,11 +522,14 @@ export async function generateReportCardData(
         }
 
         if (!scoresBySubject[s.subjectId]) scoresBySubject[s.subjectId] = [];
+        const sv = getScoreValuesFromRecord(s.scoreValues);
         const scoreValue = reportType === "halfTerm"
-            ? s.ca1.toNumber()
+            ? (sv["ca1"] ?? 0)
             : getEndOfTermScoreMetrics(s, assessmentTypes).adjustedTotal;
         scoresBySubject[s.subjectId].push(scoreValue);
     });
+
+    const singleMappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
 
     // Helper for ordinals (1st, 2nd, 3rd...)
     const getOrdinal = (n: number) => {
@@ -579,25 +582,42 @@ export async function generateReportCardData(
                 const subjectScores = scoresBySubject[s.subjectId] || [];
                 const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
 
-                const caTotal = s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber();
+                const rawSv = getScoreValuesFromRecord(s.scoreValues);
+                const caTotal = singleMappedTypes
+                    .filter(at => at.field !== "exam")
+                    .reduce((sum, at) => sum + (rawSv[at.field] ?? 0), 0);
                 const endOfTermMetrics = getEndOfTermScoreMetrics(s, assessmentTypes);
-                const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
+                const studentScoreValue = reportType === "halfTerm" ? (rawSv["ca1"] ?? 0) : endOfTermMetrics.adjustedTotal;
 
                 // Rank by the live subject totals for enrolled students in this subject.
                 const rank = getSubjectRank(subjectScores, studentScoreValue);
                 const { min: minScore, max: maxScore } = getArrayMinMax(subjectScores);
-                const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
-                const totalScore = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
+                const examScore = reportType === "halfTerm" ? undefined : (rawSv["exam"] ?? 0);
+                const totalScore = reportType === "halfTerm" ? (rawSv["ca1"] ?? 0) : endOfTermMetrics.adjustedTotal;
                 const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, gradingRules);
+
+                // Build per-assessment-type score fields for the template (ca1, ca2, ..., exam)
+                const scoreFields: Record<string, number> = {};
+                for (const at of singleMappedTypes) {
+                    scoreFields[at.field] = rawSv[at.field] ?? 0;
+                }
+
+                // Include component scores (keyed by component ID)
+                const rawComponentScores = (s as any).componentScores;
+                const componentScores: Record<string, number> = {};
+                if (rawComponentScores && typeof rawComponentScores === "object") {
+                    for (const [k, v] of Object.entries(rawComponentScores)) {
+                        componentScores[k] = Number(v) || 0;
+                    }
+                }
 
                 return {
                     id: s.subjectId,
                     name: s.subject.name,
                     category: s.subject.category,
-                    ca: reportType === "halfTerm" ? s.ca1.toNumber() : caTotal,
-                    ca1: s.ca1.toNumber(),
-                    ca2: s.ca2.toNumber(),
-                    ca3: s.ca3.toNumber(),
+                    ca: reportType === "halfTerm" ? (rawSv["ca1"] ?? 0) : caTotal,
+                    ...scoreFields,
+                    componentScores,
                     exam: examScore,
                     total: totalScore,
                     cumulativeTotal1: reportType === "halfTerm" ? undefined : (term1Score ? getEndOfTermScoreMetrics(term1Score, assessmentTypes).adjustedTotal : undefined),
@@ -669,12 +689,15 @@ export async function generateReportCardData(
             customTitles: customTemplateEntry?.customTitles || config.customTitles || undefined,
             customLayout: resolvedCustomLayout,
             displayOptions: resolvedDisplayOptions || (config as any).displayOptions,
-            assessmentTypeNames: assessmentTypes.length > 0 ? {
-                ca1: caTypes[0]?.name,
-                ca2: caTypes[1]?.name,
-                ca3: caTypes[2]?.name,
-                exam: examType?.name,
-            } : undefined,
+            assessmentTypeNames: assessmentTypes.length > 0
+                ? Object.fromEntries(singleMappedTypes.map(at => [at.field, at.name]))
+                : undefined,
+            assessmentTypes: singleMappedTypes.map(at => ({
+                field: at.field,
+                name: at.name,
+                maxScore: at.maxScore,
+                components: (at as any).components?.map((c: any) => ({ id: c.id, name: c.name, maxScore: c.maxScore })),
+            })),
         } : undefined,
         reportType
     });
@@ -975,8 +998,9 @@ export async function bulkGenerateReportCardData(
         if (!scoresByClassAndSubject[cArmId][s.subjectId]) scoresByClassAndSubject[cArmId][s.subjectId] = [];
 
         const classAssessmentTypes = assessmentTypesByClassArm.get(cArmId) || defaultAssessmentTypes;
+        const svBulk = getScoreValuesFromRecord(s.scoreValues);
         const scoreValue = reportType === "halfTerm"
-            ? s.ca1.toNumber()
+            ? (svBulk["ca1"] ?? 0)
             : getEndOfTermScoreMetrics(s, classAssessmentTypes).adjustedTotal;
         scoresByClassAndSubject[cArmId][s.subjectId].push(scoreValue);
     });
@@ -1024,8 +1048,7 @@ export async function bulkGenerateReportCardData(
         const studentAssessmentTypes = effectiveClassArmId
             ? (assessmentTypesByClassArm.get(effectiveClassArmId) || defaultAssessmentTypes)
             : defaultAssessmentTypes;
-        const studentCaTypes = studentAssessmentTypes.filter((type) => !type.name.toLowerCase().includes("exam"));
-        const studentExamType = studentAssessmentTypes.find((type) => type.name.toLowerCase().includes("exam"));
+        const studentMappedTypes = mapAssessmentTypesToScoreFields(studentAssessmentTypes);
         const studentAssessmentSummary = getAssessmentTypeSummary(studentAssessmentTypes);
 
         // Per-student template: check class override first, then fall back to global
@@ -1132,24 +1155,27 @@ export async function bulkGenerateReportCardData(
                     const subjectScores = scoresBySubject[s.subjectId] || [];
                     const avg = subjectScores.length > 0 ? subjectScores.reduce((a, b) => a + b, 0) / subjectScores.length : 0;
 
-                    const caTotal = s.ca1.toNumber() + s.ca2.toNumber() + s.ca3.toNumber();
+                    const rawSvBulk = getScoreValuesFromRecord(s.scoreValues);
+                    const scoreFieldsBulk: Record<string, number> = {};
+                    for (const at of studentMappedTypes) {
+                        scoreFieldsBulk[at.field] = rawSvBulk[at.field] ?? 0;
+                    }
+                    const caTotalBulk = studentMappedTypes.filter(t => t.field !== "exam").reduce((sum, t) => sum + scoreFieldsBulk[t.field], 0);
                     const endOfTermMetrics = getEndOfTermScoreMetrics(s, studentAssessmentTypes);
-                    const studentScoreValue = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
+                    const studentScoreValue = reportType === "halfTerm" ? (rawSvBulk["ca1"] ?? 0) : endOfTermMetrics.adjustedTotal;
 
                     const rank = getSubjectRank(subjectScores, studentScoreValue);
                     const { min: minScore, max: maxScore } = getArrayMinMax(subjectScores);
-                    const examScore = reportType === "halfTerm" ? undefined : s.exam.toNumber();
-                    const totalScore = reportType === "halfTerm" ? s.ca1.toNumber() : endOfTermMetrics.adjustedTotal;
+                    const examScore = reportType === "halfTerm" ? undefined : (scoreFieldsBulk["exam"] ?? 0);
+                    const totalScore = reportType === "halfTerm" ? (rawSvBulk["ca1"] ?? 0) : endOfTermMetrics.adjustedTotal;
                     const gradeDetails = reportType === "halfTerm" ? undefined : calculateGrade(endOfTermMetrics.adjustedTotal, studentGradingRules);
 
                     return {
                         id: s.subjectId,
                         name: s.subject.name,
                         category: s.subject.category,
-                        ca: reportType === "halfTerm" ? s.ca1.toNumber() : caTotal,
-                        ca1: s.ca1.toNumber(),
-                        ca2: s.ca2.toNumber(),
-                        ca3: s.ca3.toNumber(),
+                        ca: reportType === "halfTerm" ? (rawSvBulk["ca1"] ?? 0) : caTotalBulk,
+                        ...scoreFieldsBulk,
                         exam: examScore,
                         total: totalScore,
                         cumulativeTotal1: reportType === "halfTerm" ? undefined : (term1Score ? getEndOfTermScoreMetrics(term1Score, studentAssessmentTypes).adjustedTotal : undefined),
@@ -1221,12 +1247,10 @@ export async function bulkGenerateReportCardData(
                 customTitles: studentCustomTemplateEntry?.customTitles || config.customTitles || undefined,
                 customLayout: studentCustomLayout,
                 displayOptions: studentDisplayOptions || (config as any).displayOptions,
-                assessmentTypeNames: studentAssessmentTypes.length > 0 ? {
-                    ca1: studentCaTypes[0]?.name,
-                    ca2: studentCaTypes[1]?.name,
-                    ca3: studentCaTypes[2]?.name,
-                    exam: studentExamType?.name,
-                } : undefined,
+                assessmentTypeNames: studentAssessmentTypes.length > 0
+                    ? Object.fromEntries(studentMappedTypes.map(at => [at.field, at.name]))
+                    : undefined,
+                assessmentTypes: studentMappedTypes.map(at => ({ field: at.field, name: at.name, maxScore: at.maxScore })),
             } : undefined,
             reportType
         });

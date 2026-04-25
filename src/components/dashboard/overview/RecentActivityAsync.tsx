@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 import { RecentActivityFeed } from "./RecentActivityFeed";
 
-type RecentScore = Prisma.ScoreGetPayload<{ include: { student: true, subject: true } }>;
+type RecentScore = { updatedAt: Date; student: { firstName: string; lastName: string }; subject: { name: string } };
 type RecentAttendance = Prisma.AttendanceGetPayload<{ include: { classArm: { include: { class: true } } } }>;
 type RecentClassReportWorkflow = Prisma.ClassReportWorkflowGetPayload<{ include: { classArm: { include: { class: true } } } }>;
 
@@ -174,7 +174,11 @@ export async function RecentActivityAsync({ schoolId, userId, isAdmin, isTeacher
                             },
                             orderBy: { updatedAt: "desc" },
                             take: 5,
-                            include: { student: true, subject: true },
+                            select: {
+                                updatedAt: true,
+                                student: { select: { firstName: true, lastName: true } },
+                                subject: { select: { name: true } },
+                            },
                         }),
                         prisma.classReportWorkflow.findMany({
                             where: {
@@ -235,7 +239,11 @@ export async function RecentActivityAsync({ schoolId, userId, isAdmin, isTeacher
                             },
                             orderBy: { updatedAt: "desc" },
                             take: 5,
-                            include: { student: true, subject: true },
+                            select: {
+                                updatedAt: true,
+                                student: { select: { firstName: true, lastName: true } },
+                                subject: { select: { name: true } },
+                            },
                         }),
                         prisma.classReportWorkflow.findMany({
                             where: {

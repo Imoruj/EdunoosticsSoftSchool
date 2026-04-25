@@ -1,4 +1,4 @@
-import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, AssessmentTypeLike } from "@/lib/assessment-types";
+import { calculateEndOfTermScoreTotals, getAssessmentTypeForField, mapAssessmentTypesToScoreFields, AssessmentTypeLike } from "@/lib/assessment-types";
 
 export { getAssessmentTypeForField };
 
@@ -10,13 +10,25 @@ export function getScoreFieldNumber(value: { toNumber?: () => number } | number 
     return Number(value || 0);
 }
 
+export function getScoreValuesFromRecord(scoreValues: unknown): Record<string, number> {
+    if (!scoreValues || typeof scoreValues !== "object" || Array.isArray(scoreValues)) return {};
+    const result: Record<string, number> = {};
+    for (const [k, v] of Object.entries(scoreValues as Record<string, unknown>)) {
+        result[k] = Number(v ?? 0);
+    }
+    return result;
+}
+
 export function getHalfTermSummaryFromScores(
-    scores: Array<{ ca1: any }>,
+    scores: Array<{ scoreValues?: unknown }>,
     assessmentTypes: AssessmentTypeLike[]
 ) {
     const ca1Type = getAssessmentTypeForField(assessmentTypes, "ca1");
     const maxPerSubject = Number(ca1Type?.maxScore) > 0 ? Number(ca1Type?.maxScore) : 10;
-    const totalScore = scores.reduce((acc, curr) => acc + getScoreFieldNumber(curr.ca1), 0);
+    const totalScore = scores.reduce((acc, curr) => {
+        const sv = getScoreValuesFromRecord(curr.scoreValues);
+        return acc + (sv["ca1"] ?? 0);
+    }, 0);
     const n = scores.length;
     const totalObtainable = n * maxPerSubject;
     const average = totalObtainable > 0 ? (totalScore / totalObtainable) * 100 : 0;
@@ -24,20 +36,15 @@ export function getHalfTermSummaryFromScores(
 }
 
 export function getEndOfTermScoreMetrics(
-    score: {
-        ca1?: any;
-        ca2?: any;
-        ca3?: any;
-        exam?: any;
-    },
+    score: { scoreValues?: unknown },
     assessmentTypes: AssessmentTypeLike[]
 ) {
-    const values = {
-        ca1: getScoreFieldNumber(score.ca1),
-        ca2: getScoreFieldNumber(score.ca2),
-        ca3: getScoreFieldNumber(score.ca3),
-        exam: getScoreFieldNumber(score.exam),
-    };
+    const mappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+    const rawSv = getScoreValuesFromRecord(score.scoreValues);
+    const values: Record<string, number> = {};
+    for (const at of mappedTypes) {
+        values[at.field] = rawSv[at.field] ?? 0;
+    }
 
     return {
         ...values,

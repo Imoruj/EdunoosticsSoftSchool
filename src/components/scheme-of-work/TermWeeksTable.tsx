@@ -45,12 +45,14 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
     const handleSaved = (week: Week) => {
         const exists = weeks.find((w) => w.id === week.id);
         if (exists) {
+            // Edit mode — update in place and close
             onWeeksChange(weeks.map((w) => (w.id === week.id ? week : w)));
+            setModalOpen(false);
+            setEditingWeek(null);
         } else {
+            // Add mode — append week but keep modal open for next entry
             onWeeksChange([...weeks, week]);
         }
-        setModalOpen(false);
-        setEditingWeek(null);
     };
 
     const handleDelete = async (weekId: string) => {
@@ -108,9 +110,23 @@ export function TermWeeksTable({ termName, schemeOfWorkTermId, weeks, canEdit, o
                                         </td>
                                         <td className="px-4 py-3 text-gray-900 font-medium">{week.topic}</td>
                                         <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
-                                            {week.content
-                                                ? <span className="line-clamp-1">{week.content.split("\n")[0]}</span>
-                                                : <span className="text-gray-300 italic">No content yet</span>}
+                                            {week.content ? (() => {
+                                                const lines = week.content.split("\n").filter(l => l.trim());
+                                                const preview = lines.slice(0, 3);
+                                                return (
+                                                    <div className="space-y-0.5">
+                                                        {preview.map((line, i) => (
+                                                            <div key={i} className="flex items-baseline gap-1.5 text-xs leading-5">
+                                                                <span className="shrink-0 text-gray-300 font-mono">{i + 1}.</span>
+                                                                <span className="text-gray-600 line-clamp-1">{line}</span>
+                                                            </div>
+                                                        ))}
+                                                        {lines.length > 3 && (
+                                                            <div className="text-xs text-gray-400 italic pl-4">+{lines.length - 3} more…</div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })() : <span className="text-gray-300 italic text-xs">No content yet</span>}
                                         </td>
                                         <td className="px-4 py-3">
                                             {canEdit && (

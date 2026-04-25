@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             return NextResponse.json({ error: "Admin access required" }, { status: 403 });
         }
 
-        const sow = await prisma.schemeOfWork.findFirst({ where: { id: params.id, schoolId } });
+        const sow = await prisma.schemeOfWork.findFirst({ where: { id: id, schoolId } });
         if (!sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (sow.status !== SowStatus.SUBMITTED) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
 
         const updated = await prisma.schemeOfWork.update({
-            where: { id: params.id },
+            where: { id: id },
             data: { status: SowStatus.REJECTED, adminNote: adminNote.trim(), approvedById: null, approvedAt: null },
         });
 

@@ -8,7 +8,7 @@ import BroadsheetTermMappingSettings from "@/components/settings/BroadsheetTermM
 import AICommentSettings from "@/components/settings/AICommentSettings";
 import SuccessModal from "@/components/ui/SuccessModal";
 import { GradingCategory, GradingPreset, getPresetLabel, getPresetOptionsForCategory, isPresetAllowedForCategory } from "@/lib/gradingPresets";
-import { getAssessmentTypeSummary, MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES, MAX_CONTINUOUS_ASSESSMENT_TYPES } from "@/lib/assessment-types";
+import { getAssessmentTypeSummary } from "@/lib/assessment-types";
 import { handleUnauthorizedApiResponse, readApiError } from "@/lib/client-session";
 
 type TermKey = "first" | "second" | "third";
@@ -84,6 +84,13 @@ interface SchoolData {
     allowStudentEmailLogin: boolean;
 }
 
+interface AssessmentTypeComponentConfig {
+    id: string;
+    name: string;
+    maxScore: number;
+    order: number;
+}
+
 interface AssessmentTypeConfig {
     id: string;
     name: string;
@@ -91,6 +98,7 @@ interface AssessmentTypeConfig {
     order: number;
     shortName?: string | null;
     includeInTotal?: boolean;
+    components?: AssessmentTypeComponentConfig[];
 }
 
 interface AssessmentTypeDraft {
@@ -1509,8 +1517,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
             </div>
 
             <p className="text-xs text-gray-500">
-                Each class can use up to {MAX_CLASS_SPECIFIC_ASSESSMENT_TYPES} score components total:
-                {" "}up to {MAX_CONTINUOUS_ASSESSMENT_TYPES} CA components and 1 exam.
+                Add as many CA components as needed. Only 1 exam component is allowed per class.
             </p>
 
             {loadingClasses ? (
@@ -1720,11 +1727,157 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
     );
 }
 
+function SubComponentsEditor({
+    assessmentType,
+    onComponentsChange,
+}: {
+    assessmentType: AssessmentTypeConfig;
+    onComponentsChange: (id: string, components: AssessmentTypeComponentConfig[]) => void;
+}) {
+    const [components, setComponents] = useState<AssessmentTypeComponentConfig[]>(assessmentType.components || []);
+    const [newComp, setNewComp] = useState({ name: "", maxScore: "" });
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+
+    const usedScore = components.reduce((sum, c) => sum + c.maxScore, 0);
+    const remaining = assessmentType.maxScore - usedScore;
+
+    const refresh = (updated: AssessmentTypeComponentConfig[]) => {
+        setComponents(updated);
+        onComponentsChange(assessmentType.id, updated);
+    };
+
+    const addComponent = async () => {
+        const name = newComp.name.trim();
+        const maxScore = Number(newComp.maxScore);
+        if (!name || !maxScore) { setError("Name and max score required"); return; }
+        setSaving(true); setError("");
+        try {
+            const res = await fetch(`/api/assessment-types/${assessmentType.id}/components`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, maxScore, order: components.length }),
+            });
+            if (res.ok) {
+                const created = await res.json();
+                const updated = [...components, created];
+                refresh(updated);
+                setNewComp({ name: "", maxScore: "" });
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setError(err.error || "Failed to add component");
+            }
+        } catch { setError("Failed to add component"); }
+        finally { setSaving(false); }
+    };
+
+    const updateComponent = async (compId: string) => {
+        const nameEl = document.getElementById(`comp-name-${compId}`) as HTMLInputElement;
+        const scoreEl = document.getElementById(`comp-score-${compId}`) as HTMLInputElement;
+        const name = nameEl?.value.trim();
+        const maxScore = Number(scoreEl?.value);
+        if (!name || !maxScore) { setError("Name and max score required"); return; }
+        setSaving(true); setError("");
+        try {
+            const res = await fetch(`/api/assessment-types/${assessmentType.id}/components`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ componentId: compId, name, maxScore }),
+            });
+            if (res.ok) {
+                const updated_comp = await res.json();
+                const updated = components.map(c => c.id === compId ? updated_comp : c);
+                refresh(updated);
+                setEditingId(null);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setError(err.error || "Failed to update");
+            }
+        } catch { setError("Failed to update"); }
+        finally { setSaving(false); }
+    };
+
+    const deleteComponent = async (compId: string) => {
+        setSaving(true); setError("");
+        try {
+            const res = await fetch(`/api/assessment-types/${assessmentType.id}/components`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ componentId: compId }),
+            });
+            if (res.ok) {
+                const updated = components.filter(c => c.id !== compId);
+                refresh(updated);
+            } else {
+                setError("Failed to delete");
+            }
+        } catch { setError("Failed to delete"); }
+        finally { setSaving(false); }
+    };
+
+    return (
+        <div className="mt-2 ml-4 pl-3 border-l-2 border-primary-200 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span className="font-medium text-gray-700">Sub-components</span>
+                <span>— sum must not exceed {assessmentType.maxScore} pts</span>
+                <span className={`font-semibold ml-auto ${usedScore > assessmentType.maxScore ? "text-red-600" : usedScore === assessmentType.maxScore ? "text-green-600" : "text-amber-600"}`}>
+                    {usedScore}/{assessmentType.maxScore} pts used
+                </span>
+            </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            {components.map(comp => (
+                <div key={comp.id} className="flex items-center gap-2 bg-white rounded px-2 py-1.5 border border-gray-200 text-sm">
+                    {editingId === comp.id ? (
+                        <>
+                            <input id={`comp-name-${comp.id}`} type="text" className="input flex-1 py-0.5 text-sm h-7" defaultValue={comp.name} />
+                            <input id={`comp-score-${comp.id}`} type="number" className="input w-20 py-0.5 text-sm h-7" defaultValue={comp.maxScore} step="0.5" />
+                            <button onClick={() => updateComponent(comp.id)} disabled={saving} className="text-green-700 hover:text-green-900 font-medium text-xs">Save</button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
+                        </>
+                    ) : (
+                        <>
+                            <span className="flex-1 font-medium text-gray-800">{comp.name}</span>
+                            <span className="text-gray-500 w-14 text-center">{comp.maxScore} pts</span>
+                            <button onClick={() => setEditingId(comp.id)} className="text-blue-600 hover:text-blue-800 text-xs">Edit</button>
+                            <button onClick={() => deleteComponent(comp.id)} disabled={saving} className="text-red-600 hover:text-red-800 text-xs">Delete</button>
+                        </>
+                    )}
+                </div>
+            ))}
+            <div className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-2 py-1.5">
+                <input
+                    type="text"
+                    placeholder="e.g., Homework, Test, Project"
+                    className="input flex-1 py-0.5 text-sm h-7"
+                    value={newComp.name}
+                    onChange={e => setNewComp({ ...newComp, name: e.target.value })}
+                    onKeyDown={e => e.key === "Enter" && addComponent()}
+                />
+                <input
+                    type="number"
+                    placeholder={`Max (≤${remaining})`}
+                    className="input w-24 py-0.5 text-sm h-7"
+                    value={newComp.maxScore}
+                    step="0.5"
+                    onChange={e => setNewComp({ ...newComp, maxScore: e.target.value })}
+                    onKeyDown={e => e.key === "Enter" && addComponent()}
+                />
+                <button onClick={addComponent} disabled={saving || remaining <= 0} className="btn-primary text-xs px-3 py-1">+ Add</button>
+            </div>
+            {remaining <= 0 && components.length > 0 && (
+                <p className="text-xs text-green-700">All {assessmentType.maxScore} pts allocated across {components.length} sub-components.</p>
+            )}
+        </div>
+    );
+}
+
 function GradingSettings() {
     // Assessment Types State
     const [assessmentTypes, setAssessmentTypes] = useState<AssessmentTypeConfig[]>([]);
     const [newAssessment, setNewAssessment] = useState<AssessmentTypeDraft>({ name: "", maxScore: "", includeInTotal: true });
     const [editingAssessment, setEditingAssessment] = useState<string | null>(null);
+    const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
@@ -1816,6 +1969,18 @@ function GradingSettings() {
         } catch { setError("Failed to delete"); }
     };
 
+    const handleComponentsChange = (assessmentTypeId: string, components: AssessmentTypeComponentConfig[]) => {
+        setAssessmentTypes(prev => prev.map(a => a.id === assessmentTypeId ? { ...a, components } : a));
+    };
+
+    const toggleComponentsExpanded = (id: string) => {
+        setExpandedComponents(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
     if (loading) return (
         <div className="card p-6 flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -1858,40 +2023,58 @@ function GradingSettings() {
                         )}
                     </div>
                 </div>
-                <div className="space-y-3 mb-4">
+                <div className="space-y-2 mb-4">
                     {assessmentTypes.map((assessment) => (
-                        <div key={assessment.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            {editingAssessment === assessment.id ? (
-                                <>
-                                    <input type="text" className="input flex-1" defaultValue={assessment.name} id={`edit-name-${assessment.id}`} />
-                                    <input type="number" className="input w-24" defaultValue={assessment.maxScore} id={`edit-score-${assessment.id}`} />
-                                    <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
-                                        <input type="checkbox" defaultChecked={assessment.includeInTotal !== false} id={`edit-include-${assessment.id}`} />
-                                        Count in total
-                                    </label>
-                                    <button
-                                        onClick={() => {
-                                            const name = (document.getElementById(`edit-name-${assessment.id}`) as HTMLInputElement).value;
-                                            const maxScore = (document.getElementById(`edit-score-${assessment.id}`) as HTMLInputElement).value;
-                                            const includeInTotal = (document.getElementById(`edit-include-${assessment.id}`) as HTMLInputElement).checked;
-                                            updateAssessmentType(assessment.id, { name, maxScore, includeInTotal });
-                                        }}
-                                        className="btn-primary text-sm px-3 py-1"
-                                    >Save</button>
-                                    <button onClick={() => setEditingAssessment(null)} className="btn-secondary text-sm px-3 py-1">Cancel</button>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="font-medium">{assessment.name}</div>
-                                        {assessment.includeInTotal === false && (
-                                            <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
-                                        )}
-                                    </div>
-                                    <span className="text-gray-600 w-24 text-center">{assessment.maxScore} pts</span>
-                                    <button onClick={() => setEditingAssessment(assessment.id)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
-                                    <button onClick={() => deleteAssessmentType(assessment.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                                </>
+                        <div key={assessment.id} className="bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3 p-3">
+                                {editingAssessment === assessment.id ? (
+                                    <>
+                                        <input type="text" className="input flex-1" defaultValue={assessment.name} id={`edit-name-${assessment.id}`} />
+                                        <input type="number" className="input w-24" defaultValue={assessment.maxScore} id={`edit-score-${assessment.id}`} />
+                                        <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                                            <input type="checkbox" defaultChecked={assessment.includeInTotal !== false} id={`edit-include-${assessment.id}`} />
+                                            Count in total
+                                        </label>
+                                        <button
+                                            onClick={() => {
+                                                const name = (document.getElementById(`edit-name-${assessment.id}`) as HTMLInputElement).value;
+                                                const maxScore = (document.getElementById(`edit-score-${assessment.id}`) as HTMLInputElement).value;
+                                                const includeInTotal = (document.getElementById(`edit-include-${assessment.id}`) as HTMLInputElement).checked;
+                                                updateAssessmentType(assessment.id, { name, maxScore, includeInTotal });
+                                            }}
+                                            className="btn-primary text-sm px-3 py-1"
+                                        >Save</button>
+                                        <button onClick={() => setEditingAssessment(null)} className="btn-secondary text-sm px-3 py-1">Cancel</button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium">{assessment.name}</div>
+                                            {assessment.includeInTotal === false && (
+                                                <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
+                                            )}
+                                        </div>
+                                        <span className="text-gray-600 w-24 text-center">{assessment.maxScore} pts</span>
+                                        <button
+                                            onClick={() => toggleComponentsExpanded(assessment.id)}
+                                            className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap ${expandedComponents.has(assessment.id) ? "bg-primary-50 border-primary-300 text-primary-700" : "border-gray-300 text-gray-600 hover:border-primary-300 hover:text-primary-600"}`}
+                                        >
+                                            {assessment.components && assessment.components.length > 0
+                                                ? `Sub-components (${assessment.components.length})`
+                                                : "Add sub-components"}
+                                        </button>
+                                        <button onClick={() => setEditingAssessment(assessment.id)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                                        <button onClick={() => deleteAssessmentType(assessment.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                    </>
+                                )}
+                            </div>
+                            {expandedComponents.has(assessment.id) && editingAssessment !== assessment.id && (
+                                <div className="px-3 pb-3">
+                                    <SubComponentsEditor
+                                        assessmentType={assessment}
+                                        onComponentsChange={handleComponentsChange}
+                                    />
+                                </div>
                             )}
                         </div>
                     ))}

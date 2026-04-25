@@ -21,8 +21,9 @@ import { isTransientPrismaError } from "@/lib/prisma-transient";
 export default async function InsightsPage({
     searchParams,
 }: {
-    searchParams?: ProprietorAnalyticsFilters;
+    searchParams?: Promise<ProprietorAnalyticsFilters>;
 }) {
+    const filters = (await searchParams) || {};
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         redirect("/auth/login");
@@ -38,7 +39,7 @@ export default async function InsightsPage({
     }
 
     try {
-        const analytics = await getProprietorAnalytics(searchParams || {}, schoolId);
+        const analytics = await getProprietorAnalytics(filters, schoolId);
 
         const showOverview = analytics.section === "overview";
 

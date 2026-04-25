@@ -83,6 +83,14 @@ async function searchSyllabusContent(
     topic: string,
     weekContent: string,
 ): Promise<string> {
+    // Extract key sub-topic terms from weekContent for targeted searching
+    const contentLines = weekContent
+        .split(/\n|,/)
+        .map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim())
+        .filter((l) => l.length > 3)
+        .slice(0, 6);
+    const contentKeywords = contentLines.join(", ");
+
     try {
         return await callOpenRouter(
             [
@@ -92,29 +100,28 @@ async function searchSyllabusContent(
                 },
                 {
                     role: "user",
-                    content: `Search the web for the official ${examBody} ${subjectName} syllabus document and find the section that covers the topic "${topic}".
+                    content: `Search the web for the official ${examBody} ${subjectName} syllabus document and find the SPECIFIC section that covers ALL of the following teacher-defined sub-topics:
 
-The teacher has specified the following sub-topics and content for this week — use these as search anchors to find the correct syllabus section:
+TEACHER'S WEEK TOPIC: "${topic}"
+TEACHER'S WEEK SUB-TOPICS (the actual content being taught):
+${contentLines.map((l, i) => `${i + 1}. ${l}`).join("\n")}
 
-WEEK CONTENT (teacher-defined):
----
-${weekContent}
----
-
-These sub-topics tell you exactly what the class is studying. Match them against the official ${examBody} ${subjectName} syllabus.
+CRITICAL SEARCH REQUIREMENT: You must find the syllabus section that covers these SPECIFIC sub-topics, not just the broad topic name. The syllabus section you quote must contain content about: ${contentKeywords}
 
 Search strategies (try in order):
-1. Search: site:waec.gov.ng OR site:jamb.gov.ng OR site:cambridgeinternational.org "${examBody} ${subjectName} syllabus" "${topic}"
-2. Search: "official ${examBody} ${subjectName} syllabus" "${topic}" learning objectives
-3. Search: "${examBody} ${subjectName} syllabus" [key sub-topics from the week content above]
+1. Search: "${examBody} ${subjectName} syllabus" "${topic}"
+2. Search: "${examBody} ${subjectName} syllabus" "${contentLines[0]}" "${contentLines[1] ?? ""}"
+3. Search: site:waec.gov.ng OR site:jamb.gov.ng OR site:cambridgeinternational.org "${examBody} ${subjectName} syllabus" "${topic}"
 
 From the official document, extract and QUOTE VERBATIM:
-- The exact theme/section number and title (e.g. "Theme 2, Section 2.3: ...")
-- The exact learning outcomes / objectives as worded in the official document (copy the text)
-- The specific content points or sub-topics listed — especially any that match the week content above
-- Any assessment objectives or command words associated with this topic
+- The exact section number and title that covers the sub-topics listed above
+- The exact learning outcomes / objectives for THAT section as worded in the official document
+- The specific content points listed — prioritise points that match the sub-topics above
+- Assessment objectives or command words from that section
 
-CRITICAL: Quote directly — do not paraphrase. If the topic or its sub-topics are not in the official ${examBody} ${subjectName} syllabus, state: "NOT FOUND: [explain why]"`,
+CRITICAL ACCURACY RULE: The section you retrieve MUST cover the specific sub-topics above. If you find a section about "${topic}" but it covers different sub-topics than the ones listed, say so explicitly and search for the correct section. Do NOT return a section that is about a different aspect of ${subjectName} that merely mentions the word "${topic}".
+
+If no matching section is found: state "NOT FOUND: [explain which sub-topics are missing]"`,
                 },
             ],
             "perplexity/sonar",
@@ -127,53 +134,79 @@ CRITICAL: Quote directly — do not paraphrase. If the topic or its sub-topics a
     }
 }
 
-// ─── Step 3: Double-check agent — verifies objectives against the syllabus ───
+// ─── Content-syllabus overlap guard ──────────────────────────────────────────
+// Returns true if the retrieved syllabus text actually covers the teacher's content.
+// Prevents generation when Perplexity returns the wrong syllabus section.
+function syllabusCoversWeekContent(syllabusText: string, weekContent: string): boolean {
+    if (!syllabusText || !weekContent) return false;
+    const lower = syllabusText.toLowerCase();
+    const contentTerms = weekContent
+        .split(/\n|,/)
+        .map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim().toLowerCase())
+        .filter((l) => l.length > 4);
+
+    if (contentTerms.length === 0) return true; // no content to check against
+    const matchCount = contentTerms.filter((term) => lower.includes(term)).length;
+    // At least 40% of content terms must appear in the retrieved syllabus text
+    return matchCount / contentTerms.length >= 0.4;
+}
+
+// ─── Step 3: Double-check agent — verifies objectives against syllabus AND week content ───
 async function verifyObjectivesAlignment(
     examBody: string,
     subjectName: string,
     topic: string,
+    weekContent: string,
     objectives: string[],
     syllabusContent: string,
 ): Promise<{ verified: boolean; note: string; correctedObjectives: string[] | null }> {
     if (!objectives.length) return { verified: false, note: "No objectives to verify", correctedObjectives: null };
 
-    // When no syllabus text was retrieved, the verifier must be strict — NOT permissive.
-    const contextBlock = syllabusContent
-        ? `RETRIEVED OFFICIAL ${examBody} ${subjectName} SYLLABUS CONTENT:\n---\n${syllabusContent.slice(0, 2500)}\n---\n\nFor each objective below, identify the EXACT sentence or phrase in the text above that justifies it. If you cannot point to specific text, the objective is hallucinated.\n\n`
-        : `WARNING: No official syllabus text was retrieved. You must apply strict knowledge of the official ${examBody} ${subjectName} published syllabus. Be CONSERVATIVE — if you are not certain an objective appears verbatim or very closely in the official syllabus document, flag it as a hallucination. Generic objectives that merely restate the topic title are always hallucinated.\n\n`;
+    const contentLines = weekContent
+        .split(/\n|,/)
+        .map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim())
+        .filter((l) => l.length > 3);
+
+    const syllabusBlock = syllabusContent
+        ? `RETRIEVED OFFICIAL ${examBody} ${subjectName} SYLLABUS CONTENT:\n---\n${syllabusContent.slice(0, 4000)}\n---\n\n`
+        : `WARNING: No official syllabus text was retrieved — apply strict knowledge of the published ${examBody} ${subjectName} syllabus.\n\n`;
 
     try {
         const raw = await callOpenRouter(
             [
                 {
                     role: "system",
-                    content: `You are a strict anti-hallucination reviewer for ${examBody} ${subjectName} learning objectives. Your PRIMARY mission is to catch objectives that LOOK correct but are NOT grounded in the official ${examBody} ${subjectName} syllabus — they just sound plausible. Be ruthless: if an objective is generic enough to appear in any textbook on this topic, it is likely hallucinated.`,
+                    content: `You are a strict curriculum reviewer. You have TWO jobs: (1) verify objectives are grounded in the official ${examBody} ${subjectName} syllabus, and (2) verify objectives actually cover what the teacher is teaching THIS WEEK — not a different part of the syllabus. Both checks must pass.`,
                 },
                 {
                     role: "user",
-                    content: `${contextBlock}Review these generated objectives for ${examBody} ${subjectName}, topic: "${topic}":
+                    content: `${syllabusBlock}TEACHER'S WEEK CONTENT (the specific sub-topics being taught this week — objectives MUST cover these, not other topics):
+---
+${contentLines.map((l, i) => `${i + 1}. ${l}`).join("\n")}
+---
+
+Review these generated objectives for ${examBody} ${subjectName}, topic: "${topic}":
 ${objectives.map((o, i) => `${i + 1}. ${o}`).join("\n")}
 
-For EACH objective ask:
-A) Is this objective traceable to a specific line/point in the retrieved syllabus text (or official document if no text)?
-B) Is this objective SPECIFIC to the ${examBody} treatment of this topic — or is it so generic it could appear in any lesson on this topic? (Generic = hallucinated)
-C) Does this use the correct ${examBody} command verb for the expected skill level?
+For EACH objective ask ALL THREE questions:
+A) SYLLABUS CHECK: Is this traceable to a specific line in the retrieved syllabus text above? (if no syllabus, is it in the official ${examBody} ${subjectName} document?)
+B) WEEK CONTENT CHECK: Does this objective cover a concept from the teacher's week content listed above? An objective about a concept NOT in the teacher's list is WRONG for this week even if it appears elsewhere in the syllabus.
+C) COMMAND VERB: Does it use the appropriate ${examBody} command verb?
 
-HALLUCINATION SIGNS to reject:
-- Objectives that only restate the topic title with an action verb ("Define the meaning of economics", "Explain economics as a social science")
-- Objectives covering content not explicitly listed in the syllabus
-- Objectives that are correct generally but NOT what ${examBody} specifically tests
+REJECT an objective if it fails EITHER check A or check B.
+- Objectives about concepts not in the teacher's week content list → WRONG WEEK (fail B)
+- Objectives not traceable to the syllabus → HALLUCINATED (fail A)
 
-If 3+ objectives are hallucinated: verified=false, provide correctedObjectives grounded ONLY in actual syllabus content.
-If all objectives are genuinely syllabus-grounded: verified=true, correctedObjectives=null.
+If 2+ objectives are rejected: verified=false, provide correctedObjectives that pass BOTH checks — grounded in the syllabus AND covering the teacher's week sub-topics.
+If all objectives pass both checks: verified=true, correctedObjectives=null.
 
 Return ONLY valid JSON (no markdown):
-{"verified":true|false,"note":"empty string if all OK, otherwise list the specific issues","correctedObjectives":["corrected obj 1","corrected obj 2"] or null}`,
+{"verified":true|false,"note":"empty string if all OK, otherwise list the specific issues per objective","correctedObjectives":["corrected obj 1","corrected obj 2"] or null}`,
                 },
             ],
             "google/gemini-2.5-flash-lite",
             25000,
-            1200,
+            1500,
         );
 
         const parsed = parseJsonFromModelOutput<{
@@ -189,7 +222,7 @@ Return ONLY valid JSON (no markdown):
         };
     } catch (err) {
         console.warn("[SOW verifyObjectivesAlignment] Verification failed:", err);
-        return { verified: true, note: "Verification skipped", correctedObjectives: null };
+        return { verified: false, note: "Verification could not be completed — treat as unverified", correctedObjectives: null };
     }
 }
 
@@ -232,36 +265,45 @@ Return ONLY this JSON:
         };
     }
 
+    const contentLines = content
+        .split(/\n|,/)
+        .map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim())
+        .filter((l) => l.length > 3);
+    const numberedContent = contentLines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+
     return {
-        systemMsg: `You are a curriculum expert specialising in the official ${examBody} ${subjectName} syllabus. You have been given both the teacher's week content AND verbatim text from the official syllabus. Generate objectives that are grounded in the official syllabus AND relevant to the specific sub-topics the teacher is teaching this week.`,
-        userMsg: `Generate 4-5 learning objectives for the topic "${topic}" in ${subjectName} (${className}).
+        systemMsg: `You are a curriculum expert specialising in the official ${examBody} ${subjectName} syllabus. Your task is strictly scoped: generate objectives ONLY for the specific sub-topics the teacher is covering this week, grounded in the retrieved syllabus text. Do NOT generate objectives for other parts of the syllabus, no matter how relevant they seem.`,
+        userMsg: `Generate learning objectives for ${subjectName} (${className}), topic: "${topic}".
+${queryLine}
 
-STEP 1 — TEACHER'S WEEK CONTENT (what students are studying this week — use this to focus the objectives):
----
-${content}
----
-${queryLine ? queryLine + "\n" : ""}
-STEP 2 — OFFICIAL ${examBody} ${subjectName} SYLLABUS CONTENT (retrieved from the web — ground truth for accuracy):
----
-${syllabusContent.slice(0, 2500)}
----
+━━━ TEACHER'S WEEK CONTENT (the exact sub-topics being taught) ━━━
+${numberedContent}
+━━━ These are the ONLY sub-topics you may generate objectives for. ━━━
 
-RULES — strictly enforced:
-1. RELEVANCE: Each objective must relate directly to one of the sub-topics or concepts in the teacher's week content above. Do not generate objectives for parts of the syllabus the teacher is not covering this week.
-2. ACCURACY: Every objective must be traceable to a specific statement in the official syllabus text. Do NOT add objectives that merely "seem relevant" — that is hallucination.
-3. NO TITLE RESTATEMENT: Do not restate the topic title as an objective (e.g. if the topic is "Meaning of Economics", the objective must say what the syllabus specifically requires, not just "Define the meaning of economics").
-4. COMMAND VERBS: Use the exact ${examBody} command verbs from the syllabus text where they appear.
-5. ONE SKILL PER LINE: No compound sentences. No "and".
-6. If the retrieved syllabus text does not match the week content at all, return syllabusFound=false.
+━━━ OFFICIAL ${examBody} ${subjectName} SYLLABUS (retrieved — use as ground truth) ━━━
+${syllabusContent.slice(0, 4000)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GENERATION PROCESS — follow in order:
+1. For each numbered sub-topic in the teacher's list, find the corresponding entry in the syllabus text.
+2. Write ONE objective per sub-topic that appears in the syllabus. Skip any sub-topic not in the syllabus.
+3. If the syllabus text covers a different set of sub-topics entirely (does not match the teacher's list), return syllabusFound=false.
+
+HARD CONSTRAINTS:
+- Every objective must map to a specific item in the teacher's week content list AND a specific statement in the syllabus.
+- Do NOT generate objectives for concepts not in the teacher's content list, even if they appear in the retrieved syllabus.
+- Use ${examBody} command verbs (e.g. Define, Identify, Explain, Describe, Distinguish, Calculate, Analyse).
+- One observable skill per objective. No compound sentences. No "and".
+- 4–6 objectives total.
 
 Return ONLY valid JSON (no markdown):
-{"syllabusFound":true|false,"syllabusRef":"exact section reference from the syllabus text e.g. 'Theme 1, Section 1.2: ...' or empty","syllabusWarning":"empty if found, otherwise explanation","${section}":["objective 1","objective 2"] or []}`,
+{"syllabusFound":true|false,"syllabusRef":"exact section title from the syllabus text, e.g. 'Theme 1, Section 1.2: Demand' or empty string","syllabusWarning":"empty if matched, otherwise explain mismatch","${section}":["objective 1","objective 2"]}`,
     };
 }
 
 // POST /api/scheme-of-work/weeks/[id]/generate-objectives
 // Body (optional): { section?: string, syllabusQuery?: string }
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -273,7 +315,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, user.schoolId);
+        const { id: weekId } = await params;
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(weekId, user.id, user.schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -352,15 +395,30 @@ Return ONLY valid JSON (no markdown):
 
             // ── Exam section 3-step pipeline: Search → Generate → Verify ─────
             const examBody = EXAM_BODY_LABEL[section]!;
+            const weekContent = week.content || "N/A";
 
             // Step 1: Web-search the official syllabus
             const syllabusContent = await searchSyllabusContent(
-                examBody, subjectName, week.topic, week.content || "N/A",
+                examBody, subjectName, week.topic, weekContent,
             );
+
+            // Overlap guard: if retrieval returned content but it doesn't cover the teacher's
+            // sub-topics, treat it as a failed search rather than generating wrong objectives.
+            if (syllabusContent && !syllabusCoversWeekContent(syllabusContent, weekContent)) {
+                console.warn(`[SOW generate-objectives] Retrieved syllabus content does not cover week sub-topics for "${week.topic}" — treating as not found`);
+                return NextResponse.json({
+                    [section]: "",
+                    syllabusFound: false,
+                    syllabusRef: "",
+                    syllabusWarning: `The syllabus section retrieved does not match this week's sub-topics. Use the "Search & Generate" field to enter the exact ${examBody} ${subjectName} syllabus section reference for "${week.topic}" and try again.`,
+                    syllabusVerified: false,
+                    verificationNote: "",
+                });
+            }
 
             // Step 2: Generate objectives grounded in the retrieved syllabus text
             const { systemMsg, userMsg } = buildSectionPrompt(
-                section, subjectName, className, week.topic, week.content || "N/A", syllabusContent, syllabusQuery,
+                section, subjectName, className, week.topic, weekContent, syllabusContent, syllabusQuery,
             );
 
             const raw = await generateWithFallback([
@@ -395,9 +453,9 @@ Return ONLY valid JSON (no markdown):
             const { text, items } = normalizeObjectiveSection(section, sectionValue);
             const objectiveLines = items.map((i) => i.text);
 
-            // Step 3: Double-check agent — verify alignment with the actual syllabus
+            // Step 3: Double-check agent — verify alignment with BOTH the syllabus AND the week content
             const { verified, note, correctedObjectives } = await verifyObjectivesAlignment(
-                examBody, subjectName, week.topic, objectiveLines, syllabusContent,
+                examBody, subjectName, week.topic, weekContent, objectiveLines, syllabusContent,
             );
 
             // Use the verifier's corrected set if it found issues
@@ -424,9 +482,11 @@ Return ONLY valid JSON (no markdown):
         }
 
         // ── Generate all sections (quick draft — no web search) ───────────────
-        const systemMessage = `You are a Nigerian secondary school curriculum specialist. Objectives for WAEC, JAMB, and IGCSE must be anchored directly to what those exam bodies publish for ${subjectName} — not generic content.`;
+        // WARNING: This path has NO syllabus retrieval and NO verification.
+        // Output is flagged syllabusVerified=false so the UI can warn the teacher.
+        const systemMessage = `You are a Nigerian secondary school curriculum specialist. Generate draft objectives only — the teacher will verify and correct them against official syllabuses. Be conservative: if you are not certain an objective appears in the official ${subjectName} syllabus for that exam body, write a generic classroom objective instead of inventing exam-specific content.`;
 
-        const userMessage = `Generate objectives for this scheme of work week:
+        const userMessage = `Generate draft objectives for this scheme of work week:
 Subject: ${subjectName} | Class: ${className}
 Topic: ${week.topic}
 Content: ${week.content || "N/A"}
@@ -434,7 +494,7 @@ Content: ${week.content || "N/A"}
 Return ONLY valid JSON (no markdown):
 {"objectives":["3-5 general action-verb classroom objectives"],"waecObjectives":["4-5 objectives from WAEC SSCE ${subjectName} syllabus"],"jambObjectives":["4-5 objectives from JAMB UTME ${subjectName} syllabus"],"igcseObjectives":["4-5 Cambridge IGCSE ${subjectName} objectives using command words"]}
 
-Rules: short standalone action-verb strings; no bullets/numbers/markdown inside values; exam objectives must match published syllabus content.`;
+Rules: short standalone action-verb strings; no bullets/numbers/markdown inside values; prefer general objectives over confidently-wrong exam-specific ones.`;
 
         const raw = await generateWithFallback([
             { role: "system", content: systemMessage },
@@ -450,7 +510,12 @@ Rules: short standalone action-verb strings; no bullets/numbers/markdown inside 
 
         const normalized = normalizeObjectivePayload(parsed);
 
-        return NextResponse.json(normalized);
+        // Explicitly mark as unverified — no syllabus was retrieved for this path
+        return NextResponse.json({
+            ...normalized,
+            syllabusVerified: false,
+            syllabusWarning: "Quick draft generated without syllabus lookup. Use 'Search & Generate' on each exam board section to verify objectives against the official syllabus before approving.",
+        });
     } catch (error: any) {
         console.error("[SOW generate-objectives] POST error:", error);
         if (error.message?.includes("OPENROUTER_API_KEY")) {

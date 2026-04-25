@@ -9,7 +9,8 @@ import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifi
 // POST /api/scheme-of-work/terms/[termId]/submit
 // Owner submits a term for admin review. Works for DRAFT, REJECTED, and APPROVED terms
 // (APPROVED → re-submission lets admin review any post-approval edits).
-export async function POST(req: NextRequest, { params }: { params: { termId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ termId: string }> }) {
+    const { termId } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         const actorName = (user.name as string) || "A teacher";
 
         const term = await prisma.schemeOfWorkTerm.findFirst({
-            where: { id: params.termId },
+            where: { id: termId },
             include: {
                 schemeOfWork: { select: { id: true, schoolId: true, ownerId: true, title: true } },
                 term: { select: { name: true } },
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { termId: str
         }
 
         const updated = await prisma.schemeOfWorkTerm.update({
-            where: { id: params.termId },
+            where: { id: termId },
             data: { status: SowStatus.SUBMITTED, submittedAt: new Date(), adminNote: null },
         });
 

@@ -115,6 +115,13 @@ function WeekObjectivesCard({
                 jambObjectives: data.jambObjectives,
                 igcseObjectives: data.igcseObjectives,
             });
+            // Mark all exam sections as unverified — "Generate All" skips syllabus lookup
+            if (data.syllabusVerified === false) {
+                const unverifiedSections: Section[] = ["waecObjectives", "jambObjectives", "igcseObjectives"];
+                setSyllabusVerified((prev) => Object.fromEntries([...Object.entries(prev), ...unverifiedSections.map((s) => [s, false])]) as Partial<Record<Section, boolean>>);
+                setSyllabusWarnings((prev) => Object.fromEntries([...Object.entries(prev), ...unverifiedSections.map((s) => [s, data.syllabusWarning || ""])]) as Partial<Record<Section, string>>);
+                setSyllabusRefs((prev) => Object.fromEntries([...Object.entries(prev), ...unverifiedSections.map((s) => [s, ""])]) as Partial<Record<Section, string>>);
+            }
             setApproved(false);
             setGenSuccess(true);
             setOpen(true);

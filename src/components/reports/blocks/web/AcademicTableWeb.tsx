@@ -7,10 +7,12 @@ interface AcademicTableWebProps {
     academic: Academic;
     displayOptions?: any;
     sectionStyle?: any;
+    assessmentTypes?: { field: string; name: string; maxScore: number }[];
 }
 
-export const AcademicTableWeb: React.FC<AcademicTableWebProps> = ({ academic, displayOptions = {}, sectionStyle = {} }) => {
+export const AcademicTableWeb: React.FC<AcademicTableWebProps> = ({ academic, displayOptions = {}, sectionStyle = {}, assessmentTypes = [] }) => {
     const showOption = (key: string) => displayOptions[key] !== false;
+    const caAssessmentTypes = assessmentTypes.filter(at => at.field !== "exam");
 
     const containerStyle = {
         borderWidth: sectionStyle.borderWidth || '2px',
@@ -36,9 +38,9 @@ export const AcademicTableWeb: React.FC<AcademicTableWebProps> = ({ academic, di
                     <tr style={headerStyle}>
                         <th rowSpan={2} className="border p-2 text-left" style={borderStyle}>SUBJECT</th>
                         {showOption('showTermHistory') && <th colSpan={2} className="border p-1 text-center font-bold whitespace-nowrap" style={borderStyle}>TERM HISTORY</th>}
-                        {showOption('showCA1') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={borderStyle}>CA1</th>}
-                        {showOption('showCA2') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={borderStyle}>CA2</th>}
-                        {showOption('showCA3') && <th rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={borderStyle}>CA3</th>}
+                        {showOption('showCA1') && caAssessmentTypes.map(at => (
+                            <th key={at.field} rowSpan={2} className="border p-1 text-center text-[10px] whitespace-nowrap" style={borderStyle}>{at.name.toUpperCase()}</th>
+                        ))}
                         {showOption('showCA') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={borderStyle}>CA</th>}
                         {showOption('showExam') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={borderStyle}>EXAM</th>}
                         {showOption('showSubjectTotal') && <th rowSpan={2} className="border p-1 text-center whitespace-nowrap" style={borderStyle}>TOTAL</th>}
@@ -72,9 +74,9 @@ export const AcademicTableWeb: React.FC<AcademicTableWebProps> = ({ academic, di
                                     <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.cumulativeTotal2)}</td>
                                 </>
                             )}
-                            {showOption('showCA1') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca1)}</td>}
-                            {showOption('showCA2') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca2)}</td>}
-                            {showOption('showCA3') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca3)}</td>}
+                            {showOption('showCA1') && caAssessmentTypes.map(at => (
+                                <td key={at.field} className="border p-1 text-center" style={borderStyle}>{formatScore(sub[at.field] as number | undefined)}</td>
+                            ))}
                             {showOption('showCA') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.ca)}</td>}
                             {showOption('showExam') && <td className="border p-1 text-center" style={borderStyle}>{formatScore(sub.exam)}</td>}
                             {showOption('showSubjectTotal') && <td className="border p-1 text-center font-bold" style={borderStyle}>{formatScore(sub.total)}</td>}

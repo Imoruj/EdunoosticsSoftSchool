@@ -6,8 +6,9 @@ import { requireSchoolAdmin } from "@/lib/rbac";
 // PATCH /api/classes/arms/[id] - Update arm details (teacher assignment, name)
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -25,7 +26,7 @@ export async function PATCH(
             );
         }
 
-        const armId = params.id;
+        const armId = id;
         const schoolId = (session.user as any).schoolId;
 
         if (classTeacherId) {
@@ -85,8 +86,9 @@ export async function PATCH(
 // DELETE /api/classes/arms/[id] - Remove an arm
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await params;
     try {
         const session = await requireSchoolAdmin(req);
 
@@ -94,7 +96,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const armId = params.id;
+        const armId = id;
         const schoolId = (session.user as any).schoolId;
 
         const arm = await prisma.classArm.findUnique({

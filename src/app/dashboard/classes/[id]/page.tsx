@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
@@ -45,7 +45,8 @@ interface ClassDetails {
     classSubjects: ClassSubject[];
 }
 
-export default function ClassDetailsPage({ params }: { params: { id: string } }) {
+export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [cls, setCls] = useState<ClassDetails | null>(null);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -62,7 +63,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
     const fetchClassDetails = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/classes/${params.id}`);
+            const response = await fetch(`/api/classes/${id}`);
             if (!response.ok) throw new Error("Failed to fetch class details");
             const data = await response.json();
             setCls(data.class);
@@ -72,7 +73,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
         } finally {
             setLoading(false);
         }
-    }, [params.id]);
+    }, [id]);
 
     const fetchTeachers = useCallback(async () => {
         try {
@@ -103,7 +104,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
         };
 
         try {
-            const response = await fetch(`/api/classes/${params.id}`, {
+            const response = await fetch(`/api/classes/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),

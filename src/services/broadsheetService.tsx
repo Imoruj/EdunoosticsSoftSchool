@@ -6,7 +6,8 @@ import BroadsheetDocument from "@/components/reports/BroadsheetDocument";
 import { resolveTemplateForTerm } from "@/lib/templateResolver";
 import React from "react";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
-import { getEndOfTermScoreMetrics, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
+import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
+import { getEndOfTermScoreMetrics, getScoreValuesFromRecord, buildActiveEnrollmentLookup, isStudentIncludedInSubjectStats } from "@/lib/reports/calculations";
 
 function resolveSchoolCategory(level: string | null | undefined): "PRIMARY" | "JUNIOR_SECONDARY" | "SENIOR_SECONDARY" | null {
     if (level === "PRIMARY" || level === "NURSERY") return "PRIMARY";
@@ -275,8 +276,9 @@ export async function generateBroadsheetData(
 
             const score = scoreMap[student.id]?.[subject.id];
             if (score) {
+                const sv = getScoreValuesFromRecord(score.scoreValues);
                 const value = reportType === "halfTerm"
-                    ? (score.ca1.toNumber() + score.ca2.toNumber() + score.ca3.toNumber())
+                    ? Object.entries(sv).filter(([k]) => k !== "exam").reduce((s, [, v]) => s + v, 0)
                     : getEndOfTermScoreMetrics(score, assessmentTypes).adjustedTotal;
                 subjectTotals[subject.id].push({ studentId: student.id, value });
             }
@@ -301,6 +303,8 @@ export async function generateBroadsheetData(
         });
     });
 
+    const mappedAssessmentTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+
     // 12. Build student data
     const broadsheetStudents: BroadsheetStudent[] = students.map(student => {
         const studentScores: BroadsheetStudentScore[] = subjects.map(subject => {
@@ -317,18 +321,24 @@ export async function generateBroadsheetData(
             if (!score || !isEnrolled) {
                 return {
                     subjectId: subject.id,
-                    ca1: 0, ca2: 0, ca3: 0, caTotal: 0,
+                    scoreValues: {},
+                    caTotal: 0,
                     exam: 0, total: 0, grade: "-", position: 0,
                     term1Total: reportType === "endOfTerm" ? 0 : undefined,
                     term2Total: reportType === "endOfTerm" ? 0 : undefined,
                 };
             }
 
-            const ca1 = score.ca1.toNumber();
-            const ca2 = score.ca2.toNumber();
-            const ca3 = score.ca3.toNumber();
-            const caTotal = ca1 + ca2 + ca3;
-            const exam = score.exam.toNumber();
+            const rawSv = getScoreValuesFromRecord(score.scoreValues);
+            const scoreValues: Record<string, number> = {};
+            for (const at of mappedAssessmentTypes) {
+                scoreValues[at.field] = rawSv[at.field] ?? 0;
+            }
+            const exam = scoreValues["exam"] ?? 0;
+            const caTotal = mappedAssessmentTypes
+                .filter(at => at.field !== "exam")
+                .reduce((s, at) => s + (scoreValues[at.field] ?? 0), 0);
+
             const endOfTermMetrics = getEndOfTermScoreMetrics(score, assessmentTypes);
             const total = reportType === "halfTerm" ? caTotal : endOfTermMetrics.adjustedTotal;
             const grade = reportType === "halfTerm" ? "-" : getGrade(total);
@@ -351,7 +361,7 @@ export async function generateBroadsheetData(
 
             return {
                 subjectId: subject.id,
-                ca1, ca2, ca3, caTotal,
+                scoreValues, caTotal,
                 exam, total, grade, position,
                 term1Total, term2Total
             };
@@ -432,8 +442,8 @@ export async function generateBroadsheetData(
     const config = {
         activeTemplate,
         colorScheme: customTemplateEntry?.colorScheme || dbConfig?.colorScheme || "blue",
-        showCA1: customTemplateEntry?.showCA1 ?? dbConfig?.showCA1 ?? true,
-        showCA2: customTemplateEntry?.showCA2 ?? dbConfig?.showCA2 ?? true,
+        // showCA1 DB field repurposed as "show all assessment score columns"
+        showAssessmentScores: customTemplateEntry?.showCA1 ?? dbConfig?.showCA1 ?? true,
         showExam: customTemplateEntry?.showExam ?? dbConfig?.showExam ?? true,
         showSubjectTotal: customTemplateEntry?.showSubjectTotal ?? dbConfig?.showSubjectTotal ?? true,
         showGrade: customTemplateEntry?.showGrade ?? dbConfig?.showGrade ?? true,
@@ -459,10 +469,11 @@ export async function generateBroadsheetData(
             level: classArm.class.level || undefined,
         },
         reportType,
-        assessmentTypes: assessmentTypes.map(at => ({
+        assessmentTypes: mappedAssessmentTypes.map(at => ({
             name: at.name,
             shortName: at.shortName || undefined,
             maxScore: at.maxScore,
+            field: at.field,
         })),
         subjects: subjectsWithScores,
         students: broadsheetStudents,
@@ -504,8 +515,7 @@ function buildEmptyBroadsheetData(
         config: {
             activeTemplate,
             colorScheme: dbConfig?.colorScheme || "blue",
-            showCA1: dbConfig?.showCA1 ?? true,
-            showCA2: dbConfig?.showCA2 ?? true,
+            showAssessmentScores: dbConfig?.showCA1 ?? true,
             showExam: dbConfig?.showExam ?? true,
             showSubjectTotal: dbConfig?.showSubjectTotal ?? true,
             showGrade: dbConfig?.showGrade ?? true,

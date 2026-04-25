@@ -29,7 +29,8 @@ async function resolveWeekAccess(weekId: string, userId: string, schoolId: strin
 }
 
 // PUT /api/scheme-of-work/weeks/[id] — update a week
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -42,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -53,7 +54,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         const { topic, content, objectives, resources, teachingMethods, assessment } = body;
 
         const updated = await prisma.schemeOfWorkWeek.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
                 topic: topic !== undefined ? topic.trim() : undefined,
                 content: content !== undefined ? content : undefined,
@@ -74,7 +75,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/scheme-of-work/weeks/[id]
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const csrfError = checkCsrf(req);
     if (csrfError) return csrfError;
 
@@ -87,14 +89,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(params.id, user.id, schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        await prisma.schemeOfWorkWeek.delete({ where: { id: params.id } });
+        await prisma.schemeOfWorkWeek.delete({ where: { id: id } });
         await prisma.schemeOfWork.update({ where: { id: sow.id }, data: { updatedAt: new Date() } });
 
         return NextResponse.json({ message: "Week deleted" });

@@ -85,6 +85,8 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
     const [content, setContent] = useState(week?.content || "");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [addedCount, setAddedCount] = useState(0);
+    const [currentNextWeek, setCurrentNextWeek] = useState(nextWeekNumber);
 
     const handleSave = async () => {
         if (!topic.trim()) { setError("Topic is required"); return; }
@@ -103,12 +105,19 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
                 res = await fetch("/api/scheme-of-work/weeks", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ schemeOfWorkTermId, weekNumber: nextWeekNumber, ...body }),
+                    body: JSON.stringify({ schemeOfWorkTermId, weekNumber: currentNextWeek, ...body }),
                 });
             }
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to save");
             onSaved(data.week);
+            if (!isEdit) {
+                // Stay open — reset form for next week
+                setTopic("");
+                setContent("");
+                setAddedCount((c) => c + 1);
+                setCurrentNextWeek((n) => n + 1);
+            }
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -121,9 +130,14 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
             <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h2 className="font-semibold text-gray-900">
-                        {isEdit ? `Edit Week ${week.weekNumber}` : `Add Week ${nextWeekNumber}`}
-                    </h2>
+                    <div>
+                        <h2 className="font-semibold text-gray-900">
+                            {isEdit ? `Edit Week ${week.weekNumber}` : `Add Week ${currentNextWeek}`}
+                        </h2>
+                        {!isEdit && addedCount > 0 && (
+                            <p className="text-xs text-green-600 mt-0.5">{addedCount} week{addedCount !== 1 ? "s" : ""} added — click Done when finished</p>
+                        )}
+                    </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -163,18 +177,27 @@ export function WeekEditModal({ week, schemeOfWorkTermId, nextWeekNumber, onClos
 
                 {/* Footer */}
                 <div className="flex gap-3 px-6 py-4 border-t border-gray-200">
-                    <button
-                        onClick={onClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
-                    >
-                        Cancel
-                    </button>
+                    {isEdit ? (
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                    ) : (
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                        >
+                            {addedCount > 0 ? "Done" : "Cancel"}
+                        </button>
+                    )}
                     <button
                         onClick={handleSave}
                         disabled={saving || !topic.trim()}
                         className="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                        {saving ? "Saving…" : isEdit ? "Save Changes" : "Add Week"}
+                        {saving ? "Saving…" : isEdit ? "Save Changes" : "Add & Continue"}
                     </button>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { sanitizeCsv } from "@/lib/csvUtils";
 import { resolveSubjectScoreProfile } from "@/lib/composite-subjects";
+import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
 
 export async function GET(req: NextRequest) {
     try {
@@ -75,29 +76,21 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Map assessment types to score field names
-        const caTypes = assessmentTypes
-            .filter(t => !t.name.toLowerCase().includes("exam"))
-            .sort((a, b) => a.order - b.order);
-        const examType = assessmentTypes.find(t => t.name.toLowerCase().includes("exam"));
+        // Map all assessment types to positional score field keys (ca1, ca2, ..., exam)
+        const mappedTypes = mapAssessmentTypesToScoreFields(assessmentTypes);
+        const allFieldKeys = mappedTypes.map(t => t.field);
 
         // Build column list based on selection
         const requestedColumns = columns === "all"
-            ? ["ca1", "ca2", "ca3", "exam"]
-            : columns.split(",").map(c => c.trim());
+            ? allFieldKeys
+            : columns.split(",").map(c => c.trim()).filter(c => allFieldKeys.includes(c));
 
-        const columnHeaders: { field: string; label: string }[] = [];
-        for (const col of requestedColumns) {
-            if (col === "ca1" && caTypes[0]) {
-                columnHeaders.push({ field: "ca1", label: `${caTypes[0].name} (${caTypes[0].maxScore})` });
-            } else if (col === "ca2" && caTypes[1]) {
-                columnHeaders.push({ field: "ca2", label: `${caTypes[1].name} (${caTypes[1].maxScore})` });
-            } else if (col === "ca3" && caTypes[2]) {
-                columnHeaders.push({ field: "ca3", label: `${caTypes[2].name} (${caTypes[2].maxScore})` });
-            } else if (col === "exam" && examType) {
-                columnHeaders.push({ field: "exam", label: `${examType.name} (${examType.maxScore})` });
-            }
-        }
+        const columnHeaders: { field: string; label: string }[] = requestedColumns
+            .map(col => {
+                const at = mappedTypes.find(t => t.field === col);
+                return at ? { field: col, label: `${at.name} (${at.maxScore})` } : null;
+            })
+            .filter((h): h is { field: string; label: string } => h !== null);
 
         if (columnHeaders.length === 0) {
             return NextResponse.json(
@@ -213,9 +206,10 @@ export async function GET(req: NextRequest) {
                 sanitizeCsv(student.admissionNumber),
                 ...columnHeaders.map((c) => {
                     if (includeScores) {
-                        const val = studentScores[c.field];
+                        const sv = (studentScores.scoreValues ?? {}) as Record<string, unknown>;
+                        const val = sv[c.field];
                         if (val != null) {
-                           return typeof val.toNumber === "function" ? val.toNumber() : val;
+                           return typeof (val as any).toNumber === "function" ? (val as any).toNumber() : Number(val);
                         }
                     }
                     return '""';
