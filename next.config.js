@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const path = require("path");
 const isDev = process.env.NODE_ENV === "development";
 
 const securityHeaders = [
@@ -49,6 +50,15 @@ const nextConfig = {
     },
     turbopack: {
         root: __dirname,
+    },
+    webpack(config) {
+        if (config.cache && typeof config.cache === "object") {
+            config.cache.buildDependencies = {
+                ...config.cache.buildDependencies,
+                prismaSchema: [path.resolve(__dirname, "prisma/schema.prisma")],
+            };
+        }
+        return config;
     },
     async headers() {
         if (isDev) {
