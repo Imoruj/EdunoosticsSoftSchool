@@ -128,10 +128,35 @@ interface LessonStudioProps {
 }
 
 const AUTOSAVE_DELAY = 2000;
+const DEFAULT_SLIDE_PANEL_WIDTH = 220;
+const DEFAULT_TIMELINE_HEIGHT = 224;
+
+function clampLayoutValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getSlidePanelBounds() {
+  if (typeof window === 'undefined') return { min: 168, max: 340 };
+  const viewportWidth = window.innerWidth;
+  return {
+    min: viewportWidth < 820 ? 136 : 168,
+    max: Math.min(360, Math.max(190, Math.floor(viewportWidth * 0.32))),
+  };
+}
+
+function getTimelineHeightBounds() {
+  if (typeof window === 'undefined') return { min: 148, max: 380 };
+  return {
+    min: 148,
+    max: Math.min(420, Math.max(190, Math.floor(window.innerHeight * 0.46))),
+  };
+}
 
 export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProps) {
   const { saveLesson } = useLessons();
   const [saving, setSaving] = React.useState(false);
+  const [slidePanelWidth, setSlidePanelWidth] = React.useState(DEFAULT_SLIDE_PANEL_WIDTH);
+  const [timelineHeight, setTimelineHeight] = React.useState(DEFAULT_TIMELINE_HEIGHT);
 
   // Prepare lesson — migrate or create fresh
   const preparedLesson = React.useMemo<Lesson>(() => {
@@ -335,6 +360,14 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       return;
     }
 
+    if (!Array.isArray(state.lesson.assignedTo) || state.lesson.assignedTo.length === 0) {
+      await showAppAlert('Please select the students to receive this lesson (Audience tab) before publishing.', {
+        title: 'Missing Audience',
+        variant: 'warning',
+      });
+      return;
+    }
+
     const publishedAt = state.lesson.publishedAt ?? Date.now();
     const nextLesson: Lesson = {
       ...state.lesson,
@@ -352,6 +385,45 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
 
   const curSlide = activeSlide();
   const curElement = selectedElement();
+
+  React.useEffect(() => {
+    function clampLayoutForViewport() {
+      const slideBounds = getSlidePanelBounds();
+      const timelineBounds = getTimelineHeightBounds();
+      setSlidePanelWidth((width) => clampLayoutValue(width, slideBounds.min, slideBounds.max));
+      setTimelineHeight((height) => clampLayoutValue(height, timelineBounds.min, timelineBounds.max));
+    }
+
+    clampLayoutForViewport();
+    window.addEventListener('resize', clampLayoutForViewport);
+    return () => window.removeEventListener('resize', clampLayoutForViewport);
+  }, []);
+
+  const setResponsiveTimelineHeight = React.useCallback((height: number) => {
+    const bounds = getTimelineHeightBounds();
+    setTimelineHeight(clampLayoutValue(height, bounds.min, bounds.max));
+  }, []);
+
+  const startSlidePanelResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = slidePanelWidth;
+
+    function onPointerMove(moveEvent: PointerEvent) {
+      const bounds = getSlidePanelBounds();
+      setSlidePanelWidth(clampLayoutValue(startWidth + moveEvent.clientX - startX, bounds.min, bounds.max));
+    }
+
+    function stopResize() {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', stopResize);
+      window.removeEventListener('pointercancel', stopResize);
+    }
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
+  }, [slidePanelWidth]);
 
   // ── Render modals ──────────────────────────────────────────────────────────
   function renderModal() {
@@ -443,7 +515,25 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
             state={state}
             dispatch={dispatch}
             slidesForScene={slidesForScene}
+            width={slidePanelWidth}
           />
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize slide panel"
+            tabIndex={0}
+            className="group relative w-1.5 shrink-0 cursor-col-resize bg-white transition hover:bg-indigo-50"
+            onPointerDown={startSlidePanelResize}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              const bounds = getSlidePanelBounds();
+              const delta = (event.shiftKey ? 24 : 12) * (event.key === 'ArrowRight' ? 1 : -1);
+              setSlidePanelWidth((width) => clampLayoutValue(width + delta, bounds.min, bounds.max));
+            }}
+          >
+            <div className="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-slate-200 transition group-hover:bg-indigo-400" />
+          </div>
 
           {/* Centre: Canvas + Insert toolbar */}
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -483,6 +573,10 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
           state={state}
           dispatch={dispatch}
           activeSlide={curSlide}
+          height={timelineHeight}
+          minHeight={getTimelineHeightBounds().min}
+          maxHeight={getTimelineHeightBounds().max}
+          onHeightChange={setResponsiveTimelineHeight}
         />
       </div>
 

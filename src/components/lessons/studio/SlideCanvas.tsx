@@ -74,6 +74,7 @@ export function SlideCanvas({ slide, state, dispatch }: SlideCanvasProps) {
                 isSelected={state.selectedElementId === el.id}
                 isPlaying={state.playing}
                 playhead={state.playhead}
+                inlineEditingElementId={state.inlineEditingElementId}
                 dispatch={dispatch}
                 canvasRef={containerRef}
               />

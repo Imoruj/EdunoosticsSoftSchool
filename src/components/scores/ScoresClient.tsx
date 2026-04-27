@@ -51,13 +51,19 @@ function areAssessmentTypesEqual(left: AssessmentType[], right: AssessmentType[]
 
     return left.every((item, index) => {
         const other = right[index];
-        return !!other &&
+        if (!other) return false;
+        const basicEqual =
             item.id === other.id &&
             item.name === other.name &&
             item.shortName === other.shortName &&
             item.maxScore === other.maxScore &&
             item.order === other.order &&
             item.includeInTotal === other.includeInTotal;
+        if (!basicEqual) return false;
+        const lc = item.components || [];
+        const rc = other.components || [];
+        if (lc.length !== rc.length) return false;
+        return lc.every((c, i) => c.id === rc[i]?.id);
     });
 }
 
@@ -87,22 +93,38 @@ export default function ScoresClient({
         [assessmentTypes]
     );
 
-    // Expand assessment columns: CA types with sub-components become grouped sub-columns + read-only total
+    const [scoreType, setScoreType] = useState<"end-of-term" | "half-term">("end-of-term");
+
+    // Expand assessment columns based on score type selection
     const scoreColumns = useMemo((): ScoreColumn[] => {
         const cols: ScoreColumn[] = [];
-        for (const at of assessmentColumns) {
-            const comps: AssessmentTypeComponent[] = assessmentTypes.find(t => t.id === at.id)?.components || [];
-            if (comps.length > 0 && at.field !== "exam") {
-                for (const comp of comps) {
-                    cols.push({ kind: "component", field: `comp_${comp.id}`, name: comp.name, maxScore: comp.maxScore, parentField: at.field, componentId: comp.id });
+
+        if (scoreType === "half-term") {
+            // Half-term: show only the first CA type expanded into its sub-components
+            const firstCA = assessmentColumns.find(at => at.field !== "exam");
+            if (firstCA) {
+                const comps: AssessmentTypeComponent[] = assessmentTypes.find(t => t.id === firstCA.id)?.components || [];
+                if (comps.length > 0) {
+                    for (const comp of comps) {
+                        cols.push({ kind: "component", field: `comp_${comp.id}`, name: comp.name, maxScore: comp.maxScore, parentField: firstCA.field, componentId: comp.id });
+                    }
+                    cols.push({ kind: "ca-total", field: firstCA.field, name: firstCA.shortName || firstCA.name, maxScore: firstCA.maxScore, isReadOnly: true, parentField: firstCA.field });
+                } else {
+                    cols.push({ kind: "assessment", field: firstCA.field, name: firstCA.shortName || firstCA.name, maxScore: firstCA.maxScore });
                 }
-                cols.push({ kind: "ca-total", field: at.field, name: at.shortName || at.name, maxScore: at.maxScore, isReadOnly: true, parentField: at.field });
-            } else {
+            }
+        } else {
+            // End of term: all assessment types as flat direct-entry columns (no component expansion)
+            for (const at of assessmentColumns) {
                 cols.push({ kind: "assessment", field: at.field, name: at.shortName || at.name, maxScore: at.maxScore });
             }
         }
+
         return cols;
-    }, [assessmentColumns, assessmentTypes]);
+    }, [assessmentColumns, assessmentTypes, scoreType]);
+
+    // Hide grade/remark columns when sub-component columns are visible
+    const hasComponentCols = scoreColumns.some(c => c.kind === "component");
 
     // Selection state
     const [selectedArmId, setSelectedArmId] = useState("");
@@ -856,7 +878,7 @@ export default function ScoresClient({
 
             {/* Selection Controls */}
             <div className="card p-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <div>
                         <label htmlFor="scores-session" className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
                         <select
@@ -899,6 +921,19 @@ export default function ScoresClient({
                                     {term.name} {term.isCurrent ? "(Active)" : ""}
                                 </option>
                             ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="scores-type" className="block text-sm font-medium text-gray-700 mb-2">Score Type</label>
+                        <select
+                            id="scores-type"
+                            aria-label="Select score type"
+                            className="input w-full"
+                            value={scoreType}
+                            onChange={(e) => setScoreType(e.target.value as "end-of-term" | "half-term")}
+                        >
+                            <option value="end-of-term">End of Term</option>
+                            <option value="half-term">Half Term</option>
                         </select>
                     </div>
                     <div>
@@ -1132,14 +1167,13 @@ export default function ScoresClient({
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
                                     <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
                                     {scoreColumns.map((col) => (
-                                        <TableHead key={col.field} className={`px-2 py-3 text-center text-xs font-semibold uppercase w-24 ${col.kind === "component" ? "text-blue-500" : col.kind === "ca-total" ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}>
+                                        <TableHead key={col.field} className={`px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24 ${col.kind === "ca-total" ? "bg-gray-50" : ""}`}>
                                             {col.name} ({col.maxScore})
-                                            {col.kind === "ca-total" && <span className="block text-gray-400 font-normal normal-case" style={{ fontSize: 9 }}>auto</span>}
                                         </TableHead>
                                     ))}
                                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
-                                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>
-                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>
+                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>}
+                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1161,10 +1195,10 @@ export default function ScoresClient({
                                                 const displayVal = rawVal === 0 ? "" : rawVal.toFixed(1).replace(/\.0$/, "");
                                                 if (col.isReadOnly) {
                                                     return (
-                                                        <TableCell key={col.field} className="px-2 py-3 bg-gray-50">
-                                                            <div className="w-full h-8 flex items-center justify-center text-sm font-semibold text-gray-700">
+                                                        <TableCell key={col.field} className="px-2 py-3 bg-gray-50 text-center">
+                                                            <span className="text-sm font-bold text-gray-900">
                                                                 {rawVal > 0 ? displayVal : "—"}
-                                                            </div>
+                                                            </span>
                                                         </TableCell>
                                                     );
                                                 }
@@ -1173,7 +1207,7 @@ export default function ScoresClient({
                                                         <input
                                                             type="number"
                                                             step="0.1"
-                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${col.kind === "component" ? "border-blue-200 bg-blue-50" : ""} ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
+                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
                                                             value={displayVal}
                                                             placeholder="0"
                                                             max={col.maxScore}
@@ -1193,16 +1227,20 @@ export default function ScoresClient({
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="px-4 py-3 text-center">
-                                                {showGradeAndRemark ? (
-                                                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
-                                                        {student.grade}
-                                                    </span>
-                                                ) : null}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-gray-500">
-                                                {showGradeAndRemark ? student.remark : ""}
-                                            </TableCell>
+                                            {!hasComponentCols && (
+                                                <TableCell className="px-4 py-3 text-center">
+                                                    {showGradeAndRemark ? (
+                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
+                                                            {student.grade}
+                                                        </span>
+                                                    ) : null}
+                                                </TableCell>
+                                            )}
+                                            {!hasComponentCols && (
+                                                <TableCell className="px-4 py-3 text-sm text-gray-500">
+                                                    {showGradeAndRemark ? student.remark : ""}
+                                                </TableCell>
+                                            )}
                                         </TableRow>
                                     );
                                 })}

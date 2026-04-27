@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
-import { Play, Pause, SkipBack } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Lock, Pause, Pencil, Play, SkipBack, Unlock } from 'lucide-react';
 import type { LessonSlide, SlideElement } from '@/lib/db/types';
 import type { StudioAction, StudioState } from './useStudioState';
 
@@ -9,236 +9,713 @@ interface TimelineProps {
   state: StudioState;
   dispatch: React.Dispatch<StudioAction>;
   activeSlide: LessonSlide | null;
+  height?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  onHeightChange?: (height: number) => void;
 }
 
-const ROW_H = 26;
-const RULER_H = 20;
-const LEFT_W = 120;
-const SNAP = 0.25;
+type TimelineRow =
+  | { kind: 'element'; id: string; element: SlideElement; index: number }
+  | { kind: 'narration'; id: string };
 
-function snap(v: number) { return Math.round(v / SNAP) * SNAP; }
-function fmt(s: number) { const m = Math.floor(s / 60); return `${m}:${(s % 60).toFixed(1).padStart(4, '0')}`; }
-
-const TYPE_COLOR: Record<string, string> = {
-  text: '#6366f1', image: '#06b6d4', video: '#8b5cf6',
-  audio: '#10b981', quiz: '#f59e0b', embed: '#64748b', assignment: '#f97316',
+type BarDrag = {
+  id: string;
+  mode: 'move' | 'left' | 'right';
+  startX: number;
+  origStart: number;
+  origEnd: number;
 };
 
-export function Timeline({ state, dispatch, activeSlide }: TimelineProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(800);
-  const rafRef = useRef<number>(0);
+type ResizeDrag = {
+  startX: number;
+  startY: number;
+  startWidth?: number;
+  startHeight?: number;
+};
+
+const ROW_H = 34;
+const RULER_H = 32;
+const DEFAULT_LABEL_W = 176;
+const MIN_LABEL_W = 136;
+const MAX_LABEL_W = 280;
+const DEFAULT_TIMELINE_H = 224;
+const MIN_TIMELINE_H = 148;
+const MAX_TIMELINE_H = 420;
+const SNAP = 0.25;
+const PX_PER_SECOND = 92;
+const MIN_TRACK_W = 720;
+const PLAYHEAD_HIT_W = 16;
+const PLAYBACK_STORE_SYNC_MS = 90;
+
+const TYPE_COLOR: Record<string, string> = {
+  text: '#6366f1',
+  image: '#0891b2',
+  video: '#8b5cf6',
+  audio: '#059669',
+  quiz: '#d97706',
+  embed: '#64748b',
+  assignment: '#ea580c',
+  file: '#475569',
+  adapt: '#0f766e',
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  text: 'Text',
+  image: 'Image',
+  video: 'Video',
+  audio: 'Audio',
+  quiz: 'Quiz',
+  embed: 'Embed',
+  assignment: 'Assignment',
+  file: 'File',
+  adapt: 'Adapt',
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function snap(value: number) {
+  return Math.round(value / SNAP) * SNAP;
+}
+
+function formatTime(seconds: number) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remaining = safeSeconds % 60;
+  return `${minutes}:${remaining.toFixed(1).padStart(4, '0')}`;
+}
+
+function getMarks(duration: number) {
+  const step = duration <= 10 ? 1 : duration <= 30 ? 2 : duration <= 90 ? 5 : 10;
+  const marks: number[] = [];
+  for (let t = 0; t <= duration; t += step) marks.push(t);
+  if (marks[marks.length - 1] !== duration) marks.push(duration);
+  return marks;
+}
+
+function getDefaultElementLabel(element: SlideElement, index: number) {
+  return `${TYPE_LABEL[element.type] ?? element.type} ${index + 1}`;
+}
+
+function getElementLabel(element: SlideElement, index: number) {
+  return element.name?.trim() || getDefaultElementLabel(element, index);
+}
+
+export function Timeline({
+  state,
+  dispatch,
+  activeSlide,
+  height = DEFAULT_TIMELINE_H,
+  minHeight = MIN_TIMELINE_H,
+  maxHeight = MAX_TIMELINE_H,
+  onHeightChange,
+}: TimelineProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const playheadLineRef = useRef<HTMLDivElement>(null);
+  const playheadHandleRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const lastStoreSyncRef = useRef(0);
+  const barDrag = useRef<BarDrag | null>(null);
+  const labelResizeDrag = useRef<ResizeDrag | null>(null);
+  const heightResizeDrag = useRef<ResizeDrag | null>(null);
+  const playheadDragging = useRef(false);
+  const [availableTrackWidth, setAvailableTrackWidth] = useState(MIN_TRACK_W);
+  const [labelWidth, setLabelWidth] = useState(DEFAULT_LABEL_W);
+  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
+  const [trackNameDraft, setTrackNameDraft] = useState('');
 
   const slide = activeSlide;
-  const duration = slide?.duration ?? 10;
+  const rawDuration = Number(slide?.duration ?? 10);
+  const duration = Math.max(1, rawDuration || 10);
+  const playhead = clamp(state.playhead, 0, duration);
   const playing = state.playing;
-  const playhead = state.playhead;
 
-  // Keep ref in sync with state so the RAF tick always sees the current value
-  useEffect(() => { playheadRef.current = playhead; }, [playhead]);
+  const elements = useMemo(
+    () => [...(slide?.elements ?? [])].sort((a, b) => a.zIndex - b.zIndex),
+    [slide?.elements],
+  );
+
+  const rows = useMemo<TimelineRow[]>(() => {
+    const elementRows = elements.map<TimelineRow>((element, index) => ({
+      kind: 'element',
+      id: element.id,
+      element,
+      index,
+    }));
+    return slide?.narrationUrl
+      ? [...elementRows, { kind: 'narration', id: 'narration' }]
+      : elementRows;
+  }, [elements, slide?.narrationUrl]);
+
+  const trackWidth = Math.max(MIN_TRACK_W, availableTrackWidth, duration * PX_PER_SECOND);
+  const pxPerSecond = trackWidth / duration;
+  const marks = useMemo(() => getMarks(duration), [duration]);
+  const trackContentHeight = RULER_H + rows.length * ROW_H;
+
+  const timeToX = useCallback((time: number) => clamp(time, 0, duration) * pxPerSecond, [duration, pxPerSecond]);
+
+  const setVisualPlayhead = useCallback((time: number) => {
+    const x = timeToX(time);
+    if (playheadLineRef.current) {
+      playheadLineRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
+    }
+    if (playheadHandleRef.current) {
+      playheadHandleRef.current.style.transform = `translate3d(${x - PLAYHEAD_HIT_W / 2}px, 0, 0)`;
+    }
+  }, [timeToX]);
+
+  const xToTime = useCallback((clientX: number) => {
+    const track = trackRef.current;
+    if (!track) return 0;
+    const rect = track.getBoundingClientRect();
+    return snap(clamp((clientX - rect.left) / pxPerSecond, 0, duration));
+  }, [duration, pxPerSecond]);
+
+  const scrubToClientX = useCallback((clientX: number) => {
+    const nextTime = xToTime(clientX);
+    playheadRef.current = nextTime;
+    setVisualPlayhead(nextTime);
+    dispatch({ type: 'PAUSE' });
+    dispatch({ type: 'SCRUB', time: nextTime });
+  }, [dispatch, setVisualPlayhead, xToTime]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setWidth(Math.max(100, el.offsetWidth - LEFT_W)));
-    ro.observe(el);
-    return () => ro.disconnect();
+    if (playing) {
+      playheadRef.current = Math.max(playheadRef.current, playhead);
+      return;
+    }
+
+    playheadRef.current = playhead;
+    setVisualPlayhead(playhead);
+  }, [playhead, playing, setVisualPlayhead]);
+
+  useEffect(() => {
+    if (state.playhead > duration) {
+      dispatch({ type: 'SCRUB', time: duration });
+    }
+  }, [dispatch, duration, state.playhead]);
+
+  useEffect(() => {
+    const track = trackRef.current?.parentElement;
+    if (!track) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setAvailableTrackWidth(Math.max(MIN_TRACK_W, Math.floor(entry.contentRect.width)));
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
   }, []);
 
-  // Playback RAF — uses playheadRef to avoid stale-closure bug
   useEffect(() => {
     if (!playing) return;
+
     let last = performance.now();
-    function tick(now: number) {
-      const dt = (now - last) / 1000;
+    lastStoreSyncRef.current = last;
+    const tick = (now: number) => {
+      const nextTime = Math.min(playheadRef.current + (now - last) / 1000, duration);
       last = now;
-      const newTime = Math.min(playheadRef.current + dt, duration);
-      playheadRef.current = newTime;
-      dispatch({ type: 'SCRUB', time: newTime });
-      if (newTime >= duration) {
+      playheadRef.current = nextTime;
+      setVisualPlayhead(nextTime);
+
+      const shouldSyncStore = now - lastStoreSyncRef.current >= PLAYBACK_STORE_SYNC_MS || nextTime >= duration;
+      if (shouldSyncStore) {
+        lastStoreSyncRef.current = now;
+        dispatch({ type: 'SCRUB', time: nextTime });
+      }
+
+      if (nextTime >= duration) {
         dispatch({ type: 'PAUSE' });
-        dispatch({ type: 'SCRUB', time: duration });
         return;
       }
+
       rafRef.current = requestAnimationFrame(tick);
-    }
+    };
+
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [playing, duration]); // eslint-disable-line
+  }, [dispatch, duration, playing, setVisualPlayhead]);
 
-  const pxPerSec = width / duration;
-  function timeToX(t: number) { return LEFT_W + t * pxPerSec; }
-  function xToTime(x: number) { return snap(Math.max(0, Math.min(duration, (x - LEFT_W) / pxPerSec))); }
-
-  // Playhead drag
-  const phDrag = useRef(false);
-  function onPhDown(e: React.MouseEvent) {
-    e.preventDefault();
-    phDrag.current = true;
-    dispatch({ type: 'PAUSE' });
-    const move = (ev: MouseEvent) => {
-      if (!phDrag.current || !svgRef.current) return;
-      dispatch({ type: 'SCRUB', time: xToTime(ev.clientX - svgRef.current.getBoundingClientRect().left) });
-    };
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', () => { phDrag.current = false; window.removeEventListener('mousemove', move); }, { once: true });
+  function startPlayheadDrag(event: React.PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    playheadDragging.current = true;
+    scrubToClientX(event.clientX);
   }
 
-  // Bar drag
-  type BarDrag = { id: string; mode: 'move' | 'left' | 'right'; startX: number; origStart: number; origEnd: number };
-  const barDrag = useRef<BarDrag | null>(null);
+  function movePlayhead(event: React.PointerEvent<HTMLDivElement>) {
+    if (!playheadDragging.current) return;
+    scrubToClientX(event.clientX);
+  }
 
-  function onBarDown(e: React.PointerEvent, el: SlideElement, mode: BarDrag['mode']) {
+  function stopPlayheadDrag(event: React.PointerEvent<HTMLDivElement>) {
+    playheadDragging.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function beginRenameTrack(element: SlideElement, index: number) {
+    setEditingTrackId(element.id);
+    setTrackNameDraft(getElementLabel(element, index));
+  }
+
+  function commitRenameTrack(element: SlideElement) {
     if (!slide) return;
-    e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    barDrag.current = { id: el.id, mode, startX: e.clientX, origStart: el.startTime, origEnd: el.endTime };
-    dispatch({ type: 'SELECT_ELEMENT', elementId: el.id });
+    const nextName = trackNameDraft.trim();
+    dispatch({
+      type: 'UPDATE_ELEMENT',
+      slideId: slide.id,
+      elementId: element.id,
+      patch: { name: nextName || undefined },
+    });
+    setEditingTrackId(null);
   }
 
-  function onBarMove(e: React.PointerEvent, el: SlideElement) {
-    if (!barDrag.current || barDrag.current.id !== el.id || !slide) return;
-    const dt = (e.clientX - barDrag.current.startX) / pxPerSec;
-    if (barDrag.current.mode === 'move') {
-      const len = barDrag.current.origEnd - barDrag.current.origStart;
-      const ns = snap(Math.max(0, Math.min(duration - len, barDrag.current.origStart + dt)));
-      dispatch({ type: 'UPDATE_ELEMENT', slideId: slide.id, elementId: el.id, patch: { startTime: ns, endTime: ns + len } });
-    } else if (barDrag.current.mode === 'left') {
-      const ns = snap(Math.max(0, Math.min(barDrag.current.origEnd - SNAP, barDrag.current.origStart + dt)));
-      dispatch({ type: 'UPDATE_ELEMENT', slideId: slide.id, elementId: el.id, patch: { startTime: ns } });
-    } else {
-      const ne = snap(Math.max(barDrag.current.origStart + SNAP, Math.min(duration, barDrag.current.origEnd + dt)));
-      dispatch({ type: 'UPDATE_ELEMENT', slideId: slide.id, elementId: el.id, patch: { endTime: ne } });
+  function cancelRenameTrack() {
+    setEditingTrackId(null);
+    setTrackNameDraft('');
+  }
+
+  function toggleTrackLock(element: SlideElement) {
+    if (!slide) return;
+    dispatch({
+      type: 'UPDATE_ELEMENT',
+      slideId: slide.id,
+      elementId: element.id,
+      patch: { locked: !element.locked },
+    });
+  }
+
+  function startLabelResize(event: React.PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    labelResizeDrag.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: labelWidth,
+    };
+  }
+
+  function moveLabelResize(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = labelResizeDrag.current;
+    if (!drag?.startWidth) return;
+    setLabelWidth(clamp(drag.startWidth + event.clientX - drag.startX, MIN_LABEL_W, MAX_LABEL_W));
+  }
+
+  function stopLabelResize(event: React.PointerEvent<HTMLDivElement>) {
+    labelResizeDrag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function startHeightResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (!onHeightChange) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    heightResizeDrag.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      startHeight: height,
+    };
+  }
+
+  function moveHeightResize(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = heightResizeDrag.current;
+    if (!drag?.startHeight || !onHeightChange) return;
+    onHeightChange(clamp(drag.startHeight + drag.startY - event.clientY, minHeight, maxHeight));
+  }
+
+  function stopHeightResize(event: React.PointerEvent<HTMLDivElement>) {
+    heightResizeDrag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function startBarDrag(event: React.PointerEvent<HTMLDivElement>, element: SlideElement, mode: BarDrag['mode']) {
+    if (!slide) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dispatch({ type: 'SELECT_ELEMENT', elementId: element.id });
+    if (element.locked) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    barDrag.current = {
+      id: element.id,
+      mode,
+      startX: event.clientX,
+      origStart: element.startTime,
+      origEnd: element.endTime,
+    };
+  }
+
+  function moveBar(event: React.PointerEvent<HTMLDivElement>, element: SlideElement) {
+    if (!slide || element.locked || !barDrag.current || barDrag.current.id !== element.id) return;
+
+    const drag = barDrag.current;
+    const deltaTime = (event.clientX - drag.startX) / pxPerSecond;
+
+    if (drag.mode === 'move') {
+      const length = Math.max(SNAP, drag.origEnd - drag.origStart);
+      const nextStart = snap(clamp(drag.origStart + deltaTime, 0, duration - length));
+      dispatch({
+        type: 'UPDATE_ELEMENT',
+        slideId: slide.id,
+        elementId: element.id,
+        patch: { startTime: nextStart, endTime: nextStart + length },
+      });
+      return;
+    }
+
+    if (drag.mode === 'left') {
+      const nextStart = snap(clamp(drag.origStart + deltaTime, 0, drag.origEnd - SNAP));
+      dispatch({
+        type: 'UPDATE_ELEMENT',
+        slideId: slide.id,
+        elementId: element.id,
+        patch: { startTime: nextStart },
+      });
+      return;
+    }
+
+    const nextEnd = snap(clamp(drag.origEnd + deltaTime, drag.origStart + SNAP, duration));
+    dispatch({
+      type: 'UPDATE_ELEMENT',
+      slideId: slide.id,
+      elementId: element.id,
+      patch: { endTime: nextEnd },
+    });
+  }
+
+  function stopBarDrag(event: React.PointerEvent<HTMLDivElement>) {
+    barDrag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
   }
 
   if (!slide) {
     return (
-      <div className="flex items-center justify-center shrink-0 text-slate-400 text-xs"
-        style={{ height: 140, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+      <div
+        className="flex shrink-0 items-center justify-center border-t border-slate-200 bg-slate-50 text-xs text-slate-400"
+        style={{ height }}
+      >
         Select a slide to see its timeline
       </div>
     );
   }
 
-  const elements = [...slide.elements].sort((a, b) => a.zIndex - b.zIndex);
-  const hasNarration = !!slide.narrationUrl;
-  const totalH = RULER_H + elements.length * ROW_H + (hasNarration ? ROW_H : 0) + 4;
-
-  const step = duration <= 10 ? 1 : duration <= 30 ? 2 : 5;
-  const marks: number[] = [];
-  for (let t = 0; t <= duration; t += step) marks.push(t);
-
-  const LABELS: Record<string, string> = { text: 'Text', image: 'Image', video: 'Video', audio: 'Audio', quiz: 'Quiz', embed: 'Embed', assignment: 'Assignment' };
-
   return (
-    <div className="flex flex-col shrink-0" style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-      {/* Controls */}
-      <div className="flex items-center gap-2 px-4 shrink-0" style={{ height: 36, borderBottom: '1px solid #e2e8f0' }}>
-        <button onClick={() => { dispatch({ type: 'SCRUB', time: 0 }); dispatch({ type: 'PAUSE' }); }}
-          className="p-1 rounded text-slate-400 hover:text-slate-700 transition-colors"
-          onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-          <SkipBack size={12} />
+    <div
+      className="relative flex shrink-0 flex-col border-t border-slate-200 bg-white shadow-[0_-1px_0_rgba(15,23,42,0.03)]"
+      style={{ height }}
+    >
+      {onHeightChange && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize timeline"
+          tabIndex={0}
+          className="group absolute -top-1 left-0 right-0 z-40 h-2 cursor-row-resize"
+          onPointerDown={startHeightResize}
+          onPointerMove={moveHeightResize}
+          onPointerUp={stopHeightResize}
+          onPointerCancel={stopHeightResize}
+          onKeyDown={(event) => {
+            if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+            event.preventDefault();
+            const delta = (event.shiftKey ? 32 : 16) * (event.key === 'ArrowUp' ? 1 : -1);
+            onHeightChange(clamp(height + delta, minHeight, maxHeight));
+          }}
+        >
+          <div className="mx-auto mt-0.5 h-1 w-16 rounded-full bg-slate-200 opacity-0 transition group-hover:opacity-100 group-active:bg-indigo-500 group-active:opacity-100" />
+        </div>
+      )}
+
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 px-4">
+        <button
+          type="button"
+          aria-label="Restart slide"
+          onClick={() => {
+            playheadRef.current = 0;
+            setVisualPlayhead(0);
+            dispatch({ type: 'SCRUB', time: 0 });
+            dispatch({ type: 'PAUSE' });
+          }}
+          className="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        >
+          <SkipBack size={15} />
         </button>
-        <button onClick={() => playing ? dispatch({ type: 'PAUSE' }) : dispatch({ type: 'PLAY' })}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium text-white transition-colors"
-          style={{ background: playing ? '#7c3aed' : '#4f46e5' }}>
-          {playing ? <Pause size={11} /> : <Play size={11} />}
+
+        <button
+          type="button"
+          onClick={() => {
+            if (playing) {
+              dispatch({ type: 'SCRUB', time: playheadRef.current });
+              dispatch({ type: 'PAUSE' });
+              return;
+            }
+
+            dispatch({ type: 'PLAY' });
+          }}
+          className="inline-flex h-9 min-w-24 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+        >
+          {playing ? <Pause size={15} /> : <Play size={15} />}
           {playing ? 'Pause' : 'Play'}
         </button>
-        <span className="text-[11px] tabular-nums text-slate-500">{fmt(playhead)} / {fmt(duration)}</span>
-        <div className="flex-1" />
-        <span className="text-[10px] text-slate-400">snap {SNAP}s</span>
+
+        <span className="min-w-28 text-sm tabular-nums text-slate-600">
+          {formatTime(playhead)} / {formatTime(duration)}
+        </span>
+
+        <div className="ml-auto text-xs text-slate-400">snap {SNAP}s</div>
       </div>
 
-      {/* SVG */}
-      <div ref={containerRef} className="overflow-x-auto overflow-y-hidden" style={{ maxHeight: 120 }}>
-        <svg ref={svgRef} width={LEFT_W + width} height={totalH} className="select-none block">
-          {/* Track backgrounds */}
-          {elements.map((el, i) => (
-            <rect key={el.id + 'bg'} x={LEFT_W} y={RULER_H + i * ROW_H} width={width} height={ROW_H}
-              fill={i % 2 === 0 ? '#f1f5f9' : '#f8fafc'} />
-          ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-0">
+          <div className="relative shrink-0 border-r border-slate-200 bg-slate-50" style={{ width: labelWidth }}>
+            <div className="flex items-center px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400" style={{ height: RULER_H }}>
+              Layers
+            </div>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize timeline layer labels"
+              tabIndex={0}
+              className="group absolute right-0 top-0 z-30 h-full w-2 translate-x-1/2 cursor-col-resize"
+              onPointerDown={startLabelResize}
+              onPointerMove={moveLabelResize}
+              onPointerUp={stopLabelResize}
+              onPointerCancel={stopLabelResize}
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                event.preventDefault();
+                const delta = (event.shiftKey ? 24 : 12) * (event.key === 'ArrowRight' ? 1 : -1);
+                setLabelWidth((width) => clamp(width + delta, MIN_LABEL_W, MAX_LABEL_W));
+              }}
+            >
+              <div className="mx-auto h-full w-px bg-transparent transition group-hover:bg-indigo-400 group-active:bg-indigo-500" />
+            </div>
+            {rows.map((row) => {
+              const active = row.kind === 'element' && state.selectedElementId === row.element.id;
+              return (
+                <div
+                  key={`${row.id}-label`}
+                  className={`flex w-full items-center gap-1.5 border-t px-2 text-left text-xs transition ${
+                    active
+                      ? 'border-indigo-100 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-100 bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                  style={{ height: ROW_H }}
+                >
+                  {row.kind === 'element' ? (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={row.element.locked ? 'Unlock track' : 'Lock track'}
+                        title={row.element.locked ? 'Unlock track' : 'Lock track'}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleTrackLock(row.element);
+                        }}
+                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-md transition ${
+                          row.element.locked
+                            ? 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                            : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                        }`}
+                      >
+                        {row.element.locked ? <Lock size={12} /> : <Unlock size={12} />}
+                      </button>
 
-          {/* Ruler */}
-          <rect x={LEFT_W} y={0} width={width} height={RULER_H} fill="#f1f5f9" />
-          {marks.map((t) => (
-            <g key={t}>
-              <line x1={timeToX(t)} y1={RULER_H - 4} x2={timeToX(t)} y2={RULER_H} stroke="#4f46e5" strokeWidth={1} opacity={0.4} />
-              <text x={timeToX(t) + 2} y={RULER_H - 5} fontSize={8} fill="#94a3b8" fontFamily="monospace">{t}s</text>
-            </g>
-          ))}
+                      {editingTrackId === row.element.id ? (
+                        <input
+                          autoFocus
+                          value={trackNameDraft}
+                          onChange={(event) => setTrackNameDraft(event.target.value)}
+                          onBlur={() => commitRenameTrack(row.element)}
+                          onFocus={(event) => event.currentTarget.select()}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              commitRenameTrack(row.element);
+                            }
+                            if (event.key === 'Escape') {
+                              event.preventDefault();
+                              cancelRenameTrack();
+                            }
+                          }}
+                          className="min-w-0 flex-1 rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none ring-2 ring-indigo-100"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          title="Select track. Double-click to rename."
+                          onClick={() => dispatch({ type: 'SELECT_ELEMENT', elementId: row.element.id })}
+                          onDoubleClick={() => beginRenameTrack(row.element, row.index)}
+                          className="min-w-0 flex-1 truncate rounded px-1 py-1 text-left hover:bg-white/70"
+                        >
+                          {getElementLabel(row.element, row.index)}
+                        </button>
+                      )}
 
-          {/* Label column */}
-          {elements.map((el, i) => {
-            const y = RULER_H + i * ROW_H;
-            const active = state.selectedElementId === el.id;
-            return (
-              <g key={el.id + 'lbl'}>
-                <rect x={0} y={y} width={LEFT_W} height={ROW_H} fill={active ? '#eef2ff' : '#f8fafc'} />
-                <text x={10} y={y + ROW_H / 2 + 3.5} fontSize={10} fill={active ? '#4f46e5' : '#94a3b8'} fontFamily="system-ui,sans-serif">
-                  {LABELS[el.type] ?? el.type} {i + 1}
-                </text>
-                <line x1={0} y1={y + ROW_H} x2={LEFT_W + width} y2={y + ROW_H} stroke="rgba(0,0,0,0.06)" strokeWidth={1} />
-              </g>
-            );
-          })}
+                      <button
+                        type="button"
+                        aria-label="Rename track"
+                        title="Rename track"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          beginRenameTrack(row.element, row.index);
+                        }}
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <Pencil size={12} />
+                      </button>
 
-          {/* Element bars */}
-          {elements.map((el, i) => {
-            const y = RULER_H + i * ROW_H;
-            const bx = timeToX(el.startTime);
-            const bw = Math.max(6, (el.endTime - el.startTime) * pxPerSec);
-            const active = state.selectedElementId === el.id;
-            const color = TYPE_COLOR[el.type] ?? '#6366f1';
-            const opacity = active ? 0.85 : 0.5;
-            return (
-              <g key={el.id + 'bar'}>
-                <rect x={bx} y={y + 5} width={bw} height={ROW_H - 10} rx={3}
-                  fill={color} fillOpacity={opacity} style={{ cursor: 'move' }}
-                  onPointerDown={(e) => onBarDown(e, el, 'move')}
-                  onPointerMove={(e) => onBarMove(e, el)}
-                  onPointerUp={() => { barDrag.current = null; }} />
-                <rect x={bx} y={y + 5} width={5} height={ROW_H - 10} rx={2}
-                  fill={color} fillOpacity={Math.min(1, opacity + 0.2)} style={{ cursor: 'ew-resize' }}
-                  onPointerDown={(e) => onBarDown(e, el, 'left')}
-                  onPointerMove={(e) => onBarMove(e, el)}
-                  onPointerUp={() => { barDrag.current = null; }} />
-                <rect x={bx + bw - 5} y={y + 5} width={5} height={ROW_H - 10} rx={2}
-                  fill={color} fillOpacity={Math.min(1, opacity + 0.2)} style={{ cursor: 'ew-resize' }}
-                  onPointerDown={(e) => onBarDown(e, el, 'right')}
-                  onPointerMove={(e) => onBarMove(e, el)}
-                  onPointerUp={() => { barDrag.current = null; }} />
-              </g>
-            );
-          })}
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: TYPE_COLOR[row.element.type] ?? TYPE_COLOR.text }}
+                      />
+                    </>
+                  ) : (
+                    <span className="truncate px-2 text-slate-500">Narration</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-          {/* Narration track */}
-          {hasNarration && (() => {
-            const rowIdx = elements.length;
-            const y = RULER_H + rowIdx * ROW_H;
-            return (
-              <g key="narration-row">
-                <rect x={LEFT_W} y={y} width={width} height={ROW_H} fill={rowIdx % 2 === 0 ? '#f1f5f9' : '#f8fafc'} />
-                <rect x={0} y={y} width={LEFT_W} height={ROW_H} fill="#f0fdf4" />
-                <text x={10} y={y + ROW_H / 2 + 3.5} fontSize={10} fill="#16a34a" fontFamily="system-ui,sans-serif">Narration</text>
-                <line x1={0} y1={y + ROW_H} x2={LEFT_W + width} y2={y + ROW_H} stroke="rgba(0,0,0,0.06)" strokeWidth={1} />
-                {/* Full-width green bar spanning whole slide */}
-                <rect x={LEFT_W} y={y + 5} width={width} height={ROW_H - 10} rx={3} fill="#16a34a" fillOpacity={0.45} />
-                <text x={LEFT_W + 8} y={y + ROW_H / 2 + 3.5} fontSize={9} fill="#166534" fontFamily="system-ui,sans-serif">audio narration</text>
-              </g>
-            );
-          })()}
+          <div className="min-w-0 flex-1 overflow-x-auto bg-slate-50">
+            <div ref={trackRef} className="relative" style={{ width: trackWidth, height: trackContentHeight }}>
+              <div
+                className="relative border-b border-slate-200 bg-slate-50"
+                style={{ height: RULER_H }}
+                onPointerDown={(event) => scrubToClientX(event.clientX)}
+              >
+                {marks.map((time) => {
+                  const left = timeToX(time);
+                  return (
+                    <div key={time} className="absolute top-0 h-full" style={{ left }}>
+                      <div className="absolute bottom-0 h-2 border-l border-indigo-300" />
+                      <span className="absolute bottom-2 translate-x-1 font-mono text-[10px] text-slate-400">
+                        {time}s
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
 
-          {/* Playhead */}
-          <line x1={timeToX(playhead)} y1={0} x2={timeToX(playhead)} y2={totalH} stroke="#ef4444" strokeWidth={1} opacity={0.7} />
-          <rect x={timeToX(playhead) - 5} y={0} width={10} height={RULER_H}
-            fill="#ef4444" fillOpacity={0.9} rx={2} style={{ cursor: 'ew-resize' }}
-            onMouseDown={onPhDown} />
-        </svg>
+              <div className="relative">
+                {rows.map((row, rowIndex) => {
+                  const top = rowIndex * ROW_H;
+                  if (row.kind === 'narration') {
+                    return (
+                      <div
+                        key={row.id}
+                        className="absolute left-0 right-0 border-b border-slate-200 bg-emerald-50/70"
+                        style={{ top, height: ROW_H }}
+                        onPointerDown={(event) => scrubToClientX(event.clientX)}
+                      >
+                        <div className="absolute left-0 right-0 top-1/2 h-3 -translate-y-1/2 rounded bg-emerald-500/35" />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-medium text-emerald-800">
+                          audio narration
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  const element = row.element;
+                  const active = state.selectedElementId === element.id;
+                  const color = TYPE_COLOR[element.type] ?? TYPE_COLOR.text;
+                  const start = clamp(element.startTime, 0, duration);
+                  const end = clamp(Math.max(element.endTime, start + SNAP), start + SNAP, duration);
+                  const left = timeToX(start);
+                  const width = Math.max(18, (end - start) * pxPerSecond);
+                  const locked = !!element.locked;
+
+                  return (
+                    <div
+                      key={row.id}
+                      className={`absolute left-0 right-0 border-b ${
+                        active ? 'border-indigo-100 bg-indigo-50/70' : rowIndex % 2 === 0 ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50'
+                      }`}
+                      style={{ top, height: ROW_H }}
+                      onPointerDown={(event) => scrubToClientX(event.clientX)}
+                    >
+                      <div
+                        className="absolute top-1/2 h-5 -translate-y-1/2 rounded-md shadow-sm ring-1 ring-black/5"
+                        style={{
+                          left,
+                          width,
+                          backgroundColor: color,
+                          opacity: locked ? 0.38 : active ? 0.95 : 0.58,
+                          cursor: locked ? 'not-allowed' : 'grab',
+                          filter: locked ? 'saturate(0.65)' : undefined,
+                        }}
+                        title={`${getElementLabel(element, row.index)}: ${formatTime(start)} - ${formatTime(end)}${locked ? ' (locked)' : ''}`}
+                        onPointerDown={(event) => startBarDrag(event, element, 'move')}
+                        onPointerMove={(event) => moveBar(event, element)}
+                        onPointerUp={stopBarDrag}
+                        onPointerCancel={stopBarDrag}
+                      >
+                        <div
+                          className={`absolute left-0 top-0 h-full w-2 rounded-l-md bg-white/30 ${locked ? 'cursor-not-allowed' : 'cursor-ew-resize'}`}
+                          onPointerDown={(event) => startBarDrag(event, element, 'left')}
+                          onPointerMove={(event) => moveBar(event, element)}
+                          onPointerUp={stopBarDrag}
+                          onPointerCancel={stopBarDrag}
+                        />
+                        <div
+                          className={`absolute right-0 top-0 h-full w-2 rounded-r-md bg-white/30 ${locked ? 'cursor-not-allowed' : 'cursor-ew-resize'}`}
+                          onPointerDown={(event) => startBarDrag(event, element, 'right')}
+                          onPointerMove={(event) => moveBar(event, element)}
+                          onPointerUp={stopBarDrag}
+                          onPointerCancel={stopBarDrag}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {marks.map((time) => (
+                <div
+                  key={`${time}-grid`}
+                  className="pointer-events-none absolute top-0 border-l border-dashed border-indigo-100"
+                  style={{ left: timeToX(time), height: trackContentHeight }}
+                />
+              ))}
+
+              <div
+                ref={playheadLineRef}
+                className="absolute top-0 z-20 h-full w-px bg-red-500"
+                style={{
+                  left: 0,
+                  transform: `translate3d(${timeToX(playhead)}px, 0, 0)`,
+                  willChange: 'transform',
+                }}
+              />
+              <div
+                ref={playheadHandleRef}
+                className="absolute top-0 z-30 h-full w-4 cursor-ew-resize"
+                style={{
+                  left: 0,
+                  transform: `translate3d(${timeToX(playhead) - PLAYHEAD_HIT_W / 2}px, 0, 0)`,
+                  willChange: 'transform',
+                }}
+                onPointerDown={startPlayheadDrag}
+                onPointerMove={movePlayhead}
+                onPointerUp={stopPlayheadDrag}
+                onPointerCancel={stopPlayheadDrag}
+              >
+                <div className="mx-auto h-7 w-3 rounded-b bg-red-500 shadow-sm" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

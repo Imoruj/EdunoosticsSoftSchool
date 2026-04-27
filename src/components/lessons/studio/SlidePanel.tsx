@@ -11,6 +11,7 @@ interface SlidePanelProps {
   state: StudioState;
   dispatch: React.Dispatch<StudioAction>;
   slidesForScene: (s: LessonSection) => LessonSlide[];
+  width?: number;
 }
 
 const SCENE_DOT: Record<LessonSection, string> = {
@@ -24,7 +25,7 @@ const SCENE_DOT: Record<LessonSection, string> = {
   thumbnail:    '#64748b',
 };
 
-export function SlidePanel({ state, dispatch, slidesForScene }: SlidePanelProps) {
+export function SlidePanel({ state, dispatch, slidesForScene, width = 196 }: SlidePanelProps) {
   const [collapsed, setCollapsed] = useState<Set<LessonSection>>(new Set());
 
   function toggleScene(scene: LessonSection) {
@@ -38,7 +39,7 @@ export function SlidePanel({ state, dispatch, slidesForScene }: SlidePanelProps)
   return (
     <aside
       className="flex flex-col overflow-hidden shrink-0"
-      style={{ width: 196, background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
+      style={{ width, background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
     >
       <div
         className="px-4 py-2.5 shrink-0"

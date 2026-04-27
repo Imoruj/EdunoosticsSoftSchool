@@ -257,7 +257,7 @@ function ContentSection({
         <>
           <Section title="Text Content">
             <button
-              onClick={() => dispatch({ type: 'OPEN_MODAL', modal: { type: 'text-editor', elementId: element.id } })}
+              onClick={() => dispatch({ type: 'BEGIN_INLINE_TEXT_EDIT', elementId: element.id })}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-semibold text-indigo-600 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors"
             >
               <Pencil size={11} /> Edit Text Content

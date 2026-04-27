@@ -64,7 +64,8 @@ export default async function ScoreEntryPage() {
     const [dbAssessmentTypes, dbGradingRules, dbSessions] = await Promise.all([
         prisma.assessmentType.findMany({
             where: { schoolId, isActive: true },
-            orderBy: { order: "asc" }
+            orderBy: { order: "asc" },
+            include: { components: { orderBy: { order: "asc" } } }
         }),
         prisma.gradingRule.findMany({
             where: { schoolId },
@@ -260,6 +261,7 @@ export default async function ScoreEntryPage() {
         maxScore: a.maxScore,
         order: a.order,
         includeInTotal: a.includeInTotal,
+        components: (a.components || []).map(c => ({ id: c.id, name: c.name, maxScore: c.maxScore, order: c.order })),
     }));
 
     const initialGradingRules: GradingRule[] = dbGradingRules.map((g) => ({

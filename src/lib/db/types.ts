@@ -39,6 +39,7 @@ export type ContentBlockType =
 
 export interface SlideElement {
   id: string;
+  name?: string; // Optional timeline/layer name
   type: ContentBlockType;
   data:
     | TextBlockData
