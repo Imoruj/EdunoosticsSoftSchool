@@ -142,14 +142,14 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
   return (
     <ModalShell title={`Insert ${cfg.label}`} onClose={onClose}>
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-white/10 pb-0 -mt-1 shrink-0">
+      <div className="flex gap-1 border-b border-slate-200 pb-0 -mt-1 shrink-0">
         {cfg.tabs.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className="px-4 py-2 text-xs font-medium transition-colors rounded-t"
             style={{
-              color: tab === t ? '#a5b4fc' : '#64748b',
+              color: tab === t ? '#1d4ed8' : '#64748b',
               borderBottom: tab === t ? '2px solid #4f46e5' : '2px solid transparent',
             }}
           >
@@ -160,7 +160,7 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-2 px-3 py-2 rounded text-xs text-red-300 bg-red-950/30 border border-red-900/40">
+        <div className="flex items-start gap-2 px-3 py-2 rounded text-xs text-red-700 bg-red-50 border border-red-200">
           <AlertCircle size={13} className="mt-0.5 shrink-0" />
           {error}
         </div>
@@ -179,14 +179,14 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex flex-col items-center gap-3 px-12 py-8 rounded-xl border-2 border-dashed border-white/20 hover:border-indigo-500/60 transition-colors w-full"
+            className="flex flex-col items-center gap-3 px-12 py-8 rounded-xl border-2 border-dashed border-slate-300 hover:border-indigo-400 transition-colors w-full bg-slate-50"
           >
             {uploading ? (
-              <Loader2 size={32} className="animate-spin text-indigo-400" />
+              <Loader2 size={32} className="animate-spin text-indigo-600" />
             ) : (
-              <Upload size={32} className="text-slate-400" />
+              <Upload size={32} className="text-slate-500" />
             )}
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-slate-700">
               {uploading ? 'Uploading…' : `Click to select ${cfg.label.toLowerCase()}`}
             </span>
           </button>
@@ -197,14 +197,14 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
       {tab === 'url' && (
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-slate-400">{cfg.label} URL</span>
+            <span className="text-xs text-slate-600">{cfg.label} URL</span>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && insertUrl()}
               placeholder={insertType === 'video' ? 'https://youtube.com/watch?v=...' : `https://...`}
-              className="bg-white/5 text-slate-200 px-3 py-2 rounded border border-white/10 outline-none focus:border-indigo-500 text-sm"
+              className="bg-white text-slate-900 px-3 py-2 rounded border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
             />
           </label>
           <button
@@ -225,13 +225,13 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
           {insertType === 'image' && (
             <>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-slate-400">Describe the image (Imagen 3)</span>
+                <span className="text-xs text-slate-600">Describe the image (Imagen 3)</span>
                 <textarea
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="A detailed educational illustration of photosynthesis in a tropical rainforest..."
                   rows={4}
-                  className="bg-white/5 text-slate-200 px-3 py-2 rounded border border-white/10 outline-none focus:border-indigo-500 text-sm resize-none"
+                  className="bg-white text-slate-900 px-3 py-2 rounded border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm resize-none"
                 />
               </label>
               <button
@@ -249,13 +249,13 @@ export function MediaPickerModal({ insertType, targetSlideId, state, dispatch, o
           {insertType === 'audio' && (
             <>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-slate-400">Voice</span>
+                <span className="text-xs text-slate-600">Voice</span>
                 <select
                   value={aiVoice}
                   onChange={(e) => setAiVoice(e.target.value)}
-                  className="bg-white/5 text-slate-200 px-3 py-2 rounded border border-white/10 outline-none focus:border-indigo-500 text-sm"
+                  className="bg-white text-slate-900 px-3 py-2 rounded border border-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-sm"
                 >
-                  {VOICES.map((v) => <option key={v} value={v} className="bg-slate-800">{v}</option>)}
+                  {VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">

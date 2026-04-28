@@ -37,10 +37,10 @@ export function TextEditorModal({ element, slideId, dispatch, onClose }: TextEdi
           minHeight="300px"
         />
       </div>
-      <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+      <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
         <button
           onClick={onClose}
-          className="px-4 py-1.5 rounded text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+          className="px-4 py-1.5 rounded text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
         >
           Cancel
         </button>
@@ -73,19 +73,19 @@ export function ModalShell({
       <div
         className="relative flex flex-col rounded-xl shadow-2xl overflow-hidden"
         style={{
-          background: '#1e1b4b',
-          border: '1px solid rgba(79,70,229,0.3)',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
           width: wide ? 900 : 680,
           maxWidth: '95vw',
           maxHeight: '90vh',
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 shrink-0">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 shrink-0 bg-slate-50">
+          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 transition-colors"
           >
             <X size={16} />
           </button>
