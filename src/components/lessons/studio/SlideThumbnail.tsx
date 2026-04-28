@@ -21,7 +21,7 @@ export function SlideThumbnail({ slide }: SlideThumbnailProps) {
 
   return (
     <div className="w-full h-full absolute inset-0 overflow-hidden" style={bgStyle}>
-      {slide.elements.map((el) => (
+      {[...slide.elements].sort((a, b) => a.zIndex - b.zIndex).map((el) => (
         <ElementPreview key={el.id} element={el} />
       ))}
     </div>

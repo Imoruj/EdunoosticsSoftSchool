@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, Copy, Trash2 } from 'lucide-react';
 import type { LessonSlide, LessonSection } from '@/lib/db/types';
 import type { StudioAction, StudioState } from './useStudioState';
@@ -103,15 +103,23 @@ function SlideThumb({ slide, isActive, onSelect, onDuplicate, onDelete }: {
   onSelect: () => void; onDuplicate: () => void; onDelete: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+    ref.current?.scrollIntoView({ block: 'nearest' });
+  }, [isActive]);
+
   return (
     <div
+      ref={ref}
       className="relative cursor-pointer rounded overflow-hidden"
       style={{ aspectRatio: '16/9', border: isActive ? '1.5px solid #4f46e5' : '1.5px solid #e2e8f0', transition: 'border-color 0.15s' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onSelect}
     >
-      <div className="w-full h-full relative" style={{ background: slide.background?.color ?? '#fff' }}>
+      <div className="w-full h-full relative" style={{ background: '#ffffff' }}>
         <SlideThumbnail slide={slide} />
       </div>
       {hovered && (
