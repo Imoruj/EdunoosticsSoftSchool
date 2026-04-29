@@ -14,7 +14,26 @@ interface ElementPropertiesProps {
   lesson?: Lesson;
 }
 
-const ANIMATIONS: SlideAnimation[] = ['none', 'fade', 'slide-left', 'slide-right', 'slide-up', 'slide-down', 'zoom', 'bounce'];
+const ANIMATIONS: SlideAnimation[] = [
+  'none',
+  'fade',
+  'fade-up',
+  'fade-down',
+  'fade-left',
+  'fade-right',
+  'slide-left',
+  'slide-right',
+  'slide-up',
+  'slide-down',
+  'zoom',
+  'zoom-in',
+  'zoom-out',
+  'rotate',
+  'flip',
+  'wipe-left',
+  'wipe-right',
+  'bounce',
+];
 
 const TYPE_COLOR: Record<string, string> = {
   text: '#6366f1', image: '#06b6d4', video: '#8b5cf6',
@@ -86,16 +105,69 @@ export function ElementProperties({ element, slideId, slideDuration, dispatch, l
         </div>
       </Section>
 
-      {/* ── Entrance Animation ───────────────────────────────────────────────── */}
-      <Section title="Entrance Animation">
-        <select
-          value={element.animateIn ?? 'none'}
-          onChange={(e) => patch({ animateIn: e.target.value as SlideAnimation })}
-          className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
-          style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
-        >
-          {ANIMATIONS.map((a) => <option key={a} value={a} className="capitalize">{a}</option>)}
-        </select>
+      {/* ── Animations ───────────────────────────────────────────────────────── */}
+      <Section title="Animations">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] text-slate-400">Entrance</span>
+            <select
+              value={element.animateIn ?? 'none'}
+              onChange={(e) => patch({ animateIn: e.target.value as SlideAnimation })}
+              className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
+              style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
+            >
+              {ANIMATIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a === 'none' ? 'None' : a}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] text-slate-400">Exit</span>
+            <select
+              value={element.animateOut ?? 'none'}
+              onChange={(e) => patch({ animateOut: e.target.value as SlideAnimation })}
+              className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
+              style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
+            >
+              {ANIMATIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a === 'none' ? 'None' : a}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] text-slate-400">Entrance duration (ms)</span>
+            <input
+              type="number"
+              min={50}
+              max={5000}
+              step={50}
+              value={element.animateInDuration ?? 400}
+              onChange={(e) => patch({ animateInDuration: Number(e.target.value) || 0 })}
+              className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400 tabular-nums"
+              style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] text-slate-400">Exit duration (ms)</span>
+            <input
+              type="number"
+              min={50}
+              max={5000}
+              step={50}
+              value={element.animateOutDuration ?? 400}
+              onChange={(e) => patch({ animateOutDuration: Number(e.target.value) || 0 })}
+              className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400 tabular-nums"
+              style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
+            />
+          </label>
+        </div>
+        <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+          Tip: exit animations play during the last \(duration\) milliseconds before the element disappears.
+        </p>
       </Section>
 
       {/* ── Style ────────────────────────────────────────────────────────────── */}
@@ -312,17 +384,25 @@ function ContentSection({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 w-16 shrink-0">
-                <span className="text-[10px] text-slate-400">Size px</span>
-                <input
-                  type="number" min={6} max={200}
-                  value={data?.fontSize ?? ''}
-                  onChange={(e) => patchData({ fontSize: e.target.value ? Number(e.target.value) : undefined })}
-                  placeholder="auto"
-                  className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400 tabular-nums"
+              <div className="flex flex-col gap-1 w-28 shrink-0">
+                <span className="text-[10px] text-slate-400">Font size</span>
+                <select
+                  value={data?.fontSize ? String(data.fontSize) : 'auto'}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    patchData({ fontSize: v === 'auto' ? undefined : Number(v) });
+                  }}
+                  className="w-full px-2 py-1.5 rounded text-[11px] text-slate-700 border outline-none focus:border-indigo-400"
                   style={{ background: '#ffffff', borderColor: '#e2e8f0' }}
-                />
-              </label>
+                >
+                  <option value="auto">Auto</option>
+                  {[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64].map((s) => (
+                    <option key={s} value={String(s)}>
+                      {s}px
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Text color */}

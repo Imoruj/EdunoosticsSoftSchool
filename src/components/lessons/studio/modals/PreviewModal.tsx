@@ -160,21 +160,59 @@ export function PreviewModal({ lesson, initialSlideId, onClose }: PreviewModalPr
 
 // Animation CSS classes
 const ANIM_IN: Record<string, string> = {
-  fade: 'preview-anim-fade-in',
-  'slide-left': 'preview-anim-slide-left',
-  'slide-right': 'preview-anim-slide-right',
-  'slide-up': 'preview-anim-slide-up',
-  'slide-down': 'preview-anim-slide-down',
-  zoom: 'preview-anim-zoom',
-  bounce: 'preview-anim-bounce',
+  fade: 'previewFadeIn',
+  'fade-up': 'previewFadeUpIn',
+  'fade-down': 'previewFadeDownIn',
+  'fade-left': 'previewFadeLeftIn',
+  'fade-right': 'previewFadeRightIn',
+  'slide-left': 'previewSlideLeftIn',
+  'slide-right': 'previewSlideRightIn',
+  'slide-up': 'previewSlideUpIn',
+  'slide-down': 'previewSlideDownIn',
+  zoom: 'previewZoomIn',
+  'zoom-in': 'previewZoomIn',
+  'zoom-out': 'previewZoomOutIn',
+  rotate: 'previewRotateIn',
+  flip: 'previewFlipIn',
+  'wipe-left': 'previewWipeLeftIn',
+  'wipe-right': 'previewWipeRightIn',
+  bounce: 'previewBounceIn',
+};
+
+const ANIM_OUT: Record<string, string> = {
+  fade: 'previewFadeOut',
+  'fade-up': 'previewFadeUpOut',
+  'fade-down': 'previewFadeDownOut',
+  'fade-left': 'previewFadeLeftOut',
+  'fade-right': 'previewFadeRightOut',
+  'slide-left': 'previewSlideLeftOut',
+  'slide-right': 'previewSlideRightOut',
+  'slide-up': 'previewSlideUpOut',
+  'slide-down': 'previewSlideDownOut',
+  zoom: 'previewZoomOut',
+  'zoom-in': 'previewZoomOut',
+  'zoom-out': 'previewZoomInOut',
+  rotate: 'previewRotateOut',
+  flip: 'previewFlipOut',
+  'wipe-left': 'previewWipeLeftOut',
+  'wipe-right': 'previewWipeRightOut',
+  bounce: 'previewBounceOut',
 };
 
 function PreviewElement({ element, playhead }: { element: SlideElement; playhead: number }) {
   const visible = playhead >= element.startTime && playhead <= element.endTime;
-  const justAppeared = Math.abs(playhead - element.startTime) < 0.1;
-  const animClass = justAppeared && element.animateIn && element.animateIn !== 'none'
-    ? ANIM_IN[element.animateIn] ?? ''
-    : '';
+  const inKeyframe = element.animateIn && element.animateIn !== 'none' ? (ANIM_IN[element.animateIn] ?? null) : null;
+  const outKeyframe = element.animateOut && element.animateOut !== 'none' ? (ANIM_OUT[element.animateOut] ?? null) : null;
+
+  const inDurationMs = Math.max(50, element.animateInDuration ?? 400);
+  const outDurationMs = Math.max(50, element.animateOutDuration ?? 400);
+
+  const inEpsilon = Math.max(0.08, inDurationMs / 1000 / 3);
+  const justAppeared = Math.abs(playhead - element.startTime) < inEpsilon;
+
+  const outWindowSeconds = outDurationMs / 1000;
+  const outStart = element.endTime - outWindowSeconds;
+  const exiting = !!outKeyframe && playhead >= outStart && playhead <= element.endTime;
 
   const style: React.CSSProperties = {
     position: 'absolute',
@@ -186,15 +224,21 @@ function PreviewElement({ element, playhead }: { element: SlideElement; playhead
     opacity: visible ? (element.opacity ?? 1) : 0,
     borderRadius: element.borderRadius ?? 0,
     boxShadow: element.shadow ? '0 4px 20px rgba(0,0,0,0.3)' : undefined,
-    transition: visible ? 'opacity 0.3s ease' : 'opacity 0.2s ease',
+    transition: exiting ? 'none' : (visible ? 'opacity 0.3s ease' : 'opacity 0.2s ease'),
     overflow: 'hidden',
     pointerEvents: 'none',
   };
 
+  if (justAppeared && inKeyframe) {
+    style.animation = `${inKeyframe} ${inDurationMs}ms ease forwards`;
+  } else if (exiting && outKeyframe) {
+    style.animation = `${outKeyframe} ${outDurationMs}ms ease forwards`;
+  }
+
   const data = element.data as any;
 
   return (
-    <div style={style} className={animClass}>
+    <div style={style}>
       {element.type === 'text' && (
         <div
           className="w-full h-full overflow-hidden text-sm leading-relaxed p-3"

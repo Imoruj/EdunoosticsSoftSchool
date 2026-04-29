@@ -24,7 +24,17 @@ export type SlideAnimation =
   | 'slide-up'
   | 'slide-down'
   | 'zoom'
-  | 'bounce';
+  | 'bounce'
+  | 'fade-up'
+  | 'fade-down'
+  | 'fade-left'
+  | 'fade-right'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'rotate'
+  | 'flip'
+  | 'wipe-left'
+  | 'wipe-right';
 
 export type ContentBlockType =
   | 'text'
