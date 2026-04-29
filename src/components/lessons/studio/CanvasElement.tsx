@@ -9,7 +9,7 @@ import { VideoElementView } from './elements/VideoElement';
 import { AudioElementView } from './elements/AudioElement';
 import { QuizElementView } from './elements/QuizElement';
 import { EmbedElementView } from './elements/EmbedElement';
-import { Lock, Copy, Trash2 } from 'lucide-react';
+import { Lock, Copy, Pencil, Trash2 } from 'lucide-react';
 
 interface CanvasElementProps {
   element: SlideElement;
@@ -17,6 +17,7 @@ interface CanvasElementProps {
   isSelected: boolean;
   isPlaying: boolean;
   playhead: number;
+  inlineEditingElementId: string | null;
   dispatch: React.Dispatch<StudioAction>;
   canvasRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -38,6 +39,7 @@ export function CanvasElement({
   isSelected,
   isPlaying,
   playhead,
+  inlineEditingElementId,
   dispatch,
   canvasRef,
 }: CanvasElementProps) {
@@ -49,6 +51,12 @@ export function CanvasElement({
   } | null>(null);
   const [contextMenu, setContextMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const beginInlineTextEdit = useCallback(() => {
+    if (element.type !== 'text') return;
+    dispatch({ type: 'BEGIN_INLINE_TEXT_EDIT', elementId: element.id });
+    setIsEditing(true);
+  }, [dispatch, element.id, element.type]);
 
   // Visibility based on timeline during play
   const isVisible = isPlaying
@@ -144,10 +152,21 @@ export function CanvasElement({
   }, [isSelected]);
 
   useEffect(() => {
+    if (element.type === 'text' && inlineEditingElementId === element.id) {
+      setIsEditing(true);
+    }
+  }, [element.id, element.type, inlineEditingElementId]);
+
+  useEffect(() => {
     if (!isSelected) return;
     function onKey(e: KeyboardEvent) {
       if (isEditing) return; // don't intercept shortcuts while typing
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (element.type === 'text' && (e.key === 'Enter' || e.key === 'F2')) {
+        e.preventDefault();
+        beginInlineTextEdit();
+        return;
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         dispatch({ type: 'DELETE_ELEMENT', slideId, elementId: element.id });
@@ -160,26 +179,32 @@ export function CanvasElement({
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isSelected, isEditing, element.x, element.y, element.width, element.height, slideId, element.id, dispatch]);
+  }, [isSelected, isEditing, element.type, element.x, element.y, element.width, element.height, slideId, element.id, dispatch, beginInlineTextEdit]);
 
   // ── Double-click to edit ──────────────────────────────────────────────────
 
   function onDoubleClick(e: React.MouseEvent) {
     e.stopPropagation();
     if (element.type === 'text') {
-      setIsEditing(true); // inline contenteditable editing
+      beginInlineTextEdit();
     }
     // quiz: editing is done in the sidebar properties panel — no modal
   }
 
   function handleTextEditEnd(html: string) {
     setIsEditing(false);
+    dispatch({ type: 'END_INLINE_TEXT_EDIT', elementId: element.id });
     dispatch({
       type: 'UPDATE_ELEMENT',
       slideId,
       elementId: element.id,
       patch: { data: { ...(element.data as object), content: html } },
     });
+  }
+
+  function handleTextEditCancel() {
+    setIsEditing(false);
+    dispatch({ type: 'END_INLINE_TEXT_EDIT', elementId: element.id });
   }
 
   // ── Context menu ─────────────────────────────────────────────────────────
@@ -212,6 +237,7 @@ export function CanvasElement({
         dispatch={dispatch}
         isEditing={isEditing}
         onTextEditEnd={handleTextEditEnd}
+        onTextEditCancel={handleTextEditCancel}
       />
 
       {/* Selection ring */}
@@ -224,7 +250,7 @@ export function CanvasElement({
           />
 
           {/* Resize handles */}
-          {HANDLES.map((handle) => (
+          {!isEditing && HANDLES.map((handle) => (
             <ResizeHandleEl
               key={handle}
               handle={handle}
@@ -234,31 +260,44 @@ export function CanvasElement({
           ))}
 
           {/* Toolbar above element */}
-          <div
-            className="absolute -top-7 right-0 flex items-center gap-0.5 px-1 py-0.5 rounded z-50"
-            style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {element.locked && <Lock size={10} style={{ color: '#94a3b8', margin: '0 2px' }} />}
-            <button
-              style={{ padding: 3, borderRadius: 3, color: '#64748b' }}
-              title="Duplicate"
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#1e293b'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-              onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DUPLICATE_ELEMENT', slideId, elementId: element.id }); }}
+          {!isEditing && (
+            <div
+              className="absolute -top-7 right-0 flex items-center gap-0.5 px-1 py-0.5 rounded z-50"
+              style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+              onPointerDown={(e) => e.stopPropagation()}
             >
-              <Copy size={10} />
-            </button>
-            <button
-              style={{ padding: 3, borderRadius: 3, color: '#f87171' }}
-              title="Delete"
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#fca5a5'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#f87171'; }}
-              onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DELETE_ELEMENT', slideId, elementId: element.id }); }}
-            >
-              <Trash2 size={10} />
-            </button>
-          </div>
+              {element.locked && <Lock size={10} style={{ color: '#94a3b8', margin: '0 2px' }} />}
+              {element.type === 'text' && (
+                <button
+                  style={{ padding: 3, borderRadius: 3, color: '#64748b' }}
+                  title="Edit text"
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#eef2ff'; e.currentTarget.style.color = '#4f46e5'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                  onClick={(e) => { e.stopPropagation(); beginInlineTextEdit(); }}
+                >
+                  <Pencil size={10} />
+                </button>
+              )}
+              <button
+                style={{ padding: 3, borderRadius: 3, color: '#64748b' }}
+                title="Duplicate"
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#1e293b'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DUPLICATE_ELEMENT', slideId, elementId: element.id }); }}
+              >
+                <Copy size={10} />
+              </button>
+              <button
+                style={{ padding: 3, borderRadius: 3, color: '#f87171' }}
+                title="Delete"
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#fca5a5'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#f87171'; }}
+                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DELETE_ELEMENT', slideId, elementId: element.id }); }}
+              >
+                <Trash2 size={10} />
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -322,18 +361,20 @@ function ElementContent({
   dispatch,
   isEditing,
   onTextEditEnd,
+  onTextEditCancel,
 }: {
   element: SlideElement;
   slideId: string;
   dispatch: React.Dispatch<StudioAction>;
   isEditing?: boolean;
   onTextEditEnd?: (html: string) => void;
+  onTextEditCancel?: () => void;
 }) {
   const data = element.data as any;
 
   switch (element.type) {
     case 'text':
-      return <TextElementView data={data} editing={isEditing} onEditEnd={onTextEditEnd} />;
+      return <TextElementView data={data} editing={isEditing} onEditEnd={onTextEditEnd} onEditCancel={onTextEditCancel} />;
     case 'image':
       return <ImageElementView data={data} />;
     case 'video':

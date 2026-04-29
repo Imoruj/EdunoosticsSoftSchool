@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Plus, Copy, Trash2 } from 'lucide-react';
 import type { LessonSlide, LessonSection } from '@/lib/db/types';
 import type { StudioAction, StudioState } from './useStudioState';
@@ -11,6 +11,7 @@ interface SlidePanelProps {
   state: StudioState;
   dispatch: React.Dispatch<StudioAction>;
   slidesForScene: (s: LessonSection) => LessonSlide[];
+  width?: number;
 }
 
 const SCENE_DOT: Record<LessonSection, string> = {
@@ -24,7 +25,7 @@ const SCENE_DOT: Record<LessonSection, string> = {
   thumbnail:    '#64748b',
 };
 
-export function SlidePanel({ state, dispatch, slidesForScene }: SlidePanelProps) {
+export function SlidePanel({ state, dispatch, slidesForScene, width = 196 }: SlidePanelProps) {
   const [collapsed, setCollapsed] = useState<Set<LessonSection>>(new Set());
 
   function toggleScene(scene: LessonSection) {
@@ -38,7 +39,7 @@ export function SlidePanel({ state, dispatch, slidesForScene }: SlidePanelProps)
   return (
     <aside
       className="flex flex-col overflow-hidden shrink-0"
-      style={{ width: 196, background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
+      style={{ width, background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
     >
       <div
         className="px-4 py-2.5 shrink-0"
@@ -102,15 +103,23 @@ function SlideThumb({ slide, isActive, onSelect, onDuplicate, onDelete }: {
   onSelect: () => void; onDuplicate: () => void; onDelete: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+    ref.current?.scrollIntoView({ block: 'nearest' });
+  }, [isActive]);
+
   return (
     <div
+      ref={ref}
       className="relative cursor-pointer rounded overflow-hidden"
       style={{ aspectRatio: '16/9', border: isActive ? '1.5px solid #4f46e5' : '1.5px solid #e2e8f0', transition: 'border-color 0.15s' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onSelect}
     >
-      <div className="w-full h-full relative" style={{ background: slide.background?.color ?? '#fff' }}>
+      <div className="w-full h-full relative" style={{ background: '#ffffff' }}>
         <SlideThumbnail slide={slide} />
       </div>
       {hovered && (

@@ -355,7 +355,7 @@ export async function GET(req: NextRequest) {
                 firstName: student.firstName,
                 lastName: student.lastName,
                 admissionNumber: student.admissionNumber,
-                ...scoreValues,
+                scoreValues,
                 componentScores,
                 total: totals.rawTotal,
                 adjustedTotal: totals.adjustedTotal,

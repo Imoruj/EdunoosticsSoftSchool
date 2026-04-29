@@ -15,12 +15,14 @@ interface TextElementViewProps {
   data: TextBlockData;
   editing?: boolean;
   onEditEnd?: (html: string) => void;
+  onEditCancel?: () => void;
 }
 
-export function TextElementView({ data, editing = false, onEditEnd }: TextElementViewProps) {
+export function TextElementView({ data, editing = false, onEditEnd, onEditCancel }: TextElementViewProps) {
   const raw = useId();
   const elId = `te-${raw.replace(/:/g, '')}`;
   const contentRef = useRef<HTMLDivElement>(null);
+  const cancelEditRef = useRef(false);
 
   // When entering edit mode: set innerHTML and focus
   useEffect(() => {
@@ -43,14 +45,25 @@ export function TextElementView({ data, editing = false, onEditEnd }: TextElemen
   }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleBlur() {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      return;
+    }
     if (contentRef.current) {
-      onEditEnd?.(contentRef.current.innerHTML);
+      onEditEnd?.(sanitizeHtml(contentRef.current.innerHTML));
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    // Esc ends editing; Enter is allowed (new line in rich content)
+    // Esc cancels; Ctrl/Cmd+Enter commits. Plain Enter remains a rich-text newline.
     if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditRef.current = true;
+      onEditCancel?.();
+      contentRef.current?.blur();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
       contentRef.current?.blur();
     }
     // Prevent canvas shortcuts (Delete, arrows) from firing while typing

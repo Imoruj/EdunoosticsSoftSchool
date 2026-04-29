@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useParams, redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, FileQuestion, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileQuestion, CheckCircle2, XCircle, ChevronRight, Eye } from "lucide-react";
 import { useLesson } from "@/lib/db/hooks";
 import { useState } from "react";
 import type { ImageBlockData, QuizBlockData, TextBlockData, VideoBlockData, QuizQuestion } from "@/lib/db/types";
+import { PreviewModal } from "@/components/lessons/studio/modals/PreviewModal";
 
 export default function LessonDetailsPage() {
   const params = useParams<{ id: string }>();
   const lessonId = params?.id ?? null;
   const { data: session, status } = useSession();
   const { lesson, loading, error } = useLesson(lessonId);
+  const [showSlidesPreview, setShowSlidesPreview] = useState(false);
   const isStudent =
     (session?.user as any)?.loginType === "student" ||
     (session?.user as any)?.roles?.includes("STUDENT");
@@ -66,11 +68,35 @@ export default function LessonDetailsPage() {
 
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-xl border bg-white p-6">
-          <h1 className="text-2xl font-bold text-gray-900">{lesson.title}</h1>
-          {lesson.description && <p className="mt-2 text-gray-600">{lesson.description}</p>}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900">{lesson.title}</h1>
+              {lesson.description && <p className="mt-2 text-gray-600">{lesson.description}</p>}
+            </div>
+
+            {(lesson.slides?.length ?? 0) > 0 && (
+              <button
+                onClick={() => setShowSlidesPreview(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Eye className="h-4 w-4" />
+                View lesson slides
+              </button>
+            )}
+          </div>
+
+          {showSlidesPreview && (
+            <PreviewModal lesson={lesson as any} onClose={() => setShowSlidesPreview(false)} />
+          )}
 
           <div className="mt-6 space-y-6">
-            {lesson.content.map((block) => (
+            {(lesson.content?.length ?? 0) === 0 && (lesson.slides?.length ?? 0) > 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                This lesson is slide-based. Click <span className="font-semibold">View lesson slides</span> to start.
+              </div>
+            ) : null}
+
+            {(lesson.content ?? []).map((block) => (
               <div key={block.id}>
                 {block.type === "text" && (
                   <div

@@ -452,9 +452,13 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                 at.showComponents && at.components?.length
                                     ? [
                                         ...at.components.map((c: CompEntry) => (
-                                            <th key={c.id} className="border p-1 text-center text-[8px] whitespace-nowrap bg-blue-50" style={academicStyles.header}>{c.name}</th>
+                                            <th key={c.id} className="border p-0.5 text-center text-[8px] bg-blue-50" style={academicStyles.header}>
+                                                <div style={{ width: '56px', whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'normal', margin: '0 auto', lineHeight: '1.2' }}>{c.name}</div>
+                                            </th>
                                         )),
-                                        <th key={`${at.field}-tot`} className="border p-1 text-center text-[8px] whitespace-nowrap font-bold" style={academicStyles.header}>TOT</th>,
+                                        <th key={`${at.field}-tot`} className="border p-0.5 text-center text-[8px] font-bold" style={academicStyles.header}>
+                                            <div style={{ width: '56px', margin: '0 auto' }}>TOT</div>
+                                        </th>,
                                     ]
                                     : []
                             )}
@@ -476,12 +480,12 @@ const StandardReportPreview: React.FC<StandardReportPreviewProps> = ({ config, d
                                     if (at.showComponents && at.components?.length) {
                                         return [
                                             ...at.components.map((c: CompEntry) => (
-                                                <td key={c.id} className="border p-1 text-center text-[9px] bg-blue-50/40" style={academicStyles.borderOnly}>
-                                                    {formatScore(cs?.[c.id])}
+                                                <td key={c.id} className="border p-0.5 text-center text-[9px] bg-blue-50/40" style={academicStyles.borderOnly}>
+                                                    <div style={{ width: '56px', margin: '0 auto' }}>{formatScore(cs?.[c.id])}</div>
                                                 </td>
                                             )),
-                                            <td key={`${at.field}-tot`} className="border p-1 text-center font-bold" style={academicStyles.borderOnly}>
-                                                {formatScore(sv?.[at.field] ?? sub[at.field] as number | undefined)}
+                                            <td key={`${at.field}-tot`} className="border p-0.5 text-center font-bold" style={academicStyles.borderOnly}>
+                                                <div style={{ width: '56px', margin: '0 auto' }}>{formatScore(sv?.[at.field] ?? sub[at.field] as number | undefined)}</div>
                                             </td>,
                                         ];
                                     }

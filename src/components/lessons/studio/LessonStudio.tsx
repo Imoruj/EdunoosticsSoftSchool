@@ -128,10 +128,35 @@ interface LessonStudioProps {
 }
 
 const AUTOSAVE_DELAY = 2000;
+const DEFAULT_SLIDE_PANEL_WIDTH = 220;
+const DEFAULT_TIMELINE_HEIGHT = 224;
+
+function clampLayoutValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function getSlidePanelBounds() {
+  if (typeof window === 'undefined') return { min: 168, max: 340 };
+  const viewportWidth = window.innerWidth;
+  return {
+    min: viewportWidth < 820 ? 136 : 168,
+    max: Math.min(360, Math.max(190, Math.floor(viewportWidth * 0.32))),
+  };
+}
+
+function getTimelineHeightBounds() {
+  if (typeof window === 'undefined') return { min: 148, max: 380 };
+  return {
+    min: 148,
+    max: Math.min(420, Math.max(190, Math.floor(window.innerHeight * 0.46))),
+  };
+}
 
 export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProps) {
   const { saveLesson } = useLessons();
   const [saving, setSaving] = React.useState(false);
+  const [slidePanelWidth, setSlidePanelWidth] = React.useState(DEFAULT_SLIDE_PANEL_WIDTH);
+  const [timelineHeight, setTimelineHeight] = React.useState(DEFAULT_TIMELINE_HEIGHT);
 
   // Prepare lesson — migrate or create fresh
   const preparedLesson = React.useMemo<Lesson>(() => {
@@ -335,6 +360,14 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       return;
     }
 
+    if (!Array.isArray(state.lesson.assignedTo) || state.lesson.assignedTo.length === 0) {
+      await showAppAlert('Please select the students to receive this lesson (Audience tab) before publishing.', {
+        title: 'Missing Audience',
+        variant: 'warning',
+      });
+      return;
+    }
+
     const publishedAt = state.lesson.publishedAt ?? Date.now();
     const nextLesson: Lesson = {
       ...state.lesson,
@@ -352,6 +385,45 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
 
   const curSlide = activeSlide();
   const curElement = selectedElement();
+
+  React.useEffect(() => {
+    function clampLayoutForViewport() {
+      const slideBounds = getSlidePanelBounds();
+      const timelineBounds = getTimelineHeightBounds();
+      setSlidePanelWidth((width) => clampLayoutValue(width, slideBounds.min, slideBounds.max));
+      setTimelineHeight((height) => clampLayoutValue(height, timelineBounds.min, timelineBounds.max));
+    }
+
+    clampLayoutForViewport();
+    window.addEventListener('resize', clampLayoutForViewport);
+    return () => window.removeEventListener('resize', clampLayoutForViewport);
+  }, []);
+
+  const setResponsiveTimelineHeight = React.useCallback((height: number) => {
+    const bounds = getTimelineHeightBounds();
+    setTimelineHeight(clampLayoutValue(height, bounds.min, bounds.max));
+  }, []);
+
+  const startSlidePanelResize = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = slidePanelWidth;
+
+    function onPointerMove(moveEvent: PointerEvent) {
+      const bounds = getSlidePanelBounds();
+      setSlidePanelWidth(clampLayoutValue(startWidth + moveEvent.clientX - startX, bounds.min, bounds.max));
+    }
+
+    function stopResize() {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', stopResize);
+      window.removeEventListener('pointercancel', stopResize);
+    }
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
+  }, [slidePanelWidth]);
 
   // ── Render modals ──────────────────────────────────────────────────────────
   function renderModal() {
@@ -443,7 +515,25 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
             state={state}
             dispatch={dispatch}
             slidesForScene={slidesForScene}
+            width={slidePanelWidth}
           />
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize slide panel"
+            tabIndex={0}
+            className="group relative w-1.5 shrink-0 cursor-col-resize bg-white transition hover:bg-indigo-50"
+            onPointerDown={startSlidePanelResize}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              const bounds = getSlidePanelBounds();
+              const delta = (event.shiftKey ? 24 : 12) * (event.key === 'ArrowRight' ? 1 : -1);
+              setSlidePanelWidth((width) => clampLayoutValue(width + delta, bounds.min, bounds.max));
+            }}
+          >
+            <div className="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-slate-200 transition group-hover:bg-indigo-400" />
+          </div>
 
           {/* Centre: Canvas + Insert toolbar */}
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -483,6 +573,10 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
           state={state}
           dispatch={dispatch}
           activeSlide={curSlide}
+          height={timelineHeight}
+          minHeight={getTimelineHeightBounds().min}
+          maxHeight={getTimelineHeightBounds().max}
+          onHeightChange={setResponsiveTimelineHeight}
         />
       </div>
 
@@ -498,36 +592,140 @@ const ANIMATION_STYLES = `
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes previewSlideLeft {
+@keyframes previewFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes previewFadeUpIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes previewFadeUpOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-16px); }
+}
+@keyframes previewFadeDownIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes previewFadeDownOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(16px); }
+}
+@keyframes previewFadeLeftIn {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes previewFadeLeftOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-18px); }
+}
+@keyframes previewFadeRightIn {
+  from { opacity: 0; transform: translateX(-18px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes previewFadeRightOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(18px); }
+}
+
+@keyframes previewSlideLeftIn {
   from { opacity: 0; transform: translateX(-30px); }
   to { opacity: 1; transform: translateX(0); }
 }
-@keyframes previewSlideRight {
+@keyframes previewSlideLeftOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-30px); }
+}
+
+@keyframes previewSlideRightIn {
   from { opacity: 0; transform: translateX(30px); }
   to { opacity: 1; transform: translateX(0); }
 }
-@keyframes previewSlideUp {
+@keyframes previewSlideRightOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(30px); }
+}
+
+@keyframes previewSlideUpIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes previewSlideDown {
+@keyframes previewSlideUpOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes previewSlideDownIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes previewZoom {
+@keyframes previewSlideDownOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+}
+
+@keyframes previewZoomIn {
   from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
 }
-@keyframes previewBounce {
+@keyframes previewZoomOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
+@keyframes previewZoomOutIn {
+  from { opacity: 0; transform: scale(1.12); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes previewZoomInOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.12); }
+}
+
+@keyframes previewRotateIn {
+  from { opacity: 0; transform: rotate(-6deg) scale(0.96); }
+  to { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+@keyframes previewRotateOut {
+  from { opacity: 1; transform: rotate(0deg) scale(1); }
+  to { opacity: 0; transform: rotate(6deg) scale(0.96); }
+}
+
+@keyframes previewFlipIn {
+  from { opacity: 0; transform: perspective(800px) rotateY(-70deg); }
+  to { opacity: 1; transform: perspective(800px) rotateY(0deg); }
+}
+@keyframes previewFlipOut {
+  from { opacity: 1; transform: perspective(800px) rotateY(0deg); }
+  to { opacity: 0; transform: perspective(800px) rotateY(70deg); }
+}
+
+@keyframes previewWipeLeftIn {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes previewWipeLeftOut {
+  from { opacity: 1; clip-path: inset(0 0 0 0); }
+  to { opacity: 0; clip-path: inset(0 0 0 100%); }
+}
+@keyframes previewWipeRightIn {
+  from { opacity: 0; clip-path: inset(0 0 0 100%); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes previewWipeRightOut {
+  from { opacity: 1; clip-path: inset(0 0 0 0); }
+  to { opacity: 0; clip-path: inset(0 100% 0 0); }
+}
+
+@keyframes previewBounceIn {
   0% { opacity: 0; transform: scale(0.7); }
   60% { opacity: 1; transform: scale(1.05); }
   100% { transform: scale(1); }
 }
-.preview-anim-fade-in { animation: previewFadeIn 0.4s ease forwards; }
-.preview-anim-slide-left { animation: previewSlideLeft 0.4s ease forwards; }
-.preview-anim-slide-right { animation: previewSlideRight 0.4s ease forwards; }
-.preview-anim-slide-up { animation: previewSlideUp 0.4s ease forwards; }
-.preview-anim-slide-down { animation: previewSlideDown 0.4s ease forwards; }
-.preview-anim-zoom { animation: previewZoom 0.4s ease forwards; }
-.preview-anim-bounce { animation: previewBounce 0.5s ease forwards; }
+@keyframes previewBounceOut {
+  0% { opacity: 1; transform: scale(1); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
 `;

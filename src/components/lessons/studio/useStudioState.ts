@@ -26,6 +26,8 @@ export interface StudioState {
   playing: boolean;
   /** Playhead position in seconds */
   playhead: number;
+  /** Text element currently being edited directly on the canvas */
+  inlineEditingElementId: string | null;
   /** Unsaved changes flag */
   isDirty: boolean;
   /** Undo history (stores full slides array snapshots, max 50) */
@@ -76,6 +78,8 @@ export type StudioAction =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   // UI
+  | { type: 'BEGIN_INLINE_TEXT_EDIT'; elementId: string }
+  | { type: 'END_INLINE_TEXT_EDIT'; elementId?: string }
   | { type: 'SET_RIGHT_PANEL'; panel: 'slide' | 'audience' }
   | { type: 'OPEN_MODAL'; modal: StudioModal }
   | { type: 'CLOSE_MODAL' }
@@ -132,6 +136,7 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
         activeSceneType: action.sceneType,
         activeSlideId: first?.id ?? null,
         selectedElementId: null,
+        inlineEditingElementId: null,
       };
     }
 
@@ -140,6 +145,7 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
         ...state,
         activeSlideId: action.slideId,
         selectedElementId: null,
+        inlineEditingElementId: null,
         playing: false,
         playhead: 0,
       };
@@ -148,6 +154,10 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
       return {
         ...state,
         selectedElementId: action.elementId,
+        inlineEditingElementId:
+          action.elementId && state.inlineEditingElementId === action.elementId
+            ? state.inlineEditingElementId
+            : null,
         // Auto-switch to Slide tab so element properties are immediately visible
         rightPanel: action.elementId ? 'slide' : state.rightPanel,
       };
@@ -197,6 +207,7 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
         lesson: { ...state.lesson, slides: remaining },
         activeSlideId: nextActive,
         selectedElementId: null,
+        inlineEditingElementId: null,
         isDirty: true,
       };
     }
@@ -270,6 +281,10 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
           state.selectedElementId === action.elementId
             ? null
             : state.selectedElementId,
+        inlineEditingElementId:
+          state.inlineEditingElementId === action.elementId
+            ? null
+            : state.inlineEditingElementId,
         isDirty: true,
       };
     }
@@ -399,6 +414,20 @@ function reducer(state: StudioState, action: StudioAction): StudioState {
     }
 
     // ── UI ───────────────────────────────────────────────────────────────────
+    case 'BEGIN_INLINE_TEXT_EDIT':
+      return {
+        ...state,
+        selectedElementId: action.elementId,
+        inlineEditingElementId: action.elementId,
+        rightPanel: 'slide',
+      };
+
+    case 'END_INLINE_TEXT_EDIT':
+      if (action.elementId && state.inlineEditingElementId !== action.elementId) {
+        return state;
+      }
+      return { ...state, inlineEditingElementId: null };
+
     case 'SET_RIGHT_PANEL':
       return { ...state, rightPanel: action.panel };
 
@@ -429,6 +458,7 @@ export function useStudioState(lesson: Lesson) {
     zoom: 0.75,
     playing: false,
     playhead: 0,
+    inlineEditingElementId: null,
     isDirty: false,
     undoStack: [],
     redoStack: [],
