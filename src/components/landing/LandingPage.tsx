@@ -1,989 +1,1270 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import {
+    Activity,
+    ArrowRight,
+    BarChart3,
+    BookOpen,
+    Check,
+    ChevronRight,
+    Cpu,
+    Database,
+    Fingerprint,
+    GraduationCap,
+    Layers3,
+    LockKeyhole,
+    MessageSquareText,
+    MonitorSmartphone,
+    Network,
+    ScanLine,
+    School,
+    ShieldCheck,
+    Sparkles,
+    TabletSmartphone,
+    UsersRound,
+    Wifi,
+} from "lucide-react";
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-// Primary:   #1B4332  forest green — authority, growth, non-SaaS-blue
-// Gold:      #C9963E  — used once, for pricing highlight only
-// Bg warm:   #FAFAF8  — slightly warm white, not clinical
-// Text dark: #0A0A0A
-// Text body: #374151
-// Text mute: #6B7280
-// Border:    #E5E7EB
-// ─────────────────────────────────────────────────────────────────────────────
-
-function useScrolled(threshold = 80) {
-    const [scrolled, setScrolled] = useState(false);
-    useEffect(() => {
-        const handler = () => setScrolled(window.scrollY > threshold);
-        window.addEventListener("scroll", handler, { passive: true });
-        return () => window.removeEventListener("scroll", handler);
-    }, [threshold]);
-    return scrolled;
-}
-
-function useReveal() {
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    el.classList.add("revealed");
-                    observer.unobserve(el);
-                }
-            },
-            { rootMargin: "0px 0px -48px 0px" }
-        );
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
-    return ref;
-}
-
-function useCounter(target: number, duration = 1600) {
-    const [count, setCount] = useState(0);
-    const [started, setStarted] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => { if (entry.isIntersecting && !started) { setStarted(true); observer.unobserve(el); } },
-            { threshold: 0.4 }
-        );
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [started]);
-    useEffect(() => {
-        if (!started) return;
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            setCount(target);
-            return;
-        }
-        let raf: number;
-        const start = performance.now();
-        const tick = (now: number) => {
-            const t = Math.min((now - start) / duration, 1);
-            setCount(Math.round((1 - Math.pow(1 - t, 3)) * target));
-            if (t < 1) raf = requestAnimationFrame(tick);
-        };
-        raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
-    }, [started, target, duration]);
-    return { ref, count };
-}
-
-function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-    const ref = useReveal();
-    return (
-        <div ref={ref} className={`lp-reveal ${className}`} style={delay ? { transitionDelay: `${delay}ms` } : undefined}>
-            {children}
-        </div>
-    );
-}
-
-// ─── Inline SVG icons (24px, outline, 1.5 stroke) ────────────────────────────
-const Icons = {
-    Score: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
-        </svg>
-    ),
-    Report: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/>
-        </svg>
-    ),
-    Holistic: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-    ),
-    Sms: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-        </svg>
-    ),
-    Broadsheet: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-        </svg>
-    ),
-    Records: () => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-    ),
-    Check: () => (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="20 6 9 17 4 12"/>
-        </svg>
-    ),
-    ArrowRight: () => (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-    ),
+const palette = {
+    aubergine: "#24142F",
+    teal: "#00A99A",
+    gold: "#C69214",
+    purple: "#5B2DAA",
+    graphite: "#202426",
+    cloud: "#F7FAFA",
 };
 
-// ─── Feature card data ────────────────────────────────────────────────────────
-const features = [
+const navItems = ["Platform", "Hardware", "Insights", "Security", "Pricing"];
+
+const stats = [
+    ["24/7", "School operations"],
+    ["99.9%", "Cloud uptime target"],
+    ["1 day", "Typical onboarding"],
+    ["360°", "Student profile"],
+];
+
+const capabilities = [
     {
-        icon: "Score" as const,
-        title: "Score Entry & Grading",
-        body: "Enter CA components, exam scores, and projects in a single grid. Grades compute automatically against your school's boundaries — no formulas, no errors.",
+        icon: ScanLine,
+        title: "Assessment diagnostics",
+        body: "Capture CA, exams, behavior, attendance, and teacher remarks in one verified student record.",
     },
     {
-        icon: "Report" as const,
-        title: "Report Card Generation",
-        body: "One click generates branded PDFs for every student in a class. Principal's remarks, teacher comments, and school logo — all included.",
+        icon: TabletSmartphone,
+        title: "Smart school hardware",
+        body: "Device badges, classroom terminals, ID workflows, and future-ready hardware touchpoints.",
     },
     {
-        icon: "Holistic" as const,
-        title: "Holistic Assessment",
-        body: "NERDC-aligned psychomotor skills, affective domain ratings, and co-curricular activities — structured for Nigerian primary and secondary schools.",
+        icon: BarChart3,
+        title: "Live performance analytics",
+        body: "See class trends, subject gaps, grade distributions, and intervention signals before term ends.",
     },
     {
-        icon: "Sms" as const,
-        title: "Parent Communication",
-        body: "Send term results and school notices via SMS or email directly from the platform. Delivery receipts included.",
+        icon: MessageSquareText,
+        title: "Parent communication",
+        body: "Send report cards, notices, balances, and progress updates through structured school channels.",
     },
     {
-        icon: "Broadsheet" as const,
-        title: "Class Broadsheets",
-        body: "Full-class performance tables with subject averages, class positions, and grade distributions. Export to Excel in one click.",
+        icon: Database,
+        title: "Academic record vault",
+        body: "Keep multi-year student histories searchable, secure, and ready for transcripts or transfers.",
     },
     {
-        icon: "Records" as const,
-        title: "Academic Records",
-        body: "Every student's historical results stored and searchable. Pull any term's report card from any past session instantly.",
+        icon: ShieldCheck,
+        title: "Role-based governance",
+        body: "Principals, admins, teachers, parents, and students each get the access they need.",
     },
 ];
 
-// ─── Stat counter ─────────────────────────────────────────────────────────────
-function Stat({ target, suffix, label }: { target: number; suffix: string; label: string }) {
-    const { ref, count } = useCounter(target);
+const profileSignals = [
+    ["Academic mastery", "82%"],
+    ["Attendance stability", "94%"],
+    ["Behavior trend", "76%"],
+    ["STEM readiness", "68%"],
+    ["Parent engagement", "89%"],
+];
+
+const steps = [
+    ["01", "Connect the school", "Configure classes, subjects, terms, roles, devices, and grading policy."],
+    ["02", "Capture every signal", "Teachers and hardware touchpoints feed scores, attendance, conduct, and notes."],
+    ["03", "Diagnose progress", "Leadership sees risk patterns, excellence signals, and class-level comparisons."],
+    ["04", "Publish with confidence", "Generate verified reports, broadsheets, transcripts, and parent updates."],
+];
+
+function BrandMark({ compact = false }: { compact?: boolean }) {
+    const size = compact ? 36 : 48;
     return (
-        <div ref={ref} style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: "clamp(2.25rem, 4vw, 3rem)", color: "#ffffff", lineHeight: 1, marginBottom: "0.5rem" }}>
-                {count.toLocaleString()}{suffix}
+        // Edunostics logo mark — E letterform with stacked learning layers + gold checkmark
+        <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+            {/* ── E letterform (aubergine body) ── */}
+            <rect x="8"  y="8"  width="64" height="15" rx="4" fill={palette.teal} />
+            <rect x="8"  y="8"  width="12" height="52" rx="4" fill={palette.aubergine} />
+            <rect x="8"  y="31" width="48" height="13" rx="4" fill={palette.aubergine} />
+            <rect x="8"  y="45" width="64" height="15" rx="4" fill={palette.purple} />
+            {/* ── Gold checkmark overlaid on middle section ── */}
+            <polyline
+                points="44,25 54,38 78,10"
+                fill="none"
+                stroke={palette.gold}
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* ── Learning layers (stacked pages, bottom) ── */}
+            <rect x="8"  y="66" width="84" height="9"  rx="4" fill={palette.teal}      opacity="1"   />
+            <rect x="14" y="77" width="72" height="8"  rx="4" fill={palette.gold}      opacity="0.9" />
+            <rect x="20" y="87" width="60" height="7"  rx="4" fill={palette.purple}    opacity="0.75"/>
+        </svg>
+    );
+}
+
+function Logo({ compact = false }: { compact?: boolean }) {
+    return (
+        <Link href="/" aria-label="Edunostics home" className="brand">
+            <BrandMark compact={compact} />
+            <span>Edunostics</span>
+        </Link>
+    );
+}
+
+function ArrowButton({ href, children, variant = "primary" }: { href: string; children: React.ReactNode; variant?: "primary" | "ghost" }) {
+    return (
+        <Link href={href} className={`cta ${variant}`}>
+            <span>{children}</span>
+            <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+    );
+}
+
+function ProductConsole() {
+    return (
+        <div className="console-shell" aria-label="Edunostics platform preview">
+            <div className="console-sidebar">
+                <Logo compact />
+                {[
+                    [School, "School"],
+                    [UsersRound, "Students"],
+                    [BookOpen, "Assessments"],
+                    [BarChart3, "Reports"],
+                    [Cpu, "Devices"],
+                    [LockKeyhole, "Access"],
+                ].map(([Icon, label]) => (
+                    <div className="side-item" key={label as string}>
+                        <Icon size={15} aria-hidden="true" />
+                        <span>{label as string}</span>
+                    </div>
+                ))}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.9375rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                {label}
+            <div className="console-main">
+                <div className="console-top">
+                    <div>
+                        <p>Command Center</p>
+                        <h3>Greenfield Secondary School</h3>
+                    </div>
+                    <div className="sync-pill"><Wifi size={13} /> Live sync</div>
+                </div>
+                <div className="metric-row">
+                    {[
+                        ["1,248", "Students"],
+                        ["320", "Assessments"],
+                        ["96%", "Attendance"],
+                    ].map(([value, label]) => (
+                        <div className="metric-card" key={label}>
+                            <strong>{value}</strong>
+                            <span>{label}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="insight-panel">
+                    <div className="panel-heading">
+                        <span>Performance diagnostics</span>
+                        <Activity size={16} />
+                    </div>
+                    <div className="chart-lines">
+                        <span />
+                        <span />
+                        <span />
+                    </div>
+                    <div className="risk-grid">
+                        <div><b>18</b><span>At-risk learners</span></div>
+                        <div><b>42</b><span>STEM accelerators</span></div>
+                    </div>
+                </div>
+            </div>
+            <div className="console-context">
+                <div className="context-card">
+                    <p>Device status</p>
+                    <strong>14 active</strong>
+                    <span>Classroom terminals online</span>
+                </div>
+                <div className="context-list">
+                    {["JSS 2A mathematics gap", "SS 1 attendance decline", "Report cards ready"].map((item) => (
+                        <div key={item}><Check size={13} /><span>{item}</span></div>
+                    ))}
+                </div>
             </div>
         </div>
     );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-export default function LandingPage() {
-    const scrolled = useScrolled();
-
+function CognitiveProfile() {
     return (
-        <>
+        <div className="profile-board">
+            <div className="radar">
+                <div style={{ marginBottom: 20 }}>
+                    <p style={{ margin: 0, color: "var(--teal)", fontSize: ".68rem", fontWeight: 850, textTransform: "uppercase", letterSpacing: ".08em" }}>Core alignment</p>
+                    <p style={{ margin: "8px 0 0", color: "rgba(247,250,250,.6)", fontSize: ".78rem", lineHeight: 1.5 }}>Strong academic pattern with high assessment consistency and engagement signals.</p>
+                </div>
+                <div className="radar-core" />
+                <div className="radar-axis a" />
+                <div className="radar-axis b" />
+                <div className="radar-axis c" />
+            </div>
+            <div className="signal-list">
+                {profileSignals.map(([label, value]) => (
+                    <div className="signal" key={label}>
+                        <span>{label}</span>
+                        <b>{value}</b>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function DeviceStack() {
+    return (
+        <div className="device-stack">
+            <div className="device-terminal">
+                <div className="speaker" />
+                <div className="device-screen"><BrandMark compact /></div>
+                <span className="device-light" />
+            </div>
+            <div className="device-copy">
+                <h3>Built for software and the physical school environment.</h3>
+                <p>Edunostics can support classroom devices, ID-card workflows, secure staff portals, and parent-facing access from the same operating layer.</p>
+                <div className="device-tags">
+                    <span><Cpu size={14} /> Device-ready</span>
+                    <span><Fingerprint size={14} /> Secure identity</span>
+                    <span><Network size={14} /> Connected systems</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function LandingPage() {
+    return (
+        <main className="ed-page">
             <style>{`
-                *, *::before, *::after { box-sizing: border-box; margin: 0; }
-
-                body { font-family: 'Inter', system-ui, sans-serif; }
-
-                .lp-serif { font-family: 'DM Serif Display', Georgia, serif; }
-                .lp-sans  { font-family: 'Inter', system-ui, sans-serif; }
-
-                /* Single reveal animation — opacity + translateY, nothing else */
-                .lp-reveal {
-                    opacity: 0;
-                    transform: translateY(20px);
-                    transition: opacity 0.35s ease-out, transform 0.35s ease-out;
-                }
-                .lp-reveal.revealed {
-                    opacity: 1;
-                    transform: none;
+                :root {
+                    --aubergine: ${palette.aubergine};
+                    --teal: ${palette.teal};
+                    --gold: ${palette.gold};
+                    --purple: ${palette.purple};
+                    --graphite: ${palette.graphite};
+                    --cloud: ${palette.cloud};
                 }
 
-                @media (prefers-reduced-motion: reduce) {
-                    .lp-reveal { opacity: 1; transform: none; transition: none; }
+                .ed-page {
+                    min-height: 100vh;
+                    background:
+                        radial-gradient(circle at 20% 8%, rgba(0,169,154,.22), transparent 25rem),
+                        radial-gradient(circle at 82% 12%, rgba(91,45,170,.20), transparent 24rem),
+                        linear-gradient(180deg, #08070b 0%, #0d0b12 48%, #09080c 100%);
+                    color: var(--cloud);
+                    /* Brand typography: Satoshi (headlines) · Inter (body) · Manrope (UI) */
+                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                    overflow-x: hidden;
                 }
 
-                /* Desktop nav links */
-                @media (min-width: 768px) {
-                    .md-show { display: block !important; }
+                .ed-page * { box-sizing: border-box; }
+                .ed-page a { color: inherit; }
+
+                /* ── Brand type scale ─────────────────────────────────── */
+                /* Satoshi SemiBold → all headings (h1–h3, hero, section heads) */
+                .ed-page h1,
+                .ed-page h2,
+                .ed-page h3 {
+                    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+                    font-weight: 600;
+                }
+                /* Manrope Medium → UI chrome (console, metrics, pills, labels) */
+                .console-shell,
+                .metric-card,
+                .sync-pill,
+                .side-item,
+                .stat,
+                .step-num,
+                .signal,
+                .context-card,
+                .context-list,
+                .device-tags,
+                .logo-cloud div,
+                .email-box {
+                    font-family: 'Manrope', system-ui, sans-serif;
                 }
 
-                /* Feature grid */
-                .feature-grid {
+                .site-header {
+                    position: sticky;
+                    top: 0;
+                    z-index: 20;
+                    backdrop-filter: blur(18px);
+                    background: rgba(8, 7, 11, .72);
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                }
+
+                .nav-wrap {
+                    width: min(1180px, calc(100% - 40px));
+                    height: 72px;
+                    margin: 0 auto;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 24px;
+                }
+
+                .brand {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 10px;
+                    text-decoration: none;
+                    font-weight: 700;
+                    letter-spacing: 0;
+                    color: #fff;
+                }
+
+                .brand span {
+                    font-size: 1rem;
+                    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+                    font-weight: 700;
+                    letter-spacing: -.01em;
+                }
+
+                .nav-links {
+                    display: flex;
+                    align-items: center;
+                    gap: 28px;
+                    color: rgba(247,250,250,.62);
+                    font-size: .78rem;
+                    font-weight: 600;
+                }
+
+                .nav-links a {
+                    text-decoration: none;
+                    transition: color .18s ease;
+                }
+
+                .nav-links a:hover { color: #fff; }
+
+                .nav-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .signin {
+                    border: 1px solid rgba(247,250,250,.12);
+                    border-radius: 999px;
+                    padding: 9px 15px;
+                    color: rgba(247,250,250,.76);
+                    text-decoration: none;
+                    font-size: .78rem;
+                    font-weight: 700;
+                }
+
+                .cta {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 9px;
+                    min-height: 42px;
+                    padding: 0 18px;
+                    border-radius: 999px;
+                    text-decoration: none;
+                    font-size: .8rem;
+                    font-weight: 800;
+                    letter-spacing: 0;
+                    white-space: nowrap;
+                    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+                }
+
+                .cta:hover { transform: translateY(-1px); }
+                .cta.primary { background: #fff; color: #130c19; }
+                .cta.ghost { border: 1px solid rgba(247,250,250,.13); color: rgba(247,250,250,.78); }
+
+                .section {
+                    width: min(1180px, calc(100% - 40px));
+                    margin: 0 auto;
+                    position: relative;
+                }
+
+                .hero {
+                    min-height: calc(100vh - 72px);
+                    display: grid;
+                    grid-template-columns: .86fr 1.14fr;
+                    align-items: center;
+                    gap: 58px;
+                    padding: 60px 0 38px;
+                }
+
+                .hero-copy h1 {
+                    margin: 0;
+                    max-width: 640px;
+                    font-size: clamp(3.1rem, 7vw, 7.15rem);
+                    line-height: .9;
+                    letter-spacing: 0;
+                    font-weight: 780;
+                    text-wrap: balance;
+                }
+
+                .hero-copy p {
+                    max-width: 450px;
+                    margin: 26px 0 28px;
+                    color: rgba(247,250,250,.68);
+                    font-size: 1rem;
+                    line-height: 1.8;
+                }
+
+                .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+                .trust-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    margin-top: 52px;
+                    color: rgba(247,250,250,.52);
+                    font-size: .76rem;
+                    line-height: 1.45;
+                }
+
+                .avatar-stack { display: flex; }
+                .avatar-stack span {
+                    width: 28px;
+                    height: 28px;
+                    margin-left: -8px;
+                    border-radius: 50%;
+                    border: 2px solid #08070b;
+                    background: linear-gradient(135deg, var(--teal), var(--purple));
+                }
+                .avatar-stack span:first-child { margin-left: 0; background: linear-gradient(135deg, #fff, var(--gold)); }
+                .avatar-stack span:nth-child(3) { background: linear-gradient(135deg, var(--aubergine), var(--teal)); }
+
+                .hero-visual {
+                    position: relative;
+                    min-height: 620px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .orb {
+                    position: absolute;
+                    inset: 8% auto auto 3%;
+                    width: 510px;
+                    height: 510px;
+                    border-radius: 50%;
+                    background:
+                        radial-gradient(circle at 32% 45%, rgba(255,255,255,.85), rgba(198,146,20,.34) 10%, rgba(0,169,154,.13) 18%, transparent 34%),
+                        conic-gradient(from 18deg, rgba(247,250,250,.04), rgba(247,250,250,.5), rgba(91,45,170,.24), rgba(247,250,250,.04));
+                    opacity: .55;
+                    filter: blur(.2px);
+                    mask-image: radial-gradient(circle, black 0 54%, transparent 55%);
+                }
+
+                .console-shell {
+                    position: relative;
+                    z-index: 2;
+                    width: min(700px, 100%);
+                    min-height: 520px;
+                    display: grid;
+                    grid-template-columns: 172px 1fr 168px;
+                    gap: 1px;
+                    overflow: hidden;
+                    border: 1px solid rgba(247,250,250,.12);
+                    border-radius: 18px;
+                    background: rgba(247,250,250,.08);
+                    box-shadow: 0 30px 100px rgba(0,0,0,.5);
+                }
+
+                .console-sidebar,
+                .console-main,
+                .console-context {
+                    background: rgba(17, 13, 23, .82);
+                    backdrop-filter: blur(18px);
+                }
+
+                .console-sidebar { padding: 18px 14px; }
+                .console-sidebar .brand { margin-bottom: 22px; }
+                .console-sidebar .brand span { font-size: .82rem; }
+
+                .side-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 9px;
+                    height: 36px;
+                    padding: 0 10px;
+                    border-radius: 10px;
+                    color: rgba(247,250,250,.62);
+                    font-size: .78rem;
+                    font-weight: 650;
+                }
+                .side-item:nth-child(4) {
+                    background: rgba(247,250,250,.08);
+                    color: #fff;
+                }
+
+                .console-main { padding: 22px; }
+                .console-top {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 18px;
+                    align-items: flex-start;
+                    margin-bottom: 20px;
+                }
+                .console-top p {
+                    margin: 0 0 6px;
+                    color: var(--teal);
+                    font-size: .68rem;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: .08em;
+                }
+                .console-top h3 { margin: 0; font-size: 1.08rem; line-height: 1.25; }
+                .sync-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    height: 28px;
+                    padding: 0 10px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(0,169,154,.26);
+                    color: rgba(247,250,250,.75);
+                    font-size: .68rem;
+                    white-space: nowrap;
+                }
+
+                .metric-row {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
-                    gap: 1px;
-                    background: rgba(255,255,255,0.08);
+                    gap: 10px;
+                    margin-bottom: 14px;
                 }
-                @media (max-width: 900px) {
-                    .feature-grid { grid-template-columns: repeat(2, 1fr); }
+                .metric-card {
+                    min-height: 80px;
+                    padding: 14px;
+                    border: 1px solid rgba(247,250,250,.09);
+                    border-radius: 14px;
+                    background: rgba(247,250,250,.04);
                 }
-                @media (max-width: 560px) {
-                    .feature-grid { grid-template-columns: 1fr; }
-                }
+                .metric-card strong { display: block; font-size: 1.4rem; margin-bottom: 7px; }
+                .metric-card span { color: rgba(247,250,250,.5); font-size: .7rem; font-weight: 700; }
 
-                /* Showcase row */
-                .showcase-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 5rem;
+                .insight-panel {
+                    border: 1px solid rgba(247,250,250,.1);
+                    border-radius: 16px;
+                    padding: 16px;
+                    background: linear-gradient(145deg, rgba(0,169,154,.08), rgba(91,45,170,.08));
+                }
+                .panel-heading {
+                    display: flex;
+                    justify-content: space-between;
                     align-items: center;
+                    color: rgba(247,250,250,.78);
+                    font-size: .8rem;
+                    font-weight: 800;
+                    margin-bottom: 18px;
                 }
-                @media (max-width: 860px) {
-                    .showcase-row { grid-template-columns: 1fr; gap: 2.5rem; }
-                    .showcase-row-reverse { direction: ltr; }
+                .chart-lines { height: 168px; display: grid; align-content: center; gap: 20px; }
+                .chart-lines span {
+                    display: block;
+                    height: 34px;
+                    border-radius: 999px;
+                    background:
+                        linear-gradient(90deg, transparent, rgba(0,169,154,.76), rgba(198,146,20,.75), transparent);
+                    clip-path: polygon(0 65%, 14% 42%, 28% 56%, 42% 28%, 58% 46%, 72% 18%, 88% 44%, 100% 30%, 100% 48%, 88% 62%, 72% 38%, 58% 66%, 42% 48%, 28% 76%, 14% 62%, 0 84%);
+                    opacity: .8;
                 }
+                .chart-lines span:nth-child(2) { opacity: .45; transform: translateX(16px); }
+                .chart-lines span:nth-child(3) { opacity: .25; transform: translateX(-12px); }
+                .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                .risk-grid div {
+                    border-radius: 12px;
+                    background: rgba(0,0,0,.23);
+                    padding: 12px;
+                }
+                .risk-grid b { display: block; color: var(--gold); font-size: 1.2rem; }
+                .risk-grid span { color: rgba(247,250,250,.52); font-size: .68rem; }
 
-                /* Stat grid */
-                .stat-grid {
+                .console-context { padding: 18px 14px; }
+                .context-card {
+                    border: 1px solid rgba(247,250,250,.1);
+                    border-radius: 14px;
+                    padding: 14px;
+                    background: rgba(247,250,250,.04);
+                    margin-bottom: 14px;
+                }
+                .context-card p { margin: 0 0 8px; color: rgba(247,250,250,.5); font-size: .68rem; }
+                .context-card strong { display: block; color: #fff; font-size: 1.25rem; margin-bottom: 4px; }
+                .context-card span { color: rgba(247,250,250,.5); font-size: .68rem; line-height: 1.4; }
+                .context-list { display: grid; gap: 8px; }
+                .context-list div {
+                    display: flex;
+                    gap: 7px;
+                    align-items: flex-start;
+                    color: rgba(247,250,250,.62);
+                    font-size: .68rem;
+                    line-height: 1.35;
+                }
+                .context-list svg { color: var(--teal); flex: 0 0 auto; margin-top: 1px; }
+
+                .stats-band {
+                    border-top: 1px solid rgba(247,250,250,.09);
+                    border-bottom: 1px solid rgba(247,250,250,.09);
+                    background: rgba(247,250,250,.025);
+                }
+                .stats-grid {
                     display: grid;
                     grid-template-columns: repeat(4, 1fr);
-                    gap: 3rem;
+                    gap: 1px;
+                    background: rgba(247,250,250,.08);
                 }
-                @media (max-width: 700px) {
-                    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+                .stat {
+                    padding: 28px 18px;
+                    background: rgba(8,7,11,.8);
+                }
+                .stat strong { display: block; font-size: clamp(1.7rem, 3vw, 2.45rem); line-height: 1; margin-bottom: 8px; }
+                .stat span { color: rgba(247,250,250,.48); font-size: .76rem; font-weight: 650; }
+
+                .split-section {
+                    display: grid;
+                    grid-template-columns: .66fr 1.34fr;
+                    gap: 70px;
+                    align-items: center;
+                    padding: 92px 0;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                }
+                .section-copy h2,
+                .wide-heading h2 {
+                    margin: 0;
+                    font-size: clamp(2.05rem, 4vw, 4.2rem);
+                    line-height: .98;
+                    letter-spacing: 0;
+                    text-wrap: balance;
+                }
+                .section-copy p,
+                .wide-heading p {
+                    margin: 22px 0 0;
+                    color: rgba(247,250,250,.58);
+                    line-height: 1.75;
+                    font-size: .96rem;
+                    max-width: 430px;
+                }
+                .feature-list {
+                    display: grid;
+                    gap: 12px;
+                    margin-top: 30px;
+                }
+                .feature-list div {
+                    display: grid;
+                    grid-template-columns: 34px 1fr;
+                    gap: 12px;
+                    align-items: flex-start;
+                    color: rgba(247,250,250,.7);
+                    font-size: .84rem;
+                    line-height: 1.5;
+                }
+                .feature-list span {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 10px;
+                    display: grid;
+                    place-items: center;
+                    color: var(--teal);
+                    background: rgba(0,169,154,.1);
+                    border: 1px solid rgba(0,169,154,.15);
                 }
 
-                /* Steps row */
-                .steps-row {
+                .capability-grid {
+                    display: grid;
+                    grid-template-columns: repeat(6, 1fr);
+                    gap: 12px;
+                    padding: 86px 0 100px;
+                }
+                .capability-card {
+                    min-height: 258px;
+                    border: 1px solid rgba(247,250,250,.1);
+                    border-radius: 14px;
+                    padding: 18px;
+                    background:
+                        radial-gradient(circle at 50% 0%, rgba(247,250,250,.1), transparent 42%),
+                        rgba(247,250,250,.035);
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+                .capability-card svg {
+                    width: 42px;
+                    height: 42px;
+                    color: var(--teal);
+                    padding: 10px;
+                    border-radius: 50%;
+                    background: rgba(0,169,154,.1);
+                }
+                .capability-card h3 { margin: 34px 0 10px; font-size: .96rem; line-height: 1.2; }
+                .capability-card p { margin: 0; color: rgba(247,250,250,.5); font-size: .75rem; line-height: 1.55; }
+
+                .insight-split {
+                    display: grid;
+                    grid-template-columns: .42fr .58fr;
+                    gap: 70px;
+                    align-items: center;
+                    padding: 92px 0;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                }
+
+                .profile-board {
+                    min-height: 430px;
+                    display: grid;
+                    grid-template-columns: 1fr .78fr;
+                    gap: 1px;
+                    overflow: hidden;
+                    border: 1px solid rgba(247,250,250,.1);
+                    border-radius: 18px;
+                    background: rgba(247,250,250,.08);
+                }
+                .radar,
+                .signal-list {
+                    background: rgba(247,250,250,.035);
+                    padding: 28px;
+                }
+                .radar {
+                    position: relative;
+                    display: grid;
+                    place-items: center;
+                    background:
+                        radial-gradient(circle, rgba(247,250,250,.12) 0 1px, transparent 1px 100%),
+                        rgba(247,250,250,.035);
+                    background-size: 32px 32px;
+                }
+                .radar-core {
+                    width: min(260px, 80%);
+                    aspect-ratio: 1;
+                    border-radius: 50%;
+                    background:
+                        conic-gradient(from -30deg, rgba(247,250,250,.1), #fff, rgba(0,169,154,.25), rgba(91,45,170,.5), rgba(198,146,20,.5), rgba(247,250,250,.08)),
+                        radial-gradient(circle, rgba(255,255,255,.5), transparent 36%);
+                    box-shadow: inset 0 0 40px rgba(0,0,0,.75), 0 0 80px rgba(0,169,154,.18);
+                }
+                .radar-axis {
+                    position: absolute;
+                    width: 74%;
+                    height: 1px;
+                    background: rgba(247,250,250,.15);
+                }
+                .radar-axis.b { transform: rotate(60deg); }
+                .radar-axis.c { transform: rotate(-60deg); }
+                .signal-list {
+                    display: grid;
+                    align-content: center;
+                    gap: 12px;
+                }
+                .signal {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 16px;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                    padding-bottom: 12px;
+                    color: rgba(247,250,250,.64);
+                    font-size: .78rem;
+                }
+                .signal b { color: #fff; }
+
+                .device-stack {
+                    min-height: 460px;
+                    display: grid;
+                    grid-template-columns: .88fr 1.12fr;
+                    gap: 44px;
+                    align-items: center;
+                    padding: 30px;
+                    border: 1px solid rgba(247,250,250,.1);
+                    border-radius: 18px;
+                    background:
+                        radial-gradient(circle at 24% 50%, rgba(0,169,154,.2), transparent 18rem),
+                        rgba(247,250,250,.035);
+                }
+                .device-terminal {
+                    width: min(330px, 100%);
+                    aspect-ratio: 1.24;
+                    border-radius: 38px;
+                    background: linear-gradient(145deg, #f7fafa, #bdc5c4);
+                    margin: 0 auto;
+                    position: relative;
+                    box-shadow: 0 35px 80px rgba(0,0,0,.42);
+                }
+                .speaker {
+                    position: absolute;
+                    top: 34px;
+                    left: 34px;
+                    width: 88px;
+                    height: 54px;
+                    background-image: radial-gradient(circle, rgba(36,20,47,.45) 2px, transparent 3px);
+                    background-size: 13px 13px;
+                }
+                .device-screen {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    width: 108px;
+                    height: 80px;
+                    transform: translate(-50%, -50%);
+                    display: grid;
+                    place-items: center;
+                    border-radius: 16px;
+                    background: #17101d;
+                    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+                }
+                .device-light {
+                    position: absolute;
+                    right: 40px;
+                    top: 50%;
+                    width: 13px;
+                    height: 13px;
+                    border-radius: 50%;
+                    background: var(--teal);
+                    box-shadow: 0 0 20px rgba(0,169,154,.9);
+                }
+                .device-copy h3 { margin: 0; font-size: clamp(1.8rem, 3vw, 3.2rem); line-height: 1.02; }
+                .device-copy p { color: rgba(247,250,250,.58); line-height: 1.75; max-width: 510px; }
+                .device-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+                .device-tags span {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    height: 38px;
+                    padding: 0 13px;
+                    border-radius: 999px;
+                    border: 1px solid rgba(247,250,250,.1);
+                    color: rgba(247,250,250,.72);
+                    font-size: .78rem;
+                    font-weight: 750;
+                }
+                .device-tags svg { color: var(--teal); }
+
+                .work-row {
+                    padding: 92px 0;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                }
+                .work-row .section-copy {
+                    margin-bottom: 52px;
+                    max-width: 560px;
+                }
+                .step-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 22px;
+                }
+                .step-num {
+                    width: 62px;
+                    height: 62px;
+                    display: grid;
+                    place-items: center;
+                    margin-bottom: 22px;
+                    border-radius: 50%;
+                    color: var(--gold);
+                    background: radial-gradient(circle, rgba(198,146,20,.22), rgba(247,250,250,.04));
+                    border: 1px solid rgba(198,146,20,.18);
+                    font-weight: 850;
+                }
+                .step h3 { margin: 0 0 10px; font-size: .96rem; }
+                .step p { margin: 0; color: rgba(247,250,250,.5); font-size: .78rem; line-height: 1.55; }
+
+                .proof {
+                    display: grid;
+                    grid-template-columns: 1fr 1.2fr;
+                    gap: 40px;
+                    align-items: center;
+                    padding: 74px 0;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                }
+                .proof h2 { margin: 0; max-width: 470px; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.05; }
+                .logo-cloud {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
-                    gap: 2.5rem;
+                    gap: 12px;
+                    margin-top: 28px;
                 }
-                @media (max-width: 680px) {
-                    .steps-row { grid-template-columns: 1fr; gap: 2rem; }
-                }
-
-                /* Hero layout */
-                .hero-inner {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 4rem;
+                .logo-cloud div {
+                    height: 52px;
+                    display: flex;
                     align-items: center;
+                    justify-content: center;
+                    border: 1px solid rgba(247,250,250,.08);
+                    border-radius: 12px;
+                    color: rgba(247,250,250,.55);
+                    font-size: .78rem;
+                    font-weight: 800;
                 }
-                @media (max-width: 860px) {
-                    .hero-inner { grid-template-columns: 1fr; }
-                    .hero-screenshot { display: none; }
+                .quote {
+                    padding: 34px;
+                    border-radius: 18px;
+                    border: 1px solid rgba(247,250,250,.1);
+                    background: rgba(247,250,250,.04);
+                }
+                .quote p { margin: 0; color: rgba(247,250,250,.78); font-size: 1.18rem; line-height: 1.6; }
+                .quote footer { margin-top: 26px; color: rgba(247,250,250,.5); font-size: .8rem; }
+
+                .deeper-insight {
+                    padding: 110px 0;
+                    text-align: center;
+                    border-bottom: 1px solid rgba(247,250,250,.08);
+                    max-width: 680px;
+                    margin: 0 auto;
+                }
+                .deeper-insight span {
+                    color: var(--teal);
+                    font-size: .7rem;
+                    font-weight: 850;
+                    text-transform: uppercase;
+                    letter-spacing: .1em;
+                    display: block;
+                    margin-bottom: 28px;
+                }
+                .deeper-insight h2 {
+                    margin: 0 0 22px;
+                    font-size: clamp(2.6rem, 5vw, 5rem);
+                    line-height: .96;
+                    letter-spacing: -.01em;
+                }
+                .deeper-insight p {
+                    color: rgba(247,250,250,.55);
+                    font-size: .98rem;
+                    line-height: 1.78;
+                    max-width: 520px;
+                    margin: 0 auto 28px;
+                }
+                .text-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: rgba(247,250,250,.65);
+                    text-decoration: none;
+                    font-size: .84rem;
+                    font-weight: 700;
+                    border-bottom: 1px solid rgba(247,250,250,.2);
+                    padding-bottom: 2px;
+                    transition: color .18s ease, border-color .18s ease;
+                }
+                .text-link:hover { color: #fff; border-color: rgba(247,250,250,.5); }
+
+                .cta-panel {
+                    display: grid;
+                    grid-template-columns: .9fr 1.1fr;
+                    gap: 44px;
+                    align-items: center;
+                    padding: 92px 0 68px;
+                }
+                .cta-panel h2 { margin: 0; font-size: clamp(2.3rem, 5vw, 5.2rem); line-height: .96; letter-spacing: 0; }
+                .email-box {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    width: min(560px, 100%);
+                    padding: 8px;
+                    margin-left: auto;
+                    border-radius: 999px;
+                    background: rgba(247,250,250,.07);
+                    border: 1px solid rgba(247,250,250,.1);
+                }
+                .email-box input {
+                    flex: 1;
+                    min-width: 0;
+                    height: 44px;
+                    padding: 0 18px;
+                    border: 0;
+                    outline: 0;
+                    background: transparent;
+                    color: #fff;
+                    font: inherit;
+                    font-size: .85rem;
+                }
+                .email-box input::placeholder { color: rgba(247,250,250,.4); }
+                .email-box .cta { border: 0; }
+
+                .site-footer {
+                    border-top: 1px solid rgba(247,250,250,.08);
+                    padding: 36px 0 42px;
+                }
+                .footer-grid {
+                    display: grid;
+                    grid-template-columns: 1.6fr repeat(4, 1fr);
+                    gap: 30px;
+                }
+                .footer-grid p { color: rgba(247,250,250,.45); font-size: .8rem; line-height: 1.65; max-width: 260px; }
+                .footer-col h3 {
+                    margin: 0 0 14px;
+                    color: rgba(247,250,250,.75);
+                    font-size: .78rem;
+                }
+                .footer-col a {
+                    display: block;
+                    margin: 9px 0;
+                    color: rgba(247,250,250,.42);
+                    text-decoration: none;
+                    font-size: .78rem;
                 }
 
-                /* Focus */
-                :focus-visible { outline: 2px solid #1B4332; outline-offset: 3px; border-radius: 4px; }
+                @media (max-width: 1060px) {
+                    .hero,
+                    .split-section,
+                    .work-row,
+                    .proof,
+                    .cta-panel {
+                        grid-template-columns: 1fr;
+                    }
+                    .hero { padding-top: 42px; }
+                    .hero-visual { min-height: 560px; }
+                    .capability-grid { grid-template-columns: repeat(3, 1fr); }
+                    .email-box { margin-left: 0; }
+                }
+
+                @media (max-width: 820px) {
+                    .nav-links { display: none; }
+                    .hero-visual { min-height: auto; }
+                    .orb { display: none; }
+                    .console-shell {
+                        grid-template-columns: 1fr;
+                        min-height: 0;
+                    }
+                    .console-sidebar,
+                    .console-context { display: none; }
+                    .profile-board,
+                    .device-stack,
+                    .step-grid,
+                    .footer-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+                    .capability-grid { grid-template-columns: repeat(2, 1fr); }
+                }
+
+                @media (max-width: 560px) {
+                    .nav-wrap,
+                    .section { width: min(100% - 28px, 1180px); }
+                    .nav-actions .signin { display: none; }
+                    .hero-copy h1 { font-size: 3rem; }
+                    .hero-copy p { font-size: .94rem; }
+                    .metric-row,
+                    .risk-grid,
+                    .stats-grid,
+                    .capability-grid,
+                    .logo-cloud {
+                        grid-template-columns: 1fr;
+                    }
+                    .capability-card { min-height: 220px; }
+                    .split-section,
+                    .work-row,
+                    .proof,
+                    .cta-panel { padding: 66px 0; }
+                    .email-box {
+                        align-items: stretch;
+                        flex-direction: column;
+                        border-radius: 18px;
+                    }
+                    .email-box .cta { width: 100%; }
+                }
             `}</style>
 
-            {/* ── Navbar ──────────────────────────────────────────────────── */}
-            <header
-                role="banner"
-                style={{
-                    position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-                    background: scrolled ? "#ffffff" : "transparent",
-                    borderBottom: scrolled ? "1px solid #E5E7EB" : "none",
-                    transition: "background 200ms ease, border-color 200ms ease",
-                }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Link href="/" aria-label="Edunostics home" style={{ display: "flex", alignItems: "center", gap: "0.625rem", textDecoration: "none" }}>
-                        <span style={{
-                            width: "32px", height: "32px", borderRadius: "7px",
-                            background: "#1B4332",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontFamily: "'DM Serif Display', Georgia, serif",
-                            fontSize: "1.125rem", color: "#ffffff", flexShrink: 0,
-                        }}>
-                            E
-                        </span>
-                        <span style={{
-                            fontFamily: "'Inter', system-ui, sans-serif",
-                            fontWeight: 600, fontSize: "1rem",
-                            color: scrolled ? "#0A0A0A" : "#ffffff",
-                            transition: "color 200ms ease",
-                        }}>
-                            Edunostics
-                        </span>
-                    </Link>
-
-                    <nav aria-label="Main navigation" className="lp-sans" style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
-                        {(["Features", "How it works", "Pricing"] as const).map((label) => (
-                            <a
-                                key={label}
-                                href={`#${label.toLowerCase().replace(/\s+/g, "-")}`}
-                                style={{
-                                    color: scrolled ? "#374151" : "rgba(255,255,255,0.75)",
-                                    fontSize: "0.9375rem", fontWeight: 500,
-                                    textDecoration: "none", transition: "color 150ms ease",
-                                    display: "none",
-                                }}
-                                className="md-show"
-                                onMouseEnter={e => e.currentTarget.style.color = scrolled ? "#0A0A0A" : "#ffffff"}
-                                onMouseLeave={e => e.currentTarget.style.color = scrolled ? "#374151" : "rgba(255,255,255,0.75)"}
-                            >
-                                {label}
-                            </a>
+            <header className="site-header">
+                <div className="nav-wrap">
+                    <Logo compact />
+                    <nav className="nav-links" aria-label="Primary navigation">
+                        {navItems.map((item) => (
+                            <a href={`#${item.toLowerCase()}`} key={item}>{item}</a>
                         ))}
                     </nav>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <Link
-                            href="/auth/login"
-                            style={{
-                                color: scrolled ? "#374151" : "rgba(255,255,255,0.8)",
-                                fontSize: "0.9375rem", fontWeight: 500,
-                                textDecoration: "none", padding: "0.5rem 0.875rem",
-                                minHeight: "44px", display: "flex", alignItems: "center",
-                                transition: "color 150ms ease",
-                            }}
-                        >
-                            Log in
-                        </Link>
-                        <Link
-                            href="/auth/register"
-                            style={{
-                                background: scrolled ? "#1B4332" : "#ffffff",
-                                color: scrolled ? "#ffffff" : "#1B4332",
-                                fontSize: "0.9375rem", fontWeight: 600,
-                                textDecoration: "none", padding: "0.5rem 1.125rem",
-                                borderRadius: "6px", minHeight: "44px",
-                                display: "flex", alignItems: "center",
-                                transition: "background 150ms ease, color 150ms ease",
-                            }}
-                            onMouseEnter={e => {
-                                if (scrolled) { e.currentTarget.style.background = "#2D6A4F"; }
-                                else { e.currentTarget.style.background = "#f0fdf4"; }
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = scrolled ? "#1B4332" : "#ffffff";
-                                e.currentTarget.style.color = scrolled ? "#ffffff" : "#1B4332";
-                            }}
-                        >
-                            Get started
-                        </Link>
+                    <div className="nav-actions">
+                        <Link className="signin" href="/auth/login">Sign in</Link>
+                        <ArrowButton href="/auth/register">Book demo</ArrowButton>
                     </div>
                 </div>
             </header>
 
-            {/* ── Hero ────────────────────────────────────────────────────── */}
-            <section
-                aria-labelledby="hero-heading"
-                style={{ background: "#1B4332", paddingTop: "120px", paddingBottom: "80px" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem" }}>
-                    <div className="hero-inner">
-                        {/* Text column */}
-                        <div>
-                            <p style={{
-                                fontFamily: "'Inter', system-ui, sans-serif",
-                                fontSize: "0.75rem", fontWeight: 500,
-                                letterSpacing: "0.12em", textTransform: "uppercase",
-                                color: "#6EE7B7", marginBottom: "1.5rem",
-                            }}>
-                                School Management System
-                            </p>
-
-                            <h1
-                                id="hero-heading"
-                                className="lp-serif"
-                                style={{
-                                    fontSize: "clamp(2.75rem, 5vw, 3.75rem)",
-                                    fontStyle: "italic",
-                                    fontWeight: 400,
-                                    lineHeight: 1.1,
-                                    color: "#ffffff",
-                                    marginBottom: "1.5rem",
-                                    letterSpacing: "-0.01em",
-                                }}
-                            >
-                                End-of-term reports your school can be proud of.
-                            </h1>
-
-                            <p style={{
-                                fontFamily: "'Inter', system-ui, sans-serif",
-                                fontSize: "1.0625rem", fontWeight: 400,
-                                lineHeight: 1.75, color: "rgba(255,255,255,0.65)",
-                                maxWidth: "480px", marginBottom: "2.5rem",
-                            }}>
-                                Edunostics handles score entry, WAEC-aligned grading, holistic assessment, and branded PDF report cards — built specifically for Nigerian primary and secondary schools.
-                            </p>
-
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginBottom: "3rem" }}>
-                                <Link
-                                    href="/auth/register"
-                                    style={{
-                                        display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                        background: "#ffffff", color: "#1B4332",
-                                        fontSize: "0.9375rem", fontWeight: 600,
-                                        padding: "0.75rem 1.5rem", borderRadius: "6px",
-                                        textDecoration: "none", minHeight: "48px",
-                                        transition: "background 150ms ease",
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"}
-                                    onMouseLeave={e => e.currentTarget.style.background = "#ffffff"}
-                                >
-                                    Start for free <Icons.ArrowRight />
-                                </Link>
-                                <a
-                                    href="#how-it-works"
-                                    style={{
-                                        display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                        color: "rgba(255,255,255,0.75)",
-                                        fontSize: "0.9375rem", fontWeight: 500,
-                                        padding: "0.75rem 0.25rem",
-                                        textDecoration: "none", minHeight: "48px",
-                                        borderBottom: "1px solid rgba(255,255,255,0.25)",
-                                        transition: "color 150ms ease, border-color 150ms ease",
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.color = "#ffffff"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.6)"; }}
-                                    onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.75)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; }}
-                                >
-                                    See how it works
-                                </a>
-                            </div>
-
-                            {/* Context line — specific, not generic marketing */}
-                            <p style={{
-                                fontFamily: "'Inter', system-ui, sans-serif",
-                                fontSize: "0.8125rem", color: "rgba(255,255,255,0.62)",
-                                lineHeight: 1.6,
-                            }}>
-                                Used by schools across Lagos, Abuja, and Port Harcourt.
-                                <br />No setup fee. Cancel any term.
-                            </p>
-                        </div>
-
-                        {/* Screenshot column */}
-                        <div className="hero-screenshot">
-                            <div style={{
-                                borderRadius: "12px",
-                                overflow: "hidden",
-                                boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)",
-                            }}>
-                                <img
-                                    src="/images/help/dashboard_home.png"
-                                    alt="Edunostics dashboard showing class list, student scores, and navigation"
-                                    style={{ width: "100%", display: "block", objectFit: "cover", objectPosition: "top" }}
-                                />
-                            </div>
-                        </div>
+            <section className="section hero">
+                <div className="hero-copy">
+                    <h1>A school technology layer for modern secondary education.</h1>
+                    <p>
+                        Edunostics connects assessment software, academic records, smart hardware touchpoints, and parent communication into one trusted operating system for secondary schools.
+                    </p>
+                    <div className="hero-actions">
+                        <ArrowButton href="/auth/register">Book a school demo</ArrowButton>
+                        <ArrowButton href="#platform" variant="ghost">Explore platform</ArrowButton>
                     </div>
+                    <div className="trust-row">
+                        <div className="avatar-stack" aria-hidden="true"><span /><span /><span /><span /></div>
+                        <span>Built for proprietors, principals, teachers, parents, and students.</span>
+                    </div>
+                </div>
+                <div className="hero-visual">
+                    <div className="orb" aria-hidden="true" />
+                    <ProductConsole />
                 </div>
             </section>
 
-            {/* ── School type strip ───────────────────────────────────────── */}
-            <div style={{
-                background: "#F0FDF4",
-                borderBottom: "1px solid #D1FAE5",
-                padding: "1rem 2rem",
-            }}>
-                <div style={{
-                    maxWidth: "1200px", margin: "0 auto",
-                    display: "flex", flexWrap: "wrap", alignItems: "center",
-                    gap: "1.5rem", justifyContent: "center",
-                }}>
-                    <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: "#6B7280", fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                        Works for
-                    </span>
-                    {["Primary Schools", "Junior Secondary (JSS)", "Senior Secondary (SSS)", "Private Schools", "Mission Schools"].map(s => (
-                        <span key={s} style={{ fontSize: "0.875rem", color: "#1B4332", fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 500 }}>
-                            {s}
-                        </span>
+            <section className="stats-band">
+                <div className="section stats-grid">
+                    {stats.map(([value, label]) => (
+                        <div className="stat" key={label}>
+                            <strong>{value}</strong>
+                            <span>{label}</span>
+                        </div>
                     ))}
                 </div>
-            </div>
-
-            {/* ── Features ────────────────────────────────────────────────── */}
-            <section
-                id="features"
-                aria-labelledby="features-heading"
-                style={{ background: "#1B4332", padding: "6rem 0" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem", marginBottom: "3.5rem" }}>
-                    <Reveal>
-                        <h2
-                            id="features-heading"
-                            className="lp-serif"
-                            style={{
-                                fontSize: "clamp(1.875rem, 3vw, 2.5rem)",
-                                fontStyle: "italic", fontWeight: 400,
-                                color: "#ffffff", marginBottom: "0.75rem",
-                            }}
-                        >
-                            Everything your school needs, in one place.
-                        </h2>
-                        <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "1.0625rem", fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "520px" }}>
-                            Built around the actual workflow of Nigerian teachers and school administrators — not adapted from a generic template.
-                        </p>
-                    </Reveal>
-                </div>
-
-                <div className="feature-grid" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 2rem" }}>
-                    {features.map((f, i) => {
-                        const IconComp = Icons[f.icon];
-                        return (
-                            <Reveal key={f.title} delay={i * 60}>
-                                <div style={{
-                                    background: "#152e24",
-                                    padding: "2rem",
-                                    height: "100%",
-                                }}>
-                                    <div style={{ color: "#6EE7B7", marginBottom: "1rem" }}>
-                                        <IconComp />
-                                    </div>
-                                    <h3 className="lp-serif" style={{
-                                        fontSize: "1.1875rem", fontWeight: 400,
-                                        color: "#ffffff", marginBottom: "0.625rem",
-                                        lineHeight: 1.3,
-                                    }}>
-                                        {f.title}
-                                    </h3>
-                                    <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.9375rem", lineHeight: 1.7, fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                        {f.body}
-                                    </p>
-                                </div>
-                            </Reveal>
-                        );
-                    })}
-                </div>
             </section>
 
-            {/* ── Showcase 1: Score entry → Report cards ──────────────────── */}
-            <section
-                aria-labelledby="showcase-1-heading"
-                style={{ background: "#FAFAF8", padding: "7rem 2rem" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                    <div className="showcase-row">
-                        <Reveal>
-                            <div>
-                                <p style={{
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    fontSize: "0.75rem", fontWeight: 600,
-                                    letterSpacing: "0.1em", textTransform: "uppercase",
-                                    color: "#1B4332", marginBottom: "1.25rem",
-                                }}>
-                                    Score Entry
-                                </p>
-                                <h2
-                                    id="showcase-1-heading"
-                                    className="lp-serif"
-                                    style={{
-                                        fontSize: "clamp(1.875rem, 3vw, 2.5rem)",
-                                        fontStyle: "italic", fontWeight: 400,
-                                        color: "#0A0A0A", lineHeight: 1.2,
-                                        marginBottom: "1.25rem",
-                                    }}
-                                >
-                                    From score entry to printed report card in minutes.
-                                </h2>
-                                <p style={{ color: "#374151", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "2rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                    Teachers enter CA 1, CA 2, exam scores, and project marks in a structured grid. Totals calculate instantly. Grade labels — A1 through F9 — assign automatically based on your school&apos;s grading scale.
-                                </p>
-                                <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "2rem" }}>
-                                    {[
-                                        "Configure up to 4 CA components per subject",
-                                        "Automatic position ranking within each class",
-                                        "Bulk CSV upload for large enrolments",
-                                    ].map(b => (
-                                        <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                            <span style={{ color: "#1B4332", flexShrink: 0, marginTop: "2px" }}><Icons.Check /></span>
-                                            <span style={{ color: "#374151", fontSize: "0.9375rem", lineHeight: 1.6 }}>{b}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <Link
-                                    href="/auth/register"
-                                    style={{
-                                        display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                        color: "#1B4332", fontWeight: 600, fontSize: "0.9375rem",
-                                        textDecoration: "none", fontFamily: "'Inter', system-ui, sans-serif",
-                                        borderBottom: "1.5px solid #1B4332", paddingBottom: "1px",
-                                        transition: "gap 150ms ease",
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.gap = "0.75rem"}
-                                    onMouseLeave={e => e.currentTarget.style.gap = "0.5rem"}
-                                >
-                                    Try it free <Icons.ArrowRight />
-                                </Link>
-                            </div>
-                        </Reveal>
-
-                        <Reveal delay={100}>
-                            <div style={{
-                                borderRadius: "10px", overflow: "hidden",
-                                boxShadow: "0 20px 60px rgba(0,0,0,0.10), 0 0 0 1px #E5E7EB",
-                            }}>
-                                <img
-                                    src="/images/help/score_entry_table.png"
-                                    alt="Score entry table showing student names with columns for CA1, CA2, Exam, Total, and Grade"
-                                    style={{ width: "100%", display: "block", objectFit: "cover", objectPosition: "top" }}
-                                />
-                            </div>
-                        </Reveal>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Showcase 2: Report cards ─────────────────────────────────── */}
-            <section
-                aria-labelledby="showcase-2-heading"
-                style={{ background: "#ffffff", padding: "7rem 2rem", borderTop: "1px solid #E5E7EB" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                    <div className="showcase-row showcase-row-reverse" style={{ direction: "rtl" }}>
-                        <Reveal>
-                            <div style={{ direction: "ltr" }}>
-                                <p style={{
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    fontSize: "0.75rem", fontWeight: 600,
-                                    letterSpacing: "0.1em", textTransform: "uppercase",
-                                    color: "#1B4332", marginBottom: "1.25rem",
-                                }}>
-                                    Report Cards
-                                </p>
-                                <h2
-                                    id="showcase-2-heading"
-                                    className="lp-serif"
-                                    style={{
-                                        fontSize: "clamp(1.875rem, 3vw, 2.5rem)",
-                                        fontStyle: "italic", fontWeight: 400,
-                                        color: "#0A0A0A", lineHeight: 1.2,
-                                        marginBottom: "1.25rem",
-                                    }}
-                                >
-                                    Branded PDF reports, generated in one click.
-                                </h2>
-                                <p style={{ color: "#374151", fontSize: "1.0625rem", lineHeight: 1.75, marginBottom: "2rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                    Every report card carries your school&apos;s logo, principal&apos;s signature, and official stamp. Class teacher remarks and subject comments included. Print-ready, or send directly to parents.
-                                </p>
-                                <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "2rem" }}>
-                                    {[
-                                        "Generate the entire class or individual students",
-                                        "Holistic ratings and psychomotor scores included",
-                                        "Supports JSS and SSS result slip formats",
-                                    ].map(b => (
-                                        <li key={b} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                            <span style={{ color: "#1B4332", flexShrink: 0, marginTop: "2px" }}><Icons.Check /></span>
-                                            <span style={{ color: "#374151", fontSize: "0.9375rem", lineHeight: 1.6 }}>{b}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <Link
-                                    href="/auth/register"
-                                    style={{
-                                        display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                        color: "#1B4332", fontWeight: 600, fontSize: "0.9375rem",
-                                        textDecoration: "none", fontFamily: "'Inter', system-ui, sans-serif",
-                                        borderBottom: "1.5px solid #1B4332", paddingBottom: "1px",
-                                        transition: "gap 150ms ease",
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.gap = "0.75rem"}
-                                    onMouseLeave={e => e.currentTarget.style.gap = "0.5rem"}
-                                >
-                                    Try it free <Icons.ArrowRight />
-                                </Link>
-                            </div>
-                        </Reveal>
-
-                        <Reveal delay={100}>
-                            <div style={{
-                                borderRadius: "10px", overflow: "hidden",
-                                boxShadow: "0 20px 60px rgba(0,0,0,0.10), 0 0 0 1px #E5E7EB",
-                                direction: "ltr",
-                            }}>
-                                <img
-                                    src="/images/help/report_workflow.png"
-                                    alt="Generated report card preview showing student academic performance, holistic ratings, and school branding"
-                                    style={{ width: "100%", display: "block", objectFit: "cover", objectPosition: "top" }}
-                                />
-                            </div>
-                        </Reveal>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Stats ───────────────────────────────────────────────────── */}
-            <section
-                aria-label="Platform scale"
-                style={{ background: "#1B4332", padding: "5rem 2rem" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                    <div className="stat-grid">
-                        <Stat target={500} suffix="+" label="Schools onboarded" />
-                        <Stat target={50000} suffix="+" label="Reports generated" />
-                        <Stat target={97} suffix="%" label="Parent SMS delivery rate" />
-                        <Stat target={3} suffix=" terms" label="Average time to full adoption" />
-                    </div>
-                </div>
-            </section>
-
-            {/* ── How it works ────────────────────────────────────────────── */}
-            <section
-                id="how-it-works"
-                aria-labelledby="hiw-heading"
-                style={{ background: "#FAFAF8", padding: "7rem 2rem", borderTop: "1px solid #E5E7EB" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                    <Reveal>
-                        <div style={{ marginBottom: "4rem" }}>
-                            <h2
-                                id="hiw-heading"
-                                className="lp-serif"
-                                style={{
-                                    fontSize: "clamp(1.875rem, 3vw, 2.5rem)",
-                                    fontStyle: "italic", fontWeight: 400,
-                                    color: "#0A0A0A", marginBottom: "0.75rem",
-                                }}
-                            >
-                                Set up once. Use every term.
-                            </h2>
-                            <p style={{ color: "#6B7280", fontSize: "1.0625rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                Most schools are fully operational within a single day.
-                            </p>
-                        </div>
-                    </Reveal>
-
-                    <div className="steps-row">
+            <section className="section split-section" id="platform">
+                <div className="section-copy">
+                    <h2>A unified space for school operations, assessment, and growth.</h2>
+                    <p>
+                        Move beyond disconnected spreadsheets, devices, paper reports, and messaging tools. Edunostics keeps every learner signal connected.
+                    </p>
+                    <div className="feature-list">
                         {[
-                            {
-                                n: "1",
-                                title: "Configure your school",
-                                body: "Add your classes, subjects, and grading scale — WAEC 9-point, percentage, or custom. Upload your school logo. Done in under an hour.",
-                            },
-                            {
-                                n: "2",
-                                title: "Enter scores each term",
-                                body: "Teachers log CA and exam scores per subject. Holistic ratings, attendance, and remarks fill in alongside academic results.",
-                            },
-                            {
-                                n: "3",
-                                title: "Generate and distribute",
-                                body: "One click generates PDFs for every student. Download as a ZIP, print in the office, or send directly to parent phones via SMS.",
-                            },
-                        ].map((step, i) => (
-                            <Reveal key={step.n} delay={i * 80}>
-                                <div style={{ padding: "2rem", background: "#ffffff", borderRadius: "10px", border: "1px solid #E5E7EB", height: "100%" }}>
-                                    <div style={{
-                                        width: "40px", height: "40px", borderRadius: "50%",
-                                        background: "#1B4332", color: "#ffffff",
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontFamily: "'DM Serif Display', Georgia, serif",
-                                        fontSize: "1.125rem", marginBottom: "1.25rem",
-                                    }}>
-                                        {step.n}
-                                    </div>
-                                    <h3 className="lp-serif" style={{ fontSize: "1.1875rem", fontWeight: 400, color: "#0A0A0A", marginBottom: "0.625rem", lineHeight: 1.3 }}>
-                                        {step.title}
-                                    </h3>
-                                    <p style={{ color: "#374151", fontSize: "0.9375rem", lineHeight: 1.7, fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                        {step.body}
-                                    </p>
-                                </div>
-                            </Reveal>
+                            [Layers3, "Stacked student records across terms, classes, and sessions."],
+                            [MonitorSmartphone, "Software portals for administrators, teachers, students, and parents."],
+                            [Cpu, "Hardware-ready architecture for classroom devices and school identity systems."],
+                            [ShieldCheck, "Secure role controls for every school stakeholder."],
+                        ].map(([Icon, text]) => (
+                            <div key={text as string}>
+                                <span><Icon size={17} /></span>
+                                <p>{text as string}</p>
+                            </div>
                         ))}
                     </div>
                 </div>
+                <ProductConsole />
             </section>
 
-            {/* ── Pricing ─────────────────────────────────────────────────── */}
-            <section
-                id="pricing"
-                aria-labelledby="pricing-heading"
-                style={{ background: "#ffffff", padding: "7rem 2rem", borderTop: "1px solid #E5E7EB" }}
-            >
-                <div style={{ maxWidth: "560px", margin: "0 auto" }}>
-                    <Reveal>
-                        <h2
-                            id="pricing-heading"
-                            className="lp-serif"
-                            style={{
-                                fontSize: "clamp(1.875rem, 3vw, 2.5rem)",
-                                fontStyle: "italic", fontWeight: 400,
-                                color: "#0A0A0A", marginBottom: "0.75rem",
-                            }}
-                        >
-                            Priced per term, per school.
-                        </h2>
-                        <p style={{ color: "#6B7280", fontSize: "1.0625rem", fontFamily: "'Inter', system-ui, sans-serif", marginBottom: "2.5rem" }}>
-                            No per-student fees. No add-on modules. One flat rate covers your entire school each term.
+            <section className="section" id="insights">
+                <div className="insight-split">
+                    <div className="section-copy">
+                        <span style={{ color: "var(--teal)", fontSize: ".7rem", fontWeight: 850, textTransform: "uppercase", letterSpacing: ".08em", display: "block", marginBottom: 20 }}>Intelligence profile</span>
+                        <h2 style={{ margin: 0, fontSize: "clamp(2.05rem, 4vw, 4.2rem)", lineHeight: .98, letterSpacing: 0, textWrap: "balance" }}>Understand each learner before the term slips away.</h2>
+                        <p style={{ margin: "22px 0 32px", color: "rgba(247,250,250,.58)", lineHeight: 1.75, fontSize: ".96rem" }}>
+                            Edunostics maps academic performance, conduct, attendance, and engagement into a clear growth profile for school leaders.
                         </p>
-                    </Reveal>
-
-                    <Reveal delay={80}>
-                        <div style={{
-                            border: "1px solid #E5E7EB",
-                            borderTop: `3px solid #1B4332`,
-                            borderRadius: "10px",
-                            padding: "2.5rem",
-                            background: "#FAFAF8",
-                        }}>
-                            <div style={{ marginBottom: "2rem" }}>
-                                <div className="lp-serif" style={{ fontSize: "1.375rem", color: "#0A0A0A", marginBottom: "0.375rem" }}>
-                                    School Plan
-                                </div>
-                                <div style={{ fontFamily: "'Inter', system-ui, sans-serif", fontSize: "0.9375rem", color: "#6B7280" }}>
-                                    Quoted based on your student count. Transparent pricing, no surprises.
-                                </div>
-                            </div>
-
-                            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "0.875rem", marginBottom: "2rem" }}>
-                                {[
-                                    "Unlimited report card generation",
-                                    "All subjects and classes included",
-                                    "Holistic assessment and broadsheets",
-                                    "SMS and email parent notifications",
-                                    "Multi-staff access with role control",
-                                    "WhatsApp and email support",
-                                ].map(f => (
-                                    <li key={f} style={{ display: "flex", alignItems: "center", gap: "0.625rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                        <span style={{ color: "#1B4332", flexShrink: 0 }}><Icons.Check /></span>
-                                        <span style={{ color: "#374151", fontSize: "0.9375rem" }}>{f}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Link
-                                href="/auth/register"
-                                style={{
-                                    display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                                    background: "#1B4332", color: "#ffffff",
-                                    fontWeight: 600, fontSize: "0.9375rem",
-                                    textDecoration: "none", padding: "0.875rem 1.5rem",
-                                    borderRadius: "6px", minHeight: "48px",
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    transition: "background 150ms ease",
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = "#2D6A4F"}
-                                onMouseLeave={e => e.currentTarget.style.background = "#1B4332"}
-                            >
-                                Request a quote <Icons.ArrowRight />
-                            </Link>
-                        </div>
-                    </Reveal>
+                        <ArrowButton href="/auth/register" variant="ghost">Explore profile</ArrowButton>
+                    </div>
+                    <CognitiveProfile />
                 </div>
             </section>
 
-            {/* ── CTA ─────────────────────────────────────────────────────── */}
-            <section
-                aria-labelledby="cta-heading"
-                style={{ background: "#1B4332", padding: "7rem 2rem", textAlign: "center" }}
-            >
-                <div style={{ maxWidth: "640px", margin: "0 auto" }}>
-                    <Reveal>
-                        <h2
-                            id="cta-heading"
-                            className="lp-serif"
-                            style={{
-                                fontSize: "clamp(2.25rem, 4vw, 3.25rem)",
-                                fontStyle: "italic", fontWeight: 400,
-                                color: "#ffffff", lineHeight: 1.15,
-                                marginBottom: "1.25rem",
-                            }}
-                        >
-                            Start this term with Edunostics.
-                        </h2>
-                        <p style={{
-                            color: "rgba(255,255,255,0.6)",
-                            fontSize: "1.0625rem", lineHeight: 1.75,
-                            marginBottom: "2.5rem",
-                            fontFamily: "'Inter', system-ui, sans-serif",
-                        }}>
-                            Join schools across Nigeria that have replaced manual report writing with a system that works. Setup takes less than a day.
-                        </p>
-                        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "1rem" }}>
-                            <Link
-                                href="/auth/register"
-                                style={{
-                                    display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                                    background: "#ffffff", color: "#1B4332",
-                                    fontWeight: 600, fontSize: "0.9375rem",
-                                    padding: "0.875rem 1.75rem", borderRadius: "6px",
-                                    textDecoration: "none", minHeight: "48px",
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    transition: "background 150ms ease",
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = "#f0fdf4"}
-                                onMouseLeave={e => e.currentTarget.style.background = "#ffffff"}
-                            >
-                                Get started free <Icons.ArrowRight />
-                            </Link>
-                            <Link
-                                href="/auth/login"
-                                style={{
-                                    display: "inline-flex", alignItems: "center",
-                                    color: "rgba(255,255,255,0.7)", fontSize: "0.9375rem", fontWeight: 500,
-                                    padding: "0.875rem 1.75rem",
-                                    textDecoration: "none", minHeight: "48px",
-                                    fontFamily: "'Inter', system-ui, sans-serif",
-                                    transition: "color 150ms ease",
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.color = "#ffffff"}
-                                onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
-                            >
-                                Log in to your school
-                            </Link>
-                        </div>
-                    </Reveal>
+            <section className="section" id="hardware">
+                <DeviceStack />
+            </section>
+
+            <section className="section" id="security">
+                <div className="wide-heading">
+                    <h2>Everything secondary schools need to operate with clarity.</h2>
+                </div>
+                <div className="capability-grid">
+                    {capabilities.map(({ icon: Icon, title, body }) => (
+                        <article className="capability-card" key={title}>
+                            <Icon aria-hidden="true" />
+                            <div>
+                                <h3>{title}</h3>
+                                <p>{body}</p>
+                            </div>
+                        </article>
+                    ))}
                 </div>
             </section>
 
-            {/* ── Footer ──────────────────────────────────────────────────── */}
-            <footer
-                role="contentinfo"
-                style={{ background: "#0A0A0A", borderTop: "1px solid #1a1a1a", padding: "3.5rem 2rem 2.5rem" }}
-            >
-                <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "3rem", marginBottom: "3rem" }}>
-                        <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1rem" }}>
-                                <span style={{
-                                    width: "30px", height: "30px", borderRadius: "6px",
-                                    background: "#1B4332",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    fontFamily: "'DM Serif Display', Georgia, serif",
-                                    fontSize: "1rem", color: "#ffffff",
-                                }}>E</span>
-                                <span style={{ fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 600, color: "#ffffff", fontSize: "0.9375rem" }}>Edunostics</span>
-                            </div>
-                            <p style={{ color: "#9CA3AF", fontSize: "0.9rem", lineHeight: 1.7, maxWidth: "280px", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                Report card management built for Nigerian schools. NERDC-aligned, term-by-term, trusted by administrators and teachers.
-                            </p>
+            <section className="section work-row" id="how-it-works">
+                <div className="section-copy">
+                    <span style={{ color: "var(--teal)", fontSize: ".7rem", fontWeight: 850, textTransform: "uppercase", letterSpacing: ".08em", display: "block", marginBottom: 16 }}>How it works</span>
+                    <h2 style={{ margin: 0, fontSize: "clamp(2.05rem, 4vw, 4.2rem)", lineHeight: .98 }}>A better way to manage, assess, report, and improve.</h2>
+                    <p style={{ margin: "18px 0 0", color: "rgba(247,250,250,.58)", lineHeight: 1.75, fontSize: ".96rem" }}>
+                        A complete workflow from school setup to parent-ready reports, built around real school operations.
+                    </p>
+                </div>
+                <div className="step-grid">
+                    {steps.map(([num, title, body]) => (
+                        <div className="step" key={num}>
+                            <div className="step-num">{num}</div>
+                            <h3>{title}</h3>
+                            <p>{body}</p>
                         </div>
-                        <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "1.25rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                Platform
-                            </div>
-                            {["Features", "How it works", "Pricing"].map(l => (
-                                <a key={l} href={`#${l.toLowerCase().replace(/\s+/g, "-")}`} style={{ display: "block", color: "#9CA3AF", fontSize: "0.9375rem", textDecoration: "none", marginBottom: "0.625rem", fontFamily: "'Inter', system-ui, sans-serif", transition: "color 150ms ease" }}
-                                    onMouseEnter={e => e.currentTarget.style.color = "#E5E7EB"}
-                                    onMouseLeave={e => e.currentTarget.style.color = "#9CA3AF"}>{l}</a>
-                            ))}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9CA3AF", marginBottom: "1.25rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                                Account
-                            </div>
-                            {[{ label: "Log in", href: "/auth/login" }, { label: "Register school", href: "/auth/register" }].map(({ label, href }) => (
-                                <Link key={label} href={href} style={{ display: "block", color: "#9CA3AF", fontSize: "0.9375rem", textDecoration: "none", marginBottom: "0.625rem", fontFamily: "'Inter', system-ui, sans-serif", transition: "color 150ms ease" }}
-                                    onMouseEnter={e => e.currentTarget.style.color = "#E5E7EB"}
-                                    onMouseLeave={e => e.currentTarget.style.color = "#9CA3AF"}>{label}</Link>
-                            ))}
-                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="section proof">
+                <div>
+                    <h2>Built for academic rigor. Designed for everyday school teams.</h2>
+                    <div className="logo-cloud" aria-label="Audience groups">
+                        {["Principals", "Teachers", "Parents", "Students", "Admins", "Proprietors"].map((name) => (
+                            <div key={name}>{name}</div>
+                        ))}
                     </div>
-                    <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-                        <span style={{ color: "#9CA3AF", fontSize: "0.8125rem", fontFamily: "'Inter', system-ui, sans-serif" }}>
-                            &copy; {new Date().getFullYear()} Edunostics. All rights reserved.
-                        </span>
-                        <div style={{ display: "flex", gap: "1.5rem" }}>
-                            {["Privacy Policy", "Terms of Service"].map(l => (
-                                <a key={l} href="#" style={{ color: "#9CA3AF", fontSize: "0.8125rem", textDecoration: "none", fontFamily: "'Inter', system-ui, sans-serif", transition: "color 150ms ease" }}
-                                    onMouseEnter={e => e.currentTarget.style.color = "#E5E7EB"}
-                                    onMouseLeave={e => e.currentTarget.style.color = "#9CA3AF"}>{l}</a>
-                            ))}
-                        </div>
+                </div>
+                <blockquote className="quote">
+                    <Sparkles size={28} color={palette.gold} aria-hidden="true" />
+                    <p>
+                        "Edunostics feels less like another school app and more like the operating layer that connects our assessments, reports, devices, and decisions."
+                    </p>
+                    <footer>School administrator, secondary education</footer>
+                </blockquote>
+            </section>
+
+            <section className="section">
+                <div className="deeper-insight">
+                    <span>Deeper insight</span>
+                    <h2>See every learner. Lead with clarity.</h2>
+                    <p>
+                        Edunostics brings academic records, assessment data, attendance signals, and parent reach into one operating view — so school leaders always know what is happening and what to do next.
+                    </p>
+                    <a href="#platform" className="text-link">
+                        Explore the platform <ArrowRight size={14} aria-hidden="true" />
+                    </a>
+                </div>
+            </section>
+
+            <section className="section cta-panel" id="pricing">
+                <div>
+                    <h2>Step into the next era of school technology.</h2>
+                </div>
+                <form className="email-box" action="/auth/register">
+                    <input aria-label="Work email" placeholder="Enter your school email" type="email" />
+                    <button className="cta primary" type="submit">
+                        <span>Request demo</span>
+                        <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                </form>
+            </section>
+
+            <footer className="section site-footer">
+                <div className="footer-grid">
+                    <div>
+                        <Logo compact />
+                        <p>
+                            Educational hardware and software technology for secondary schools. Precise, trusted, intelligent, school-ready, and secure.
+                        </p>
                     </div>
+                    {[
+                        ["Product", "Overview", "Assessment", "Reports", "Hardware"],
+                        ["Resources", "Documentation", "Support", "School setup", "Data security"],
+                        ["Company", "About", "Contact", "Partners", "Careers"],
+                        ["Legal", "Privacy", "Terms", "Status", "Security"],
+                    ].map(([heading, ...links]) => (
+                        <div className="footer-col" key={heading}>
+                            <h3>{heading}</h3>
+                            {links.map((link) => <a href="#" key={link}>{link}</a>)}
+                        </div>
+                    ))}
                 </div>
             </footer>
-        </>
+        </main>
     );
 }
