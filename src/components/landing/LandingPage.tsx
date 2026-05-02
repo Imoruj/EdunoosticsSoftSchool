@@ -92,37 +92,16 @@ const steps = [
     ["04", "Publish with confidence", "Generate verified reports, broadsheets, transcripts, and parent updates."],
 ];
 
-function BrandMark({ compact = false }: { compact?: boolean }) {
-    const size = compact ? 36 : 48;
-    return (
-        // Edunostics logo mark — E letterform with stacked learning layers + gold checkmark
-        <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-            {/* ── E letterform (aubergine body) ── */}
-            <rect x="8"  y="8"  width="64" height="15" rx="4" fill={palette.teal} />
-            <rect x="8"  y="8"  width="12" height="52" rx="4" fill={palette.aubergine} />
-            <rect x="8"  y="31" width="48" height="13" rx="4" fill={palette.aubergine} />
-            <rect x="8"  y="45" width="64" height="15" rx="4" fill={palette.purple} />
-            {/* ── Gold checkmark overlaid on middle section ── */}
-            <polyline
-                points="44,25 54,38 78,10"
-                fill="none"
-                stroke={palette.gold}
-                strokeWidth="7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            {/* ── Learning layers (stacked pages, bottom) ── */}
-            <rect x="8"  y="66" width="84" height="9"  rx="4" fill={palette.teal}      opacity="1"   />
-            <rect x="14" y="77" width="72" height="8"  rx="4" fill={palette.gold}      opacity="0.9" />
-            <rect x="20" y="87" width="60" height="7"  rx="4" fill={palette.purple}    opacity="0.75"/>
-        </svg>
-    );
-}
-
 function Logo({ compact = false }: { compact?: boolean }) {
     return (
         <Link href="/" aria-label="Edunostics home" className="brand">
-            <BrandMark compact={compact} />
+            {/* Real logo mark from brand kit — transparent PNG, coloured elements pop on dark */}
+            <img
+                src="/images/brand/logo-mark.png"
+                alt=""
+                aria-hidden="true"
+                style={{ height: compact ? 32 : 42, width: "auto", display: "block" }}
+            />
             <span>Edunostics</span>
         </Link>
     );
@@ -238,7 +217,9 @@ function DeviceStack() {
         <div className="device-stack">
             <div className="device-terminal">
                 <div className="speaker" />
-                <div className="device-screen"><BrandMark compact /></div>
+                <div className="device-screen">
+                    <img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 28, width: "auto" }} />
+                </div>
                 <span className="device-light" />
             </div>
             <div className="device-copy">
@@ -403,28 +384,46 @@ export default function LandingPage() {
                 .hero {
                     min-height: calc(100vh - 72px);
                     display: grid;
-                    grid-template-columns: .86fr 1.14fr;
+                    grid-template-columns: .78fr 1.22fr;
                     align-items: center;
-                    gap: 58px;
+                    gap: 48px;
                     padding: 60px 0 38px;
+                }
+
+                .hero-eyebrow {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    color: rgba(247,250,250,.45);
+                    font-size: .72rem;
+                    font-weight: 600;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    margin-bottom: 22px;
+                }
+                .hero-eyebrow::before {
+                    content: '+';
+                    color: var(--teal);
+                    font-size: .9rem;
+                    font-weight: 800;
                 }
 
                 .hero-copy h1 {
                     margin: 0;
-                    max-width: 640px;
-                    font-size: clamp(3.1rem, 7vw, 7.15rem);
-                    line-height: .9;
-                    letter-spacing: 0;
-                    font-weight: 780;
+                    max-width: 560px;
+                    font-size: clamp(2.2rem, 4.9vw, 5rem);
+                    line-height: .92;
+                    letter-spacing: -.01em;
+                    font-weight: 700;
                     text-wrap: balance;
                 }
 
                 .hero-copy p {
-                    max-width: 450px;
-                    margin: 26px 0 28px;
-                    color: rgba(247,250,250,.68);
-                    font-size: 1rem;
-                    line-height: 1.8;
+                    max-width: 400px;
+                    margin: 24px 0 28px;
+                    color: rgba(247,250,250,.58);
+                    font-size: .96rem;
+                    line-height: 1.78;
                 }
 
                 .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -453,31 +452,43 @@ export default function LandingPage() {
 
                 .hero-visual {
                     position: relative;
-                    min-height: 620px;
+                    min-height: 640px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
 
+                /* 3-D marble sphere — bright top-left highlight, dark rim, subtle brand tint */
                 .orb {
                     position: absolute;
-                    inset: 8% auto auto 3%;
-                    width: 510px;
-                    height: 510px;
+                    left: -22%;      /* bleeds left into text column, matching reference */
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 660px;
+                    height: 660px;
                     border-radius: 50%;
                     background:
-                        radial-gradient(circle at 32% 45%, rgba(255,255,255,.85), rgba(198,146,20,.34) 10%, rgba(0,169,154,.13) 18%, transparent 34%),
-                        conic-gradient(from 18deg, rgba(247,250,250,.04), rgba(247,250,250,.5), rgba(91,45,170,.24), rgba(247,250,250,.04));
-                    opacity: .55;
-                    filter: blur(.2px);
-                    mask-image: radial-gradient(circle, black 0 54%, transparent 55%);
+                        radial-gradient(circle at 34% 34%,
+                            #ffffff          0%,
+                            rgba(230,240,255,.88)  5%,
+                            rgba(170,185,230,.55) 16%,
+                            rgba(55,42,95,.62)    36%,
+                            rgba(14,11,22,.96)    62%,
+                            rgba(6,5,10,1)        80%
+                        );
+                    box-shadow:
+                        inset -60px -60px 120px rgba(0,0,0,.75),
+                        0 0 280px rgba(91,45,170,.12),
+                        0 0 80px  rgba(0,169,154,.08);
+                    pointer-events: none;
+                    z-index: 1;
                 }
 
                 .console-shell {
                     position: relative;
                     z-index: 2;
-                    width: min(700px, 100%);
-                    min-height: 520px;
+                    width: min(680px, 100%);
+                    min-height: 500px;
                     display: grid;
                     grid-template-columns: 172px 1fr 168px;
                     gap: 1px;
@@ -1093,6 +1104,7 @@ export default function LandingPage() {
 
             <section className="section hero">
                 <div className="hero-copy">
+                    <p className="hero-eyebrow">Introducing Edunostics</p>
                     <h1>A school technology layer for modern secondary education.</h1>
                     <p>
                         Edunostics connects assessment software, academic records, smart hardware touchpoints, and parent communication into one trusted operating system for secondary schools.
