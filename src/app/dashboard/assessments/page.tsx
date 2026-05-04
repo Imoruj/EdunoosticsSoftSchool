@@ -218,7 +218,7 @@ export default function AssessmentPage() {
 
     useEffect(() => {
         if (selectedClassArmId && selectedTermId) {
-            fetchAssessments().then(() => setFiltersOpen(false));
+            fetchAssessments();
         } else {
             setTraits([]);
             setSkills([]);
@@ -226,6 +226,11 @@ export default function AssessmentPage() {
             setFiltersOpen(true);
         }
     }, [fetchAssessments, selectedClassArmId, selectedTermId]);
+
+    // Collapse the filter panel whenever real student data arrives
+    useEffect(() => {
+        if (students.length > 0) setFiltersOpen(false);
+    }, [students]);
 
     const handleRatingCycle = (studentId: string, key: string) => {
         setStudents(prev => prev.map(s => {
