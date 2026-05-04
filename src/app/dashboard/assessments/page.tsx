@@ -93,6 +93,9 @@ export default function AssessmentPage() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
+    // Mobile UX
+    const [filtersOpen, setFiltersOpen] = useState(true);
+
     const visibleSessionIds =
         restrictToAssignedScope && selectedClassArmId
             ? (sessionIdsByClassArm[selectedClassArmId] || [])
@@ -215,11 +218,12 @@ export default function AssessmentPage() {
 
     useEffect(() => {
         if (selectedClassArmId && selectedTermId) {
-            fetchAssessments();
+            fetchAssessments().then(() => setFiltersOpen(false));
         } else {
             setTraits([]);
             setSkills([]);
             setStudents([]);
+            setFiltersOpen(true);
         }
     }, [fetchAssessments, selectedClassArmId, selectedTermId]);
 
@@ -271,107 +275,141 @@ export default function AssessmentPage() {
         }
     };
 
+    const selectedClassName = (() => {
+        const arm = classes.find((c) => c.id === selectedClassArmId);
+        return arm ? `${arm.class.name} ${arm.armName}` : "";
+    })();
+    const selectedTermName = availableTerms.find((t) => t.id === selectedTermId)?.name ?? "";
+    const selectedSessionName = visibleSessions.find((s) => s.id === selectedSessionId)?.name ?? "";
+
     return (
-        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
+        <div className="flex flex-col gap-4 md:gap-6 md:h-[calc(100vh-100px)]">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Affective & Psychomotor</h1>
-                    <p className="text-gray-500 mt-1">Assess student traits and skills (1-5 Scale)</p>
+                    <p className="text-gray-500 mt-1 text-sm">Assess student traits and skills (1-5 Scale)</p>
                 </div>
                 {students.length > 0 && (
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="btn-primary flex items-center gap-2"
+                        className="btn-primary flex items-center gap-2 sm:shrink-0"
                     >
                         {saving ? "Saving..." : "Save Assessments"}
                     </button>
                 )}
             </div>
 
-            {/* Filters */}
-            <div className="card p-6 shrink-0">
-                <div className="grid md:grid-cols-3 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
-                        <select
-                            className="input w-full"
-                            value={selectedSessionId}
-                            onChange={(e) => {
-                                const sid = e.target.value;
-                                setSelectedSessionId(sid);
-                                const session = visibleSessions.find((s) => s.id === sid);
-                                if (session) {
-                                    const currentTerm = session.terms.find((t) => t.isCurrent) || session.terms[0];
-                                    if (currentTerm) setSelectedTermId(currentTerm.id);
-                                } else {
-                                    setSelectedTermId("");
-                                }
-                            }}
-                            disabled={visibleSessions.length === 0}
+            {/* Filters — collapsible on mobile once a class is loaded */}
+            <div className="card shrink-0">
+                {/* Mobile collapsed summary bar */}
+                {!filtersOpen && (
+                    <div className="md:hidden flex items-center justify-between px-4 py-3 gap-3">
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{selectedClassName}</p>
+                            <p className="text-xs text-gray-500 truncate">{selectedSessionName} · {selectedTermName}</p>
+                        </div>
+                        <button
+                            onClick={() => setFiltersOpen(true)}
+                            className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 active:scale-95 transition-all"
                         >
-                            {!restrictToAssignedScope && <option value="">Select Session</option>}
-                            {visibleSessions.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? "(Current)" : ""}</option>
-                            ))}
-                        </select>
+                            Change
+                        </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
-                        <select
-                            className="input w-full"
-                            value={selectedTermId}
-                            onChange={(e) => setSelectedTermId(e.target.value)}
-                            disabled={!selectedSessionId || availableTerms.length === 0}
-                        >
-                            <option value="">Select Term</option>
-                            {availableTerms.map((t) => (
-                                <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? "(Active)" : ""}</option>
-                            ))}
-                        </select>
+                )}
+
+                {/* Full filter controls */}
+                <div className={`p-4 md:p-6 ${!filtersOpen ? "hidden md:block" : ""}`}>
+                    <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                            <select
+                                className="input w-full"
+                                value={selectedSessionId}
+                                onChange={(e) => {
+                                    const sid = e.target.value;
+                                    setSelectedSessionId(sid);
+                                    const session = visibleSessions.find((s) => s.id === sid);
+                                    if (session) {
+                                        const currentTerm = session.terms.find((t) => t.isCurrent) || session.terms[0];
+                                        if (currentTerm) setSelectedTermId(currentTerm.id);
+                                    } else {
+                                        setSelectedTermId("");
+                                    }
+                                }}
+                                disabled={visibleSessions.length === 0}
+                            >
+                                {!restrictToAssignedScope && <option value="">Select Session</option>}
+                                {visibleSessions.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.name} {s.isCurrent ? "(Current)" : ""}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Term</label>
+                            <select
+                                className="input w-full"
+                                value={selectedTermId}
+                                onChange={(e) => setSelectedTermId(e.target.value)}
+                                disabled={!selectedSessionId || availableTerms.length === 0}
+                            >
+                                <option value="">Select Term</option>
+                                {availableTerms.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.name} {t.isCurrent ? "(Active)" : ""}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                            <select
+                                className="input w-full"
+                                value={selectedClassArmId}
+                                onChange={(e) => setSelectedClassArmId(e.target.value)}
+                                disabled={classes.length === 0}
+                            >
+                                {!restrictToAssignedScope && <option value="">Select Class</option>}
+                                {classes.map((classArm) => (
+                                    <option key={classArm.id} value={classArm.id}>
+                                        {classArm.class.name} {classArm.armName}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
-                        <select
-                            className="input w-full"
-                            value={selectedClassArmId}
-                            onChange={(e) => setSelectedClassArmId(e.target.value)}
-                            disabled={classes.length === 0}
-                        >
-                            {!restrictToAssignedScope && <option value="">Select Class</option>}
-                            {classes.map((classArm) => (
-                                <option key={classArm.id} value={classArm.id}>
-                                    {classArm.class.name} {classArm.armName}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* Confirm button on mobile — appears after selects are filled */}
+                    {selectedClassArmId && selectedTermId && (
+                        <div className="md:hidden mt-4 flex justify-end">
+                            <button
+                                onClick={() => setFiltersOpen(false)}
+                                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 active:scale-95 transition-all"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Detailed Table */}
+            {/* Student Table */}
             {loading ? (
                 <div className="flex justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             ) : students.length > 0 ? (
-                <div className="card flex-1 overflow-hidden flex flex-col">
+                <div className="card md:flex-1 md:overflow-hidden flex flex-col">
                     <div className="overflow-auto flex-1">
                         <table className="w-full border-collapse">
                             <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-10 border-b bg-gray-50 sticky left-0 z-20">S/N</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase min-w-[200px] border-b bg-gray-50 sticky left-10 z-20">Student</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase min-w-[160px] border-b bg-gray-50 sticky left-10 z-20">Student</th>
 
-                                    {/* Traits Header */}
                                     {traits.length > 0 && (
                                         <th colSpan={traits.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-l border-r border-gray-200 bg-blue-50">
                                             Affective Traits (1-5)
                                         </th>
                                     )}
-
-                                    {/* Skills Header */}
                                     {skills.length > 0 && (
                                         <th colSpan={skills.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-r border-gray-200 bg-green-50">
                                             Psychomotor Skills (1-5)
@@ -379,18 +417,16 @@ export default function AssessmentPage() {
                                     )}
                                 </tr>
                                 <tr>
-                                    {/* Sub-headers for sticky columns (empty or filler) */}
                                     <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-0 top-[37px] z-20"></th>
                                     <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-10 top-[37px] z-20"></th>
-
                                     {traits.map(trait => (
-                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[100px] bg-blue-50/50" title={trait.name}>
-                                            <div className="truncate max-w-[100px]">{trait.name}</div>
+                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-blue-50/50" title={trait.name}>
+                                            <div className="truncate max-w-[80px]">{trait.name}</div>
                                         </th>
                                     ))}
                                     {skills.map(skill => (
-                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[100px] bg-green-50/50" title={skill.name}>
-                                            <div className="truncate max-w-[100px]">{skill.name}</div>
+                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-green-50/50" title={skill.name}>
+                                            <div className="truncate max-w-[80px]">{skill.name}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -398,13 +434,11 @@ export default function AssessmentPage() {
                             <tbody className="divide-y divide-gray-100">
                                 {students.map((student, idx) => (
                                     <tr key={student.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm text-gray-500 sticky left-0 bg-white group-hover:bg-gray-50 border-r border-gray-100 z-10">{idx + 1}</td>
-                                        <td className="px-4 py-3 sticky left-10 bg-white group-hover:bg-gray-50 border-r border-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                            <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
+                                        <td className="px-4 py-3 text-sm text-gray-500 sticky left-0 bg-white border-r border-gray-100 z-10">{idx + 1}</td>
+                                        <td className="px-4 py-3 sticky left-10 bg-white border-r border-gray-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                            <div className="font-medium text-gray-900 text-sm">{student.lastName} {student.firstName}</div>
                                             <div className="text-xs text-gray-400">{student.admissionNumber}</div>
                                         </td>
-
-                                        {/* Traits Inputs */}
                                         {traits.map(trait => (
                                             <td key={trait.id} className="p-2 border-r border-gray-100 last:border-r-0 bg-blue-50/10">
                                                 <button
@@ -413,7 +447,7 @@ export default function AssessmentPage() {
                                                     className={`mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 ${student.ratings[`trait_${trait.id}`]
                                                         ? `${RATING_STYLES[student.ratings[`trait_${trait.id}`]]} ring-2 ring-offset-1`
                                                         : "bg-white text-gray-400 ring-1 ring-gray-200 hover:bg-gray-50"
-                                                        }`}
+                                                    }`}
                                                     title={`${trait.name}: ${student.ratings[`trait_${trait.id}`] || "Not rated"}. Click to cycle score.`}
                                                     aria-label={`${trait.name} rating for ${student.lastName} ${student.firstName}`}
                                                 >
@@ -421,8 +455,6 @@ export default function AssessmentPage() {
                                                 </button>
                                             </td>
                                         ))}
-
-                                        {/* Skills Inputs */}
                                         {skills.map(skill => (
                                             <td key={skill.id} className="p-2 border-r border-gray-100 last:border-r-0 bg-green-50/10">
                                                 <button
@@ -431,7 +463,7 @@ export default function AssessmentPage() {
                                                     className={`mx-auto inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 ${student.ratings[`skill_${skill.id}`]
                                                         ? `${RATING_STYLES[student.ratings[`skill_${skill.id}`]]} ring-2 ring-offset-1`
                                                         : "bg-white text-gray-400 ring-1 ring-gray-200 hover:bg-gray-50"
-                                                        }`}
+                                                    }`}
                                                     title={`${skill.name}: ${student.ratings[`skill_${skill.id}`] || "Not rated"}. Click to cycle score.`}
                                                     aria-label={`${skill.name} rating for ${student.lastName} ${student.firstName}`}
                                                 >
@@ -444,8 +476,16 @@ export default function AssessmentPage() {
                             </tbody>
                         </table>
                     </div>
-                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500">
-                        Click any rating box to cycle score: 1 → 2 → 3 → 4 → 5 → 1
+                    {/* Footer — hint + mobile save button */}
+                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between gap-4 shrink-0">
+                        <p className="text-xs text-gray-500">Click any rating box to cycle score: 1 → 2 → 3 → 4 → 5 → 1</p>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="md:hidden shrink-0 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60 active:scale-95 transition-all"
+                        >
+                            {saving ? "Saving..." : "Save"}
+                        </button>
                     </div>
                 </div>
             ) : (
