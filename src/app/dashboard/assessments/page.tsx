@@ -290,20 +290,9 @@ export default function AssessmentPage() {
     return (
         <div className="flex flex-col gap-2 md:gap-3 h-[calc(100dvh-112px)] lg:h-[calc(100dvh-136px)]">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Affective & Psychomotor</h1>
-                    <p className="text-gray-500 mt-1 text-sm">Assess student traits and skills (1-5 Scale)</p>
-                </div>
-                {students.length > 0 && (
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="btn-primary flex items-center gap-2 sm:shrink-0"
-                    >
-                        {saving ? "Saving..." : "Save Assessments"}
-                    </button>
-                )}
+            <div className="shrink-0">
+                <h1 className="text-2xl font-bold text-gray-900">Affective & Psychomotor</h1>
+                <p className="text-gray-500 mt-1 text-sm">Assess student traits and skills (1-5 Scale)</p>
             </div>
 
             {/* Filters — collapsible on mobile once a class is loaded */}
@@ -487,7 +476,7 @@ export default function AssessmentPage() {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="md:hidden shrink-0 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60 active:scale-95 transition-all"
+                            className="shrink-0 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60 active:scale-95 transition-all"
                         >
                             {saving ? "Saving..." : "Save"}
                         </button>
