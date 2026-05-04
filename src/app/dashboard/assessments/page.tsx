@@ -414,12 +414,12 @@ export default function AssessmentPage() {
                                     <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-0 top-[41px] z-30"></th>
                                     <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-10 top-[41px] z-30"></th>
                                     {traits.map(trait => (
-                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-blue-50/50 sticky top-[41px] z-10" title={trait.name}>
+                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-blue-50 sticky top-[41px] z-10" title={trait.name}>
                                             <div className="truncate max-w-[80px]">{trait.name}</div>
                                         </th>
                                     ))}
                                     {skills.map(skill => (
-                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-green-50/50 sticky top-[41px] z-10" title={skill.name}>
+                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-green-50 sticky top-[41px] z-10" title={skill.name}>
                                             <div className="truncate max-w-[80px]">{skill.name}</div>
                                         </th>
                                     ))}
