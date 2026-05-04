@@ -405,32 +405,32 @@ export default function AssessmentPage() {
                 <div className="card md:flex-1 md:overflow-hidden flex flex-col">
                     <div className="overflow-auto flex-1">
                         <table className="w-full border-collapse">
-                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-10 border-b bg-gray-50 sticky left-0 z-20">S/N</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase min-w-[160px] border-b bg-gray-50 sticky left-10 z-20">Student</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-10 border-b bg-gray-50 sticky left-0 top-0 z-30">S/N</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase min-w-[160px] border-b bg-gray-50 sticky left-10 top-0 z-30">Student</th>
 
                                     {traits.length > 0 && (
-                                        <th colSpan={traits.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-l border-r border-gray-200 bg-blue-50">
+                                        <th colSpan={traits.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-l border-r border-gray-200 bg-blue-50 sticky top-0 z-10">
                                             Affective Traits (1-5)
                                         </th>
                                     )}
                                     {skills.length > 0 && (
-                                        <th colSpan={skills.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-r border-gray-200 bg-green-50">
+                                        <th colSpan={skills.length} className="px-4 py-2 text-center text-xs font-bold text-gray-700 uppercase border-b border-r border-gray-200 bg-green-50 sticky top-0 z-10">
                                             Psychomotor Skills (1-5)
                                         </th>
                                     )}
                                 </tr>
                                 <tr>
-                                    <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-0 top-[37px] z-20"></th>
-                                    <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-10 top-[37px] z-20"></th>
+                                    <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-0 top-[41px] z-30"></th>
+                                    <th className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky left-10 top-[41px] z-30"></th>
                                     {traits.map(trait => (
-                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-blue-50/50" title={trait.name}>
+                                        <th key={trait.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-blue-50/50 sticky top-[41px] z-10" title={trait.name}>
                                             <div className="truncate max-w-[80px]">{trait.name}</div>
                                         </th>
                                     ))}
                                     {skills.map(skill => (
-                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-green-50/50" title={skill.name}>
+                                        <th key={skill.id} className="px-2 py-2 text-center text-[10px] font-medium text-gray-500 uppercase border-b border-gray-200 min-w-[80px] bg-green-50/50 sticky top-[41px] z-10" title={skill.name}>
                                             <div className="truncate max-w-[80px]">{skill.name}</div>
                                         </th>
                                     ))}
