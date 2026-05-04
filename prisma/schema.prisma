@@ -472,18 +472,19 @@ model AffectiveRating {
 }
 
 model Attendance {
-  id         String           @id @default(cuid())
+  id         String             @id @default(cuid())
   date       DateTime
-  status     AttendanceStatus @default(PRESENT)
-  createdAt  DateTime         @default(now())
+  period     AttendancePeriod   @default(MORNING)
+  status     AttendanceStatus   @default(PRESENT)
+  createdAt  DateTime           @default(now())
   studentId  String
   classArmId String
   markedById String?
-  classArm   ClassArm         @relation(fields: [classArmId], references: [id])
-  markedBy   User?            @relation("AttendanceMarker", fields: [markedById], references: [id])
-  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classArm   ClassArm           @relation(fields: [classArmId], references: [id])
+  markedBy   User?              @relation("AttendanceMarker", fields: [markedById], references: [id])
+  student    Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([studentId, date])
+  @@unique([studentId, date, period])
 }
 
 model PublicHoliday {
@@ -663,6 +664,11 @@ enum SubjectKind {
   STANDARD
   COMPOSITE_PARENT
   COMPOSITE_COMPONENT
+}
+
+enum AttendancePeriod {
+  MORNING
+  AFTERNOON
 }
 
 enum AttendanceStatus {

@@ -6,6 +6,7 @@ import { showSuccessMessage } from "@/lib/successMessage";
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
 type ViewMode = "daily" | "weekly";
+type AttendancePeriod = "MORNING" | "AFTERNOON";
 
 interface StudentAttendance {
     id: string;
@@ -197,6 +198,7 @@ export default function AttendancePage() {
     const [classes, setClasses] = useState<ClassOption[]>([]);
     const [selectedClassArmId, setSelectedClassArmId] = useState("");
     const [viewMode, setViewMode] = useState<ViewMode>("daily");
+    const [selectedPeriod, setSelectedPeriod] = useState<AttendancePeriod>("MORNING");
     const [selectedDate, setSelectedDate] = useState(toDateStr(new Date()));
     const [students, setStudents] = useState<StudentAttendance[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -259,7 +261,7 @@ export default function AttendancePage() {
         setError("");
 
         try {
-            const res = await fetch(`/api/attendance?classArmId=${selectedClassArmId}&date=${selectedDate}`);
+            const res = await fetch(`/api/attendance?classArmId=${selectedClassArmId}&date=${selectedDate}&period=${selectedPeriod}`);
             if (res.ok) {
                 setStudents(await res.json());
             } else {
@@ -270,7 +272,7 @@ export default function AttendancePage() {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedClassArmId, selectedDate]);
+    }, [selectedClassArmId, selectedDate, selectedPeriod]);
 
     const fetchWeekAttendance = useCallback(async () => {
         if (!selectedClassArmId || !weekStartDate) return;
@@ -311,7 +313,7 @@ export default function AttendancePage() {
             const activeDays = enrichedDays.filter((day) => !day.isHoliday && !day.isOutsideTerm);
             const results = await Promise.all(
                 activeDays.map((day) =>
-                    fetch(`/api/attendance?classArmId=${selectedClassArmId}&date=${day.dateStr}`)
+                    fetch(`/api/attendance?classArmId=${selectedClassArmId}&date=${day.dateStr}&period=${selectedPeriod}`)
                         .then((response) => (response.ok ? response.json() : []))
                 )
             );
@@ -347,7 +349,7 @@ export default function AttendancePage() {
         } finally {
             setIsLoadingWeek(false);
         }
-    }, [currentTermInfo, selectedClassArmId, weekStartDate]);
+    }, [currentTermInfo, selectedClassArmId, weekStartDate, selectedPeriod]);
 
     useEffect(() => {
         fetchClasses();
@@ -453,13 +455,13 @@ export default function AttendancePage() {
         if (viewMode === "daily" && selectedClassArmId && selectedDate) {
             fetchDailyAttendance();
         }
-    }, [fetchDailyAttendance, selectedClassArmId, selectedDate, viewMode]);
+    }, [fetchDailyAttendance, selectedClassArmId, selectedDate, viewMode, selectedPeriod]);
 
     useEffect(() => {
         if (viewMode === "weekly" && selectedClassArmId && weekStartDate) {
             fetchWeekAttendance();
         }
-    }, [fetchWeekAttendance, selectedClassArmId, viewMode, weekStartDate]);
+    }, [fetchWeekAttendance, selectedClassArmId, viewMode, weekStartDate, selectedPeriod]);
 
     useEffect(() => {
         if (viewMode === "weekly") {
@@ -508,6 +510,7 @@ export default function AttendancePage() {
                 body: JSON.stringify({
                     classArmId: selectedClassArmId,
                     date: selectedDate,
+                    period: selectedPeriod,
                     attendance: students.map((student) => ({
                         studentId: student.id,
                         status: student.status,
@@ -586,6 +589,7 @@ export default function AttendancePage() {
                         body: JSON.stringify({
                             classArmId: selectedClassArmId,
                             date: day.dateStr,
+                            period: selectedPeriod,
                             attendance: dayStudents.map((student) => ({
                                 studentId: student.id,
                                 status: student.status,
@@ -640,6 +644,31 @@ export default function AttendancePage() {
                     <p className="mt-1 text-gray-500">Mark and manage student attendance</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* Session toggle */}
+                    <div className="flex items-center gap-1 rounded-lg bg-amber-50 p-1 ring-1 ring-amber-200">
+                        <button
+                            onClick={() => setSelectedPeriod("MORNING")}
+                            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                                selectedPeriod === "MORNING"
+                                    ? "bg-amber-500 text-white shadow-sm"
+                                    : "text-amber-700 hover:text-amber-900"
+                            }`}
+                        >
+                            ☀ Morning
+                        </button>
+                        <button
+                            onClick={() => setSelectedPeriod("AFTERNOON")}
+                            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                                selectedPeriod === "AFTERNOON"
+                                    ? "bg-blue-500 text-white shadow-sm"
+                                    : "text-blue-700 hover:text-blue-900"
+                            }`}
+                        >
+                            🌤 Afternoon
+                        </button>
+                    </div>
+
+                    {/* View toggle */}
                     <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
                         <button
                             onClick={() => setViewMode("daily")}
@@ -840,15 +869,24 @@ export default function AttendancePage() {
                     {showTable ? (
                         <div className="card overflow-hidden">
                             <div className="border-b border-gray-200 bg-gray-50 p-4">
-                                <h3 className="font-semibold text-gray-900">
-                                    {selectedClassName} —{" "}
-                                    {parseDateStr(selectedDate).toLocaleDateString("en-NG", {
-                                        weekday: "long",
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    })}
-                                </h3>
+                                <div className="flex items-center gap-3">
+                                    <h3 className="font-semibold text-gray-900">
+                                        {selectedClassName} —{" "}
+                                        {parseDateStr(selectedDate).toLocaleDateString("en-NG", {
+                                            weekday: "long",
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        })}
+                                    </h3>
+                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        selectedPeriod === "MORNING"
+                                            ? "bg-amber-100 text-amber-700"
+                                            : "bg-blue-100 text-blue-700"
+                                    }`}>
+                                        {selectedPeriod === "MORNING" ? "☀ Morning Session" : "🌤 Afternoon Session"}
+                                    </span>
+                                </div>
                                 <p className="text-sm text-gray-500">{students.length} students</p>
                             </div>
                             <div className="overflow-x-auto">
@@ -930,14 +968,23 @@ export default function AttendancePage() {
                         <div className="card overflow-hidden">
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 p-4">
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">
-                                        {selectedClassName} —{" "}
-                                        {selectedWeekOption?.label ?? `Week of ${parseDateStr(weekStartDate).toLocaleDateString("en-NG", {
-                                            month: "long",
-                                            day: "numeric",
-                                            year: "numeric",
-                                        })}`}
-                                    </h3>
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="font-semibold text-gray-900">
+                                            {selectedClassName} —{" "}
+                                            {selectedWeekOption?.label ?? `Week of ${parseDateStr(weekStartDate).toLocaleDateString("en-NG", {
+                                                month: "long",
+                                                day: "numeric",
+                                                year: "numeric",
+                                            })}`}
+                                        </h3>
+                                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                            selectedPeriod === "MORNING"
+                                                ? "bg-amber-100 text-amber-700"
+                                                : "bg-blue-100 text-blue-700"
+                                        }`}>
+                                            {selectedPeriod === "MORNING" ? "☀ Morning" : "🌤 Afternoon"}
+                                        </span>
+                                    </div>
                                     <p className="text-sm text-gray-500">{weekStudentList.length} students</p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">

@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { AttendanceStatus } from "@prisma/client";
 
-// GET: Fetch attendance for a class arm and date
+function parsePeriod(value: string | null): "MORNING" | "AFTERNOON" {
+    return value === "AFTERNOON" ? "AFTERNOON" : "MORNING";
+}
+
+// GET: Fetch attendance for a class arm, date, and period
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -16,6 +20,7 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const classArmId = searchParams.get("classArmId");
         const dateStr = searchParams.get("date"); // YYYY-MM-DD
+        const period = parsePeriod(searchParams.get("period"));
 
         if (!classArmId || !dateStr) {
             return NextResponse.json({ error: "Class Arm ID and Date are required" }, { status: 400 });
@@ -39,12 +44,12 @@ export async function GET(req: NextRequest) {
         const date = new Date(dateStr);
         date.setHours(0, 0, 0, 0);
 
-        // Fetch students and their attendance for this date
+        // Fetch students and their attendance for this date and period
         const students = await prisma.student.findMany({
             where: { classArmId, schoolId, isActive: true },
             include: {
                 attendance: {
-                    where: { date }
+                    where: { date, period }
                 }
             },
             orderBy: { lastName: "asc" }
@@ -55,7 +60,7 @@ export async function GET(req: NextRequest) {
             firstName: student.firstName,
             lastName: student.lastName,
             admissionNumber: student.admissionNumber,
-            status: student.attendance[0]?.status || "PRESENT" // Default to Present if not marked
+            status: student.attendance[0]?.status || "PRESENT"
         }));
 
         return NextResponse.json(data);
@@ -65,7 +70,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// POST: Save attendance (Bulk)
+// POST: Save attendance (Bulk) for a specific period
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -74,11 +79,13 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { classArmId, date: dateStr, attendance } = body;
+        const { classArmId, date: dateStr, attendance, period: periodStr } = body;
 
         if (!classArmId || !dateStr || !attendance || !Array.isArray(attendance)) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
+
+        const period = parsePeriod(periodStr);
 
         const user = session.user as any;
         const schoolId = user.schoolId;
@@ -98,14 +105,15 @@ export async function POST(req: NextRequest) {
         const date = new Date(dateStr);
         date.setHours(0, 0, 0, 0);
 
-        // Bulk upsert attendance
+        // Bulk upsert attendance per period
         await prisma.$transaction(
             attendance.map((item: any) =>
                 prisma.attendance.upsert({
                     where: {
-                        studentId_date: {
+                        studentId_date_period: {
                             studentId: item.studentId,
-                            date
+                            date,
+                            period
                         }
                     },
                     update: {
@@ -116,6 +124,7 @@ export async function POST(req: NextRequest) {
                         studentId: item.studentId,
                         classArmId,
                         date,
+                        period,
                         status: item.status as AttendanceStatus,
                         markedById: user.id
                     }
@@ -129,4 +138,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to save attendance" }, { status: 500 });
     }
 }
-

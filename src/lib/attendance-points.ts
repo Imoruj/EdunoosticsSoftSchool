@@ -1,4 +1,6 @@
-export const ATTENDANCE_POINT_MULTIPLIER = 2;
+// Previously 2 to compensate for once-daily marking. Now attendance is recorded
+// twice daily (morning + afternoon), so the raw counts are already accurate.
+export const ATTENDANCE_POINT_MULTIPLIER = 1;
 
 export interface AttendancePointSummary {
     daysPresent: number;
