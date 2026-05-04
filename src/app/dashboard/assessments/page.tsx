@@ -288,7 +288,7 @@ export default function AssessmentPage() {
     const selectedSessionName = visibleSessions.find((s) => s.id === selectedSessionId)?.name ?? "";
 
     return (
-        <div className="flex flex-col gap-4 md:gap-6 md:h-[calc(100vh-100px)]">
+        <div className="flex flex-col gap-2 md:gap-3 h-[calc(100dvh-112px)] lg:h-[calc(100dvh-136px)]">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
                 <div>
@@ -402,7 +402,7 @@ export default function AssessmentPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             ) : students.length > 0 ? (
-                <div className="card md:flex-1 md:overflow-hidden flex flex-col">
+                <div className="card flex-1 overflow-hidden flex flex-col min-h-0">
                     <div className="overflow-auto flex-1">
                         <table className="w-full border-collapse">
                             <thead className="bg-gray-50">
