@@ -145,7 +145,6 @@ export default function AdminUsersPage() {
                         ) : (
                             users.map((user) => {
                                 const initials = user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-                                const canToggle = user.branchCount > 1;
                                 return (
                                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
@@ -177,21 +176,16 @@ export default function AdminUsersPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <button
-                                                    onClick={() => canToggle && toggleSwitch(user)}
-                                                    disabled={!canToggle || toggling === user.id}
-                                                    title={!canToggle ? "User only has 1 branch — switching not applicable" : user.canSwitchBranches ? "Disable branch switching" : "Enable branch switching"}
-                                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed ${!canToggle ? "bg-gray-200 opacity-40" : user.canSwitchBranches ? "bg-primary-600" : "bg-gray-300"}`}
-                                                    role="switch"
-                                                    aria-checked={user.canSwitchBranches}
-                                                >
-                                                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform transition-transform duration-200 ${user.canSwitchBranches ? "translate-x-5" : "translate-x-0"}`} />
-                                                </button>
-                                                {!canToggle && (
-                                                    <span className="text-xs text-gray-400">1 branch</span>
-                                                )}
-                                            </div>
+                                            <button
+                                                onClick={() => toggleSwitch(user)}
+                                                disabled={toggling === user.id}
+                                                title={user.canSwitchBranches ? "Disable branch switching" : "Enable branch switching"}
+                                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-60 ${user.canSwitchBranches ? "bg-primary-600" : "bg-gray-300"}`}
+                                                role="switch"
+                                                aria-checked={user.canSwitchBranches}
+                                            >
+                                                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform transition-transform duration-200 ${user.canSwitchBranches ? "translate-x-5" : "translate-x-0"}`} />
+                                            </button>
                                         </td>
                                     </tr>
                                 );
