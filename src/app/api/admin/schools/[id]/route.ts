@@ -11,13 +11,18 @@ async function assertSuperAdmin() {
     return user;
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+    _req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     const school = await prisma.school.findUnique({
-        where: { id: params.id },
+        where: { id },
         select: {
             id: true,
             name: true,
@@ -39,16 +44,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(school);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const body = await req.json();
     const { name, branchCode, isHeadBranch, organizationId } = body;
 
     const current = await prisma.school.findUnique({
-        where: { id: params.id },
+        where: { id },
         select: { id: true, organizationId: true },
     });
     if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -58,14 +67,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const orgId = organizationId ?? current.organizationId;
         if (orgId) {
             await prisma.school.updateMany({
-                where: { organizationId: orgId, id: { not: params.id } },
+                where: { organizationId: orgId, id: { not: id } },
                 data: { isHeadBranch: false },
             });
         }
     }
 
     const updated = await prisma.school.update({
-        where: { id: params.id },
+        where: { id },
         data: {
             ...(name !== undefined && { name }),
             ...(branchCode !== undefined && { branchCode: branchCode || null }),

@@ -11,11 +11,15 @@ async function assertSuperAdmin() {
     return user;
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const { canSwitchBranches } = await req.json();
 
     if (typeof canSwitchBranches !== "boolean") {
@@ -23,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const updated = await (prisma as any).user.update({
-        where: { id: params.id },
+        where: { id },
         data: { canSwitchBranches },
         select: { id: true, canSwitchBranches: true },
     });

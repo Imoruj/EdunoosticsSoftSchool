@@ -11,15 +11,19 @@ async function assertSuperAdmin() {
     return user;
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const { name, slug } = await req.json();
 
     const org = await (prisma as any).organization.update({
-        where: { id: params.id },
+        where: { id },
         data: {
             ...(name && { name: name.trim() }),
             ...(slug && { slug }),
@@ -29,28 +33,37 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json(org);
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+    _req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     // Unlink all schools from this org first
     await prisma.school.updateMany({
-        where: { organizationId: params.id },
+        where: { organizationId: id },
         data: { organizationId: null, isHeadBranch: false },
     });
 
-    await (prisma as any).organization.delete({ where: { id: params.id } });
+    await (prisma as any).organization.delete({ where: { id } });
 
     return NextResponse.json({ ok: true });
 }
 
-// POST /api/admin/organizations/[id] with action body for school assignment
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+// POST /api/admin/organizations/[id] — assign or remove a school
+export async function POST(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     if (!(await assertSuperAdmin())) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const { schoolId, branchCode, isHeadBranch, remove } = await req.json();
 
     if (!schoolId) {
@@ -58,7 +71,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     if (remove) {
-        // Remove school from org
         await prisma.school.update({
             where: { id: schoolId },
             data: { organizationId: null, isHeadBranch: false },
@@ -66,11 +78,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ ok: true });
     }
 
-    // Assign school to this org
     if (isHeadBranch) {
         // Clear head branch on all other schools in org first
         await prisma.school.updateMany({
-            where: { organizationId: params.id },
+            where: { organizationId: id },
             data: { isHeadBranch: false },
         });
     }
@@ -78,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const updated = await prisma.school.update({
         where: { id: schoolId },
         data: {
-            organizationId: params.id,
+            organizationId: id,
             ...(branchCode !== undefined && { branchCode: branchCode || null }),
             isHeadBranch: isHeadBranch === true,
         },
