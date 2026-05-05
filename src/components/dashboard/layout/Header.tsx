@@ -28,8 +28,14 @@ interface HeaderProps {
     topBarRef: React.RefObject<HTMLElement | null>;
 }
 
+function getCookie(name: string): string | null {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
 export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps) {
-    const { data: session, update } = useSession();
+    const { data: session } = useSession();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -47,8 +53,16 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const [branchMenuOpen, setBranchMenuOpen] = useState(false);
     const [switchingBranch, setSwitchingBranch] = useState(false);
     const branchMenuRef = useRef<HTMLDivElement>(null);
-    const activeBranchId = (session?.user as any)?.activeBranchId as string | null;
+    const [activeBranchId, setActiveBranchId] = useState<string | null>(
+        () => getCookie("active_branch_id") ?? ((session?.user as any)?.activeBranchId as string | null) ?? null
+    );
     const activeBranch = branches.find((b) => b.id === activeBranchId) ?? branches[0] ?? null;
+
+    // Sync activeBranchId from cookie on mount (cookie may not be readable during SSR init)
+    useEffect(() => {
+        const cookie = getCookie("active_branch_id");
+        if (cookie) setActiveBranchId(cookie);
+    }, []);
 
     // Fetch branches accessible to this user
     useEffect(() => {
@@ -82,13 +96,15 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
             });
             if (!res.ok) {
                 toast.error("Could not switch branch");
+                setSwitchingBranch(false);
                 return;
             }
-            await update({ activeBranchId: branchId });
-            router.refresh();
+            // Server sets active_branch_id cookie; hard-navigate to reload all server data
+            // without touching NextAuth update() which requires NEXTAUTH_URL to match current domain
+            setActiveBranchId(branchId);
+            window.location.replace(window.location.pathname);
         } catch {
             toast.error("Could not switch branch");
-        } finally {
             setSwitchingBranch(false);
         }
     };
