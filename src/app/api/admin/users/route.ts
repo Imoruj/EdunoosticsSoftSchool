@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
         where: {
-            roles: { hasSome: STAFF_ROLES },
+            roles: { hasSome: STAFF_ROLES as any },
             ...(schoolId && { schoolId }),
             ...(role && { roles: { has: role as any } }),
             ...(search && {
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
     const total = await prisma.user.count({
         where: {
-            roles: { hasSome: STAFF_ROLES },
+            roles: { hasSome: STAFF_ROLES as any },
             ...(schoolId && { schoolId }),
             ...(role && { roles: { has: role as any } }),
             ...(search && {
