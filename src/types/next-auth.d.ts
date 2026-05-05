@@ -14,6 +14,10 @@ declare module "next-auth" {
             assignedClass: string | null;
             avatarUrl?: string | null;
             mustChangePassword?: boolean;
+            // Multi-branch
+            activeBranchId: string | null;
+            branchIds: string[];
+            canSwitchBranches: boolean;
         } & DefaultSession["user"];
     }
 
@@ -26,6 +30,10 @@ declare module "next-auth" {
         assignedClass: string | null;
         avatarUrl?: string | null;
         mustChangePassword?: boolean;
+        // Multi-branch
+        activeBranchId: string | null;
+        branchIds: string[];
+        canSwitchBranches: boolean;
     }
 }
 
@@ -40,5 +48,9 @@ declare module "next-auth/jwt" {
         assignedClass: string | null;
         avatarUrl?: string | null;
         mustChangePassword?: boolean;
+        // Multi-branch
+        activeBranchId: string | null;
+        branchIds: string[];
+        canSwitchBranches: boolean;
     }
 }

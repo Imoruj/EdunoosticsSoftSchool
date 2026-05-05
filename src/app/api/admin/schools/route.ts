@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const session = await requireSuperAdmin(req);
     if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const schools = await prisma.school.findMany({
+    const schools = await (prisma as any).school.findMany({
         orderBy: { createdAt: "desc" },
         select: {
             id: true,
@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
             registrationStatus: true,
             registrationRejectionReason: true,
             createdAt: true,
+            branchCode: true,
+            isHeadBranch: true,
+            organizationId: true,
             _count: {
                 select: {
                     students: true,

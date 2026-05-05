@@ -14,6 +14,9 @@ interface School {
     registrationStatus: "PENDING" | "APPROVED" | "REJECTED";
     registrationRejectionReason: string | null;
     createdAt: string;
+    branchCode: string | null;
+    isHeadBranch: boolean;
+    organizationId: string | null;
     _count: { students: number; users: number };
 }
 
@@ -30,9 +33,38 @@ export default function AdminSchoolsPage() {
     const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
     const [togglingSignup, setTogglingSignup] = useState(false);
 
+    // Edit name modal state
+    const [editModal, setEditModal] = useState<{ schoolId: string; currentName: string } | null>(null);
+    const [editName, setEditName] = useState("");
+    const [editSaving, setEditSaving] = useState(false);
+
     // Rejection modal state
     const [rejectModal, setRejectModal] = useState<{ schoolId: string; schoolName: string } | null>(null);
     const [rejectionReason, setRejectionReason] = useState("");
+
+    const openEditModal = (school: School) => {
+        setEditName(school.name);
+        setEditModal({ schoolId: school.id, currentName: school.name });
+    };
+
+    const saveEditName = async () => {
+        if (!editModal || !editName.trim()) return;
+        setEditSaving(true);
+        try {
+            const res = await fetch(`/api/admin/schools/${editModal.schoolId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: editName.trim() }),
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setSchools((prev) => prev.map((s) => s.id === updated.id ? { ...s, name: updated.name } : s));
+                setEditModal(null);
+            }
+        } finally {
+            setEditSaving(false);
+        }
+    };
 
     useEffect(() => {
         fetch("/api/admin/schools")
@@ -188,6 +220,15 @@ export default function AdminSchoolsPage() {
 
         return (
             <div className="flex items-center gap-2">
+                <button
+                    onClick={() => openEditModal(school)}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 bg-white transition-colors"
+                    title="Edit school name"
+                >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                </button>
                 <Link
                     href={`/admin/schools/${school.id}/features`}
                     className="text-xs font-medium px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 bg-white transition-colors"
@@ -331,6 +372,7 @@ export default function AdminSchoolsPage() {
                     <thead>
                         <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
                             <th className="px-6 py-3">School</th>
+                            <th className="px-6 py-3">Branch</th>
                             <th className="px-6 py-3">Contact</th>
                             <th className="px-6 py-3">Location</th>
                             <th className="px-6 py-3 text-center">Students</th>
@@ -344,7 +386,7 @@ export default function AdminSchoolsPage() {
                         {loading ? (
                             Array.from({ length: 5 }).map((_, i) => (
                                 <tr key={i}>
-                                    {Array.from({ length: 8 }).map((_, j) => (
+                                    {Array.from({ length: 9 }).map((_, j) => (
                                         <td key={j} className="px-6 py-4">
                                             <div className="h-4 bg-gray-100 animate-pulse rounded w-3/4" />
                                         </td>
@@ -353,7 +395,7 @@ export default function AdminSchoolsPage() {
                             ))
                         ) : filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="px-6 py-14 text-center">
+                                <td colSpan={9} className="px-6 py-14 text-center">
                                     <div className="flex flex-col items-center gap-2 text-gray-400">
                                         <svg className="w-10 h-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -382,6 +424,25 @@ export default function AdminSchoolsPage() {
                                             </div>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4">
+                                        {school.organizationId ? (
+                                            <div className="flex flex-col gap-0.5">
+                                                {school.isHeadBranch && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 w-fit">
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        </svg>
+                                                        Head
+                                                    </span>
+                                                )}
+                                                {school.branchCode && (
+                                                    <span className="text-xs text-gray-500 font-mono">{school.branchCode}</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-300">—</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-gray-500">
                                         <p>{school.email ?? "—"}</p>
                                         <p className="text-xs text-gray-400">{school.phone ?? ""}</p>
@@ -406,6 +467,37 @@ export default function AdminSchoolsPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Edit Name Modal */}
+            {editModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Edit School Name</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Rename <span className="font-semibold text-gray-700">{editModal.currentName}</span>.
+                        </p>
+                        <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            placeholder="School name"
+                            className="input w-full mb-4"
+                            autoFocus
+                            onKeyDown={(e) => e.key === "Enter" && saveEditName()}
+                        />
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={() => setEditModal(null)} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                            <button
+                                onClick={saveEditName}
+                                disabled={editSaving || !editName.trim() || editName.trim() === editModal.currentName}
+                                className="btn-primary px-4 py-2 text-sm disabled:opacity-50"
+                            >
+                                {editSaving ? "Saving…" : "Save Name"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Rejection Modal */}
             {rejectModal && (

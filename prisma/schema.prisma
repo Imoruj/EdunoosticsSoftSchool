@@ -57,6 +57,15 @@ model School {
   studentChangeRequests       StudentChangeRequest[]
   schemesOfWork               SchemeOfWork[]
   publicHolidays              PublicHoliday[]
+  organizationId              String?
+  branchCode                  String?
+  isHeadBranch                Boolean                  @default(false)
+  organization                Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  userBranches                UserBranch[]
+  studentTransfersFrom        StudentTransfer[]        @relation("TransferFrom")
+  studentTransfersTo          StudentTransfer[]        @relation("TransferTo")
+
+  @@index([organizationId])
 }
 
 model User {
@@ -71,6 +80,7 @@ model User {
   signatureUrl                          String? // For class teacher/principal signatures
   isActive                              Boolean                    @default(true)
   mustChangePassword                    Boolean                    @default(true)
+  canSwitchBranches                     Boolean                    @default(true)
   lastLogin                             DateTime?
   createdAt                             DateTime                   @default(now())
   updatedAt                             DateTime                   @updatedAt
@@ -111,6 +121,9 @@ model User {
   schemeOfWorkCollaborators             SchemeOfWorkCollaborator[]
   studentChangeRequestsRequested        StudentChangeRequest[]     @relation("StudentChangeRequester")
   studentChangeRequestsReviewed         StudentChangeRequest[]     @relation("StudentChangeReviewer")
+  branches                              UserBranch[]               @relation("UserBranches")
+  branchAssignments                     UserBranch[]               @relation("BranchAssignedBy")
+  studentTransfers                      StudentTransfer[]          @relation("TransferActor")
 }
 
 model AcademicSession {
@@ -193,6 +206,8 @@ model ClassArm {
   classReportWorkflows   ClassReportWorkflow[]
   studentReportWorkflows StudentReportWorkflow[]
   schemeOfWorkClassArms  SchemeOfWorkClassArm[]
+  studentTransfersFrom   StudentTransfer[]       @relation("TransferFromArm")
+  studentTransfersTo     StudentTransfer[]       @relation("TransferToArm")
 
   @@unique([classId, armName])
 }
@@ -334,6 +349,7 @@ model Student {
   school                 School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   user                   User?                   @relation("StudentUser", fields: [userId], references: [id])
   changeRequests         StudentChangeRequest[]
+  transfers              StudentTransfer[]
 
   @@unique([schoolId, admissionNumber])
 }
@@ -1327,4 +1343,55 @@ model SchemeOfWorkCollaborator {
 
   @@unique([schemeOfWorkId, userId])
   @@index([schemeOfWorkId])
+}
+
+// ─── Multi-Branch Support ──────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branches  School[]
+}
+
+model UserBranch {
+  id           String     @id @default(cuid())
+  userId       String
+  schoolId     String
+  roles        UserRole[]
+  isActive     Boolean    @default(true)
+  assignedAt   DateTime   @default(now())
+  assignedById String?
+  user         User       @relation("UserBranches", fields: [userId], references: [id], onDelete: Cascade)
+  school       School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignedBy   User?      @relation("BranchAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, schoolId])
+  @@index([userId])
+  @@index([schoolId])
+}
+
+model StudentTransfer {
+  id              String    @id @default(cuid())
+  studentId       String
+  fromBranchId    String
+  toBranchId      String
+  fromClassArmId  String?
+  toClassArmId    String?
+  transferDate    DateTime  @default(now())
+  reason          String?
+  transferredById String
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fromBranch      School    @relation("TransferFrom", fields: [fromBranchId], references: [id], onDelete: Restrict)
+  toBranch        School    @relation("TransferTo", fields: [toBranchId], references: [id], onDelete: Restrict)
+  fromClassArm    ClassArm? @relation("TransferFromArm", fields: [fromClassArmId], references: [id], onDelete: SetNull)
+  toClassArm      ClassArm? @relation("TransferToArm", fields: [toClassArmId], references: [id], onDelete: SetNull)
+  transferredBy   User      @relation("TransferActor", fields: [transferredById], references: [id], onDelete: Restrict)
+
+  @@index([studentId])
+  @@index([fromBranchId])
+  @@index([toBranchId])
 }

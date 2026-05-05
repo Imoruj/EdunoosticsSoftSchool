@@ -336,6 +336,37 @@ export const authOptions: NextAuthOptions = {
                         user.avatarUrl ||
                         null;
 
+                    // Fetch all branches this user is assigned to
+                    let branchIds: string[] = [];
+                    if (user.schoolId) {
+                        try {
+                            const userBranches = await (prisma as any).userBranch.findMany({
+                                where: { userId: user.id, isActive: true },
+                                select: { schoolId: true },
+                            });
+                            branchIds = userBranches.map((b: { schoolId: string }) => b.schoolId);
+                            // Ensure primary schoolId is always included
+                            if (!branchIds.includes(user.schoolId)) {
+                                branchIds.unshift(user.schoolId);
+                            }
+                        } catch {
+                            // UserBranch table may not exist yet (pre-migration); fall back gracefully
+                            branchIds = user.schoolId ? [user.schoolId] : [];
+                        }
+                    }
+
+                    // Fetch canSwitchBranches for this user
+                    let canSwitchBranches = true;
+                    try {
+                        const userRecord = await (prisma as any).user.findUnique({
+                            where: { id: user.id },
+                            select: { canSwitchBranches: true },
+                        });
+                        canSwitchBranches = userRecord?.canSwitchBranches ?? true;
+                    } catch {
+                        canSwitchBranches = true;
+                    }
+
                     return {
                         id: user.id,
                         email: user.email,
@@ -349,6 +380,9 @@ export const authOptions: NextAuthOptions = {
                         image: photoUrl,
                         avatarUrl: photoUrl,
                         mustChangePassword: user.mustChangePassword ?? false,
+                        activeBranchId: user.schoolId || null,
+                        branchIds,
+                        canSwitchBranches,
                     };
                 } catch (error: any) {
                     console.error("[AUTH] Authorization error:", error?.message || error);
@@ -373,6 +407,9 @@ export const authOptions: NextAuthOptions = {
                 token.assignedClass = user.assignedClass;
                 token.avatarUrl = user.avatarUrl;
                 token.mustChangePassword = user.mustChangePassword ?? false;
+                token.activeBranchId = user.activeBranchId ?? user.schoolId ?? null;
+                token.branchIds = user.branchIds ?? (user.schoolId ? [user.schoolId] : []);
+                token.canSwitchBranches = user.canSwitchBranches ?? true;
             }
 
             if (trigger === "update" && session) {
@@ -382,6 +419,17 @@ export const authOptions: NextAuthOptions = {
                 }
                 if (session.user.mustChangePassword !== undefined) {
                     token.mustChangePassword = session.user.mustChangePassword;
+                }
+                // Branch switching — validated server-side before update() is called
+                if (session.activeBranchId !== undefined) {
+                    const currentBranchIds: string[] = token.branchIds ?? [];
+                    if (currentBranchIds.includes(session.activeBranchId)) {
+                        token.activeBranchId = session.activeBranchId;
+                    }
+                }
+                // Refresh branchIds (e.g. after admin assigns a new branch)
+                if (Array.isArray(session.branchIds)) {
+                    token.branchIds = session.branchIds;
                 }
             }
 
@@ -399,6 +447,9 @@ export const authOptions: NextAuthOptions = {
                 session.user.avatarUrl = token.avatarUrl;
                 session.user.image = token.avatarUrl ?? null;
                 session.user.mustChangePassword = token.mustChangePassword ?? false;
+                session.user.activeBranchId = token.activeBranchId ?? token.schoolId ?? null;
+                session.user.branchIds = token.branchIds ?? [];
+                session.user.canSwitchBranches = token.canSwitchBranches ?? true;
             }
             return session;
         },

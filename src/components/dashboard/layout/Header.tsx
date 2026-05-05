@@ -6,6 +6,13 @@ import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { handleUnauthorizedApiResponse } from "@/lib/client-session";
 
+interface Branch {
+    id: string;
+    name: string;
+    branchCode: string | null;
+    logoUrl: string | null;
+}
+
 interface HeaderNotification {
     id: string;
     title: string;
@@ -22,7 +29,7 @@ interface HeaderProps {
 }
 
 export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps) {
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -34,6 +41,57 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const hasLoadedNotificationsRef = useRef(false);
     const notificationsRequestInFlightRef = useRef(false);
     const notificationStreamRetryRef = useRef<number | null>(null);
+
+    // Branch switcher
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+    const [switchingBranch, setSwitchingBranch] = useState(false);
+    const branchMenuRef = useRef<HTMLDivElement>(null);
+    const activeBranchId = (session?.user as any)?.activeBranchId as string | null;
+    const activeBranch = branches.find((b) => b.id === activeBranchId) ?? branches[0] ?? null;
+
+    // Fetch branches accessible to this user
+    useEffect(() => {
+        if (!session?.user) return;
+        fetch("/api/user/branches")
+            .then((r) => r.ok ? r.json() : { branches: [] })
+            .then((data) => setBranches(data.branches ?? []))
+            .catch(() => {});
+    }, [session?.user]);
+
+    // Close branch menu on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (branchMenuRef.current && !branchMenuRef.current.contains(e.target as Node)) {
+                setBranchMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    const handleBranchSwitch = async (branchId: string) => {
+        if (branchId === activeBranchId || switchingBranch) return;
+        setSwitchingBranch(true);
+        setBranchMenuOpen(false);
+        try {
+            const res = await fetch("/api/session/switch-branch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ branchId }),
+            });
+            if (!res.ok) {
+                toast.error("Could not switch branch");
+                return;
+            }
+            await update({ activeBranchId: branchId });
+            router.refresh();
+        } catch {
+            toast.error("Could not switch branch");
+        } finally {
+            setSwitchingBranch(false);
+        }
+    };
 
     const userId = (session?.user as any)?.id || "anonymous";
     const notificationStorageKey = `dashboard-read-notifications:${userId}`;
@@ -291,6 +349,59 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                         </div>
                     </div>
                 </div>
+
+                {/* Branch switcher — only when user has multiple branches and switching is enabled */}
+                {branches.length > 1 && (session?.user as any)?.canSwitchBranches !== false && (
+                    <div className="relative" ref={branchMenuRef}>
+                        <button
+                            onClick={() => setBranchMenuOpen((v) => !v)}
+                            disabled={switchingBranch}
+                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60 max-w-[180px]"
+                            aria-label="Switch branch"
+                        >
+                            <svg className="w-4 h-4 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span className="truncate">{activeBranch?.branchCode ?? activeBranch?.name ?? "Branch"}</span>
+                            <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        {branchMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
+                                <div className="absolute left-0 mt-2 w-56 rounded-xl border border-gray-200 bg-white shadow-lg z-50 overflow-hidden">
+                                    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Switch Branch</p>
+                                    </div>
+                                    {branches.map((branch) => (
+                                        <button
+                                            key={branch.id}
+                                            onClick={() => handleBranchSwitch(branch.id)}
+                                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors ${branch.id === activeBranchId ? "bg-primary-50 text-primary-700 font-semibold" : "text-gray-700"}`}
+                                        >
+                                            <svg className={`w-4 h-4 shrink-0 ${branch.id === activeBranchId ? "text-primary-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                            <div className="min-w-0">
+                                                <p className="truncate">{branch.name}</p>
+                                                {branch.branchCode && (
+                                                    <p className="text-xs text-gray-400">{branch.branchCode}</p>
+                                                )}
+                                            </div>
+                                            {branch.id === activeBranchId && (
+                                                <svg className="w-4 h-4 text-primary-600 ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div className="flex items-center gap-3 lg:gap-4">
                     {/* Search */}
