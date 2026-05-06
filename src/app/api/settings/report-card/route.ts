@@ -64,91 +64,45 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No school associated with user" }, { status: 400 });
         }
         const body = await req.json();
-        const { targetBranchIds, ...rest } = body;
 
         // Build update object with only provided fields
         const updateData: any = {};
-        if (rest.customTemplates !== undefined) updateData.customTemplates = rest.customTemplates;
-        if (rest.termMappings !== undefined) updateData.termMappings = rest.termMappings;
-        if (rest.activeTemplateId !== undefined) updateData.activeTemplateId = rest.activeTemplateId;
-        if (rest.activeTemplate !== undefined) updateData.activeTemplate = rest.activeTemplate;
-        if (rest.colorScheme !== undefined) updateData.colorScheme = rest.colorScheme;
-        if (rest.showAttendance !== undefined) updateData.showAttendance = rest.showAttendance;
-        if (rest.showTraits !== undefined) updateData.showTraits = rest.showTraits;
-        if (rest.showSkills !== undefined) updateData.showSkills = rest.showSkills;
-        if (rest.showComments !== undefined) updateData.showComments = rest.showComments;
-        if (rest.showPhoto !== undefined) updateData.showPhoto = rest.showPhoto;
-        if (rest.showPosition !== undefined) updateData.showPosition = rest.showPosition;
-        if (rest.showBehaviourGradeKey !== undefined) updateData.showBehaviourGradeKey = rest.showBehaviourGradeKey;
-        if (rest.customTitles !== undefined) updateData.customTitles = rest.customTitles;
-        if (rest.displayOptions !== undefined) updateData.displayOptions = rest.displayOptions;
+        if (body.customTemplates !== undefined) updateData.customTemplates = body.customTemplates;
+        if (body.termMappings !== undefined) updateData.termMappings = body.termMappings;
+        if (body.activeTemplateId !== undefined) updateData.activeTemplateId = body.activeTemplateId;
+        if (body.activeTemplate !== undefined) updateData.activeTemplate = body.activeTemplate;
+        if (body.colorScheme !== undefined) updateData.colorScheme = body.colorScheme;
+        if (body.showAttendance !== undefined) updateData.showAttendance = body.showAttendance;
+        if (body.showTraits !== undefined) updateData.showTraits = body.showTraits;
+        if (body.showSkills !== undefined) updateData.showSkills = body.showSkills;
+        if (body.showComments !== undefined) updateData.showComments = body.showComments;
+        if (body.showPhoto !== undefined) updateData.showPhoto = body.showPhoto;
+        if (body.showPosition !== undefined) updateData.showPosition = body.showPosition;
+        if (body.showBehaviourGradeKey !== undefined) updateData.showBehaviourGradeKey = body.showBehaviourGradeKey;
+        if (body.customTitles !== undefined) updateData.customTitles = body.customTitles;
+        if (body.displayOptions !== undefined) updateData.displayOptions = body.displayOptions;
 
-        // Save to current branch
         const config = await prisma.reportCardConfig.upsert({
             where: { schoolId },
             update: updateData,
             create: {
                 schoolId,
-                activeTemplateId: rest.activeTemplateId || "default-standard",
-                activeTemplate: rest.activeTemplate || "standard",
-                colorScheme: rest.colorScheme || "blue",
-                showAttendance: rest.showAttendance ?? true,
-                showTraits: rest.showTraits ?? true,
-                showSkills: rest.showSkills ?? true,
-                showComments: rest.showComments ?? true,
-                showPhoto: rest.showPhoto ?? true,
-                showPosition: rest.showPosition ?? true,
-                showBehaviourGradeKey: rest.showBehaviourGradeKey ?? true,
-                customTitles: rest.customTitles || {},
-                displayOptions: rest.displayOptions || {},
-                customTemplates: rest.customTemplates || {},
-                termMappings: rest.termMappings || {},
+                activeTemplateId: body.activeTemplateId || "default-standard",
+                activeTemplate: body.activeTemplate || "standard",
+                colorScheme: body.colorScheme || "blue",
+                showAttendance: body.showAttendance ?? true,
+                showTraits: body.showTraits ?? true,
+                showSkills: body.showSkills ?? true,
+                showComments: body.showComments ?? true,
+                showPhoto: body.showPhoto ?? true,
+                showPosition: body.showPosition ?? true,
+                showBehaviourGradeKey: body.showBehaviourGradeKey ?? true,
+                customTitles: body.customTitles || {},
+                displayOptions: body.displayOptions || {},
+                customTemplates: body.customTemplates || {},
+                termMappings: body.termMappings || {},
             } as any,
         });
-
-        // Propagate to selected target branches (must be in the same org)
-        if (Array.isArray(targetBranchIds) && targetBranchIds.length > 0) {
-            const currentSchool = await prisma.school.findUnique({
-                where: { id: schoolId },
-                select: { organizationId: true },
-            });
-            const orgId = currentSchool?.organizationId;
-
-            const validTargets = orgId
-                ? await prisma.school.findMany({
-                    where: { id: { in: targetBranchIds }, organizationId: orgId, isActive: true, NOT: { id: schoolId } },
-                    select: { id: true },
-                })
-                : [];
-
-            if (validTargets.length > 0) {
-                await Promise.all(
-                    validTargets.map((target) =>
-                        prisma.reportCardConfig.upsert({
-                            where: { schoolId: target.id },
-                            update: updateData,
-                            create: {
-                                schoolId: target.id,
-                                activeTemplateId: rest.activeTemplateId || "default-standard",
-                                activeTemplate: rest.activeTemplate || "standard",
-                                colorScheme: rest.colorScheme || "blue",
-                                showAttendance: rest.showAttendance ?? true,
-                                showTraits: rest.showTraits ?? true,
-                                showSkills: rest.showSkills ?? true,
-                                showComments: rest.showComments ?? true,
-                                showPhoto: rest.showPhoto ?? true,
-                                showPosition: rest.showPosition ?? true,
-                                showBehaviourGradeKey: rest.showBehaviourGradeKey ?? true,
-                                customTitles: rest.customTitles || {},
-                                displayOptions: rest.displayOptions || {},
-                                customTemplates: rest.customTemplates || {},
-                                termMappings: rest.termMappings || {},
-                            } as any,
-                        })
-                    )
-                );
-            }
-        }
 
         return NextResponse.json(config);
     } catch (error: any) {
