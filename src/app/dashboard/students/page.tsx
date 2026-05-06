@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import StudentsClient from "@/components/students/StudentsClient";
 import { ClassOption, SessionOption, SubjectOption } from "@/components/students/types";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export default async function StudentsPage() {
     const session = await getServerSession(authOptions);
@@ -15,7 +16,7 @@ export default async function StudentsPage() {
 
     const user = session.user as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-    const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+    const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
     const userId = typeof user.id === "string" ? user.id : "";
     const isAdmin =
         roles.includes(UserRole.SUPER_ADMIN) ||

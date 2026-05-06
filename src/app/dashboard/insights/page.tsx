@@ -17,6 +17,7 @@ import { authOptions } from "@/lib/auth";
 import { getProprietorAnalytics, ProprietorAnalyticsFilters } from "@/lib/analytics/proprietor";
 import { isExecutiveViewer } from "@/lib/rbac";
 import { isTransientPrismaError } from "@/lib/prisma-transient";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export default async function InsightsPage({
     searchParams,
@@ -33,7 +34,7 @@ export default async function InsightsPage({
         redirect("/dashboard");
     }
 
-    const schoolId = (session.user as any).schoolId as string | null;
+    const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
     if (!schoolId) {
         redirect("/dashboard");
     }

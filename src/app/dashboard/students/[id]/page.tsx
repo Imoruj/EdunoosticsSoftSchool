@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export default async function StudentDetailPage({
 
     const user = session.user as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-    const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+    const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
     const userId = typeof user.id === "string" ? user.id : "";
     const isAdmin =
         roles.includes(UserRole.SUPER_ADMIN) ||

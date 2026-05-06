@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import ScoreReviewDesk from "@/components/scores/ScoreReviewDesk";
 import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 interface ReviewTermOption {
     id: string;
@@ -32,7 +33,7 @@ export default async function ScoreReviewsPage() {
 
     const user = session.user as any;
     const userId = typeof user.id === "string" ? user.id : "";
-    const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+    const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
     const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
     const isClassTeacher = roles.includes("CLASS_TEACHER");

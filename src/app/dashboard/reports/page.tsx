@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import ReportsClient from "@/components/reports/ReportsClient";
 import { Session, ClassArm } from "@/components/reports/types";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type SessionMap = Record<string, string[]>;
 
@@ -50,7 +51,7 @@ export default async function ReportCardsPage() {
 
     const user = session.user as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-    const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+    const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
     const userId = typeof user.id === "string" ? user.id : "";
     const loginType = user.loginType;
 

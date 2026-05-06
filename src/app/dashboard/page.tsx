@@ -6,6 +6,7 @@ import { UserRole } from "@prisma/client";
 import { Award, BookOpen, FileText, TrendingUp } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 import { BirthdayWidgetAsync } from "@/components/dashboard/overview/BirthdayWidgetAsync";
@@ -42,7 +43,8 @@ export default async function DashboardPage({
         redirect("/auth/login");
     }
 
-    const { loginType, roles = [], id: userId, schoolId, loginProfileId } = session.user as any;
+    const { loginType, roles = [], id: userId, schoolId: _sessionSchoolId, loginProfileId } = session.user as any;
+    const schoolId = (await getActiveSchoolId(_sessionSchoolId)) as any;
     const isParent = loginType === "parent";
     const isStudent = loginType === "student";
     const isAdmin = loginType === "admin";

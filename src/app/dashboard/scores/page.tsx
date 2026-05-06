@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import ScoresClient from "@/components/scores/ScoresClient";
 import { AssessmentType, ClassLink, GradingRule, Subject, Session } from "@/components/scores/types";
 import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function toScoreSubject(subject: {
     id: string;
@@ -43,7 +44,7 @@ export default async function ScoreEntryPage() {
 
     const user = session.user as any;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-    const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+    const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
     const userId = typeof user.id === "string" ? user.id : "";
 
     const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
