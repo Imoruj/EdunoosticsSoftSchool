@@ -121,7 +121,7 @@ export default function TeachersPage() {
     const [adoptConfirmOpen, setAdoptConfirmOpen] = useState(false);
     const [selectedDuplicateIds, setSelectedDuplicateIds] = useState<string[]>([]);
 
-    const openBranchModal = async (teacher: Teacher) => {
+    const openBranchModal = async (teacher: Teacher, forceEnableSwitch?: boolean) => {
         setBranchModalTeacher(teacher);
         setBranchModalData(null);
         setBranchModalLoading(true);
@@ -131,8 +131,12 @@ export default function TeachersPage() {
             const res = await fetch(`/api/teachers/${teacher.id}/branches`);
             if (res.ok) {
                 const data = await res.json();
-                setBranchModalData({ ...data, duplicateAccounts: data.duplicateAccounts ?? [] });
-                // Pre-select all detected duplicates
+                setBranchModalData({
+                    ...data,
+                    // If opened via toggle-ON, force the switch ON so it's clear what will be saved
+                    canSwitchBranches: forceEnableSwitch ? true : (data.canSwitchBranches ?? true),
+                    duplicateAccounts: data.duplicateAccounts ?? [],
+                });
                 setSelectedDuplicateIds((data.duplicateAccounts ?? []).map((d: any) => d.id));
             }
         } catch {}
@@ -204,20 +208,24 @@ export default function TeachersPage() {
 
     const toggleCanSwitch = async (teacher: Teacher) => {
         const newValue = !teacher.canSwitchBranches;
-        // Optimistic update
-        setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: newValue } : t));
+        if (newValue) {
+            // Turning ON → open the branch modal so the admin selects which branches to grant
+            openBranchModal(teacher, true);
+            return;
+        }
+        // Turning OFF → directly disable, no modal needed
+        setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: false } : t));
         try {
             const res = await fetch(`/api/teachers/${teacher.id}/branches`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ assignedBranchIds: null, canSwitchBranches: newValue, toggleOnly: true }),
+                body: JSON.stringify({ assignedBranchIds: null, canSwitchBranches: false, toggleOnly: true }),
             });
             if (!res.ok) {
-                // Revert on failure
-                setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: !newValue } : t));
+                setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: true } : t));
             }
         } catch {
-            setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: !newValue } : t));
+            setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: true } : t));
         }
     };
 
