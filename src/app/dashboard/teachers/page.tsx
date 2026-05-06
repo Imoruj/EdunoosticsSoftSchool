@@ -1043,49 +1043,94 @@ export default function TeachersPage() {
                                         </div>
                                     ) : (
                                         <div className="rounded-2xl border border-amber-300 bg-amber-50 overflow-hidden">
+                                            {/* Header */}
                                             <div className="flex items-start gap-3 p-4">
                                                 <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                 </svg>
                                                 <div className="flex-1">
                                                     <p className="text-sm font-semibold text-amber-800">Duplicate Accounts Detected</p>
-                                                    <p className="text-xs text-amber-700 mt-0.5">{branchModalData.duplicateAccounts.length} separate account{branchModalData.duplicateAccounts.length > 1 ? "s" : ""} found with the same email in other branches. Adopt single credential to merge access and disable the duplicates.</p>
+                                                    <p className="text-xs text-amber-700 mt-0.5">{branchModalData.duplicateAccounts.length} separate account{branchModalData.duplicateAccounts.length > 1 ? "s" : ""} with the same name found in other branches. Select which to adopt — their access is merged here and their old login is disabled.</p>
                                                 </div>
                                             </div>
-                                            <div className="border-t border-amber-200 divide-y divide-amber-100">
-                                                {branchModalData.duplicateAccounts.map((dup) => (
-                                                    <label key={dup.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-amber-100/50 transition-colors">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedDuplicateIds.includes(dup.id)}
-                                                            onChange={(e) => setSelectedDuplicateIds((prev) =>
-                                                                e.target.checked ? [...prev, dup.id] : prev.filter((x) => x !== dup.id)
-                                                            )}
-                                                            className="w-4 h-4 text-amber-600 rounded border-amber-300"
-                                                        />
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-xs font-semibold text-slate-800">{dup.school?.name ?? dup.schoolId}</p>
-                                                            <p className="text-[10px] text-slate-500">{dup.email}</p>
-                                                        </div>
-                                                        {dup.school?.branchCode && (
-                                                            <span className="text-[10px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded shrink-0">{dup.school.branchCode}</span>
-                                                        )}
-                                                    </label>
-                                                ))}
+
+                                            {/* Select all / deselect all */}
+                                            <div className="flex items-center justify-between px-4 py-1.5 border-t border-amber-200 bg-amber-100/60">
+                                                <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">{selectedDuplicateIds.length} of {branchModalData.duplicateAccounts.length} selected to adopt</span>
+                                                <button
+                                                    onClick={() => setSelectedDuplicateIds(
+                                                        selectedDuplicateIds.length === branchModalData.duplicateAccounts.length
+                                                            ? []
+                                                            : branchModalData.duplicateAccounts.map((d) => d.id)
+                                                    )}
+                                                    className="text-[10px] font-bold text-amber-700 hover:text-amber-900 underline transition-colors"
+                                                >
+                                                    {selectedDuplicateIds.length === branchModalData.duplicateAccounts.length ? "Deselect all" : "Select all"}
+                                                </button>
                                             </div>
+
+                                            {/* Account list */}
+                                            <div className="divide-y divide-amber-100 max-h-52 overflow-y-auto">
+                                                {branchModalData.duplicateAccounts.map((dup) => {
+                                                    const isSelected = selectedDuplicateIds.includes(dup.id);
+                                                    return (
+                                                        <div
+                                                            key={dup.id}
+                                                            onClick={() => setSelectedDuplicateIds((prev) =>
+                                                                isSelected ? prev.filter((x) => x !== dup.id) : [...prev, dup.id]
+                                                            )}
+                                                            className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected ? "bg-amber-100" : "hover:bg-amber-50/70"}`}
+                                                        >
+                                                            {/* Custom checkbox */}
+                                                            <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${isSelected ? "bg-amber-600 border-amber-600" : "border-amber-400 bg-white"}`}>
+                                                                {isSelected && (
+                                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Account info */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <p className="text-xs font-bold text-slate-800">{dup.firstName} {dup.lastName}</p>
+                                                                    {isSelected && (
+                                                                        <span className="text-[9px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">Will be disabled</span>
+                                                                    )}
+                                                                    {!isSelected && (
+                                                                        <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Keep separate</span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500 mt-0.5">{dup.email}</p>
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                                    </svg>
+                                                                    <p className="text-[10px] text-slate-600">{dup.school?.name ?? dup.schoolId}</p>
+                                                                    {dup.school?.branchCode && (
+                                                                        <span className="text-[9px] font-bold bg-amber-200 text-amber-800 px-1 py-0.5 rounded">{dup.school.branchCode}</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Action footer */}
                                             {!adoptConfirmOpen ? (
                                                 <div className="p-3 border-t border-amber-200">
                                                     <button
                                                         onClick={() => setAdoptConfirmOpen(true)}
                                                         disabled={selectedDuplicateIds.length === 0}
-                                                        className="w-full py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl transition-all"
+                                                        className="w-full py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-40 rounded-xl transition-all"
                                                     >
-                                                        Adopt Single Credential ({selectedDuplicateIds.length} selected)
+                                                        Adopt {selectedDuplicateIds.length} Account{selectedDuplicateIds.length !== 1 ? "s" : ""} into Single Credential
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div className="p-3 border-t border-amber-200 space-y-2">
-                                                    <p className="text-xs font-semibold text-red-700">⚠ This will deactivate {selectedDuplicateIds.length} account(s). Those users will no longer be able to log in with their old credentials. Confirm?</p>
+                                                    <p className="text-xs font-semibold text-red-700">⚠ This will permanently deactivate {selectedDuplicateIds.length} account{selectedDuplicateIds.length !== 1 ? "s" : ""}. Those users will no longer be able to log in with their old credentials.</p>
                                                     <div className="flex gap-2">
                                                         <button onClick={() => setAdoptConfirmOpen(false)} className="flex-1 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">
                                                             Cancel
