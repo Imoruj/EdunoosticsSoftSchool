@@ -29,6 +29,7 @@ interface Branch {
 
 interface Teacher {
     id: string;
+    schoolId: string | null;
     firstName: string;
     lastName: string;
     email: string;
@@ -63,6 +64,9 @@ export default function TeachersPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<{
+        activeSchoolId?: string;
+        selectedBranchId?: string;
+        branches: { id: string; name: string; branchCode: string | null; isHeadBranch: boolean }[];
         classes: { id: string; name: string; classTeacherId?: string | null; classId: string }[];
         subjects: { id: string; name: string }[];
         subjectAssignments: {
@@ -75,13 +79,14 @@ export default function TeachersPage() {
             classArmName: string;
         }[];
         subjectClassArms: { classArmId: string; subjectId: string }[];
-    }>({ classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
+    }>({ branches: [], classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
 
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
         phone: "",
+        branchId: "",
         roles: [] as string[],
         classArmIds: [] as string[],
     });
@@ -249,6 +254,7 @@ export default function TeachersPage() {
                 lastName: editingTeacher.lastName,
                 email: editingTeacher.email,
                 phone: editingTeacher.phone || "",
+                branchId: editingTeacher.schoolId || metadata.selectedBranchId || metadata.activeSchoolId || "",
                 roles: editingTeacher.roles,
                 classArmIds: editingTeacher.classArmIds || [],
             });
@@ -262,6 +268,7 @@ export default function TeachersPage() {
                 lastName: "",
                 email: "",
                 phone: "",
+                branchId: metadata.selectedBranchId || metadata.activeSchoolId || metadata.branches[0]?.id || "",
                 roles: [],
                 classArmIds: [],
             });
@@ -278,7 +285,11 @@ export default function TeachersPage() {
             if (!response.ok) throw new Error("Failed to fetch staff");
             const data = await response.json();
             setTeachers(data.teachers || []);
-            setMetadata(data.metadata || { classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
+            setMetadata(data.metadata || { branches: [], classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
+            const defaultBranchId = data.metadata?.selectedBranchId || data.metadata?.activeSchoolId || data.metadata?.branches?.[0]?.id || "";
+            if (defaultBranchId) {
+                setFormData((prev) => prev.branchId ? prev : { ...prev, branchId: defaultBranchId });
+            }
             setError(null);
         } catch (err: any) {
             setError(err.message || "Failed to load teachers");
@@ -286,6 +297,24 @@ export default function TeachersPage() {
             setLoading(false);
         }
     }, []);
+
+    const loadBranchMetadata = async (branchId: string) => {
+        if (!branchId) return;
+        try {
+            const response = await fetch(`/api/teachers?metadataOnly=true&metadataBranchId=${encodeURIComponent(branchId)}`);
+            if (!response.ok) throw new Error("Failed to load branch assignments");
+            const data = await response.json();
+            setMetadata(data.metadata || { branches: [], classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
+            setFormData((prev) => ({ ...prev, branchId, classArmIds: [] }));
+            setSavedSubjectPairs([]);
+            setCurrentSubject("");
+            setCurrentClassArms([]);
+            setBulkSubjectIds([]);
+            setBulkSubjectClassArmIds([]);
+        } catch (err: any) {
+            setError(err.message || "Failed to load branch assignments");
+        }
+    };
 
     useEffect(() => {
         fetchTeachers();
@@ -476,6 +505,10 @@ export default function TeachersPage() {
 
     const handleAddTeacher = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.branchId) {
+            setError("Select a branch before assigning staff roles.");
+            return;
+        }
         if (hasInvalidSubjectAssignmentState) {
             setError("Resolve subject assignment errors before saving.");
             return;
@@ -1283,6 +1316,32 @@ export default function TeachersPage() {
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     className="h-11"
                                 />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
+                                    Branch <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={formData.branchId}
+                                    onChange={(e) => {
+                                        const branchId = e.target.value;
+                                        setFormData({ ...formData, branchId });
+                                        void loadBranchMetadata(branchId);
+                                    }}
+                                    required
+                                    className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="">Select branch</option>
+                                    {metadata.branches.map((branch) => (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.name}{branch.branchCode ? ` (${branch.branchCode})` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-[11px] text-slate-500 ml-1">
+                                    Roles, classes, and subjects below will be assigned in this branch.
+                                </p>
                             </div>
 
                             <div className="space-y-3">

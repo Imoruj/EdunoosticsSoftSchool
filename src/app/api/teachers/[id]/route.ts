@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { SubjectKind, UserRole } from "@prisma/client";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const STAFF_MANAGEMENT_ROLES: UserRole[] = [
     UserRole.PROPRIETOR,
@@ -73,6 +74,20 @@ function resolveSubjectAssignments(
     return normalizeSubjectAssignments(generatedAssignments);
 }
 
+async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
+    const activeSchool = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { organizationId: true },
+    });
+    if (!activeSchool?.organizationId) return [schoolId];
+
+    const orgSchools = await prisma.school.findMany({
+        where: { organizationId: activeSchool.organizationId, isActive: true },
+        select: { id: true },
+    });
+    return orgSchools.map((school) => school.id);
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     try {
@@ -84,7 +99,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         const actor = session.user as any;
 
-        const schoolId = actor.schoolId;
+        const schoolId = (await getActiveSchoolId(actor.schoolId)) as string | null;
+        if (!schoolId) {
+            return NextResponse.json({ error: "School context is required" }, { status: 400 });
+        }
+        const allowedSchoolIds = await getOrgSchoolIds(schoolId);
         const teacherId = id;
         const body = await req.json();
         const {
@@ -92,6 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             lastName,
             email,
             phone,
+            branchId,
             roles,
             isActive,
             classArmIds,
@@ -119,11 +139,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         // Verify the teacher belongs to the same school
         const existingTeacher = await prisma.user.findFirst({
-            where: { id: teacherId, schoolId }
+            where: { id: teacherId, schoolId: { in: allowedSchoolIds } }
         });
 
         if (!existingTeacher) {
             return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
+        }
+
+        if (branchId && !allowedSchoolIds.includes(branchId)) {
+            return NextResponse.json({ error: "Selected branch is not available to your organization." }, { status: 400 });
+        }
+        const targetSchoolId = branchId || existingTeacher.schoolId;
+        if (!targetSchoolId) {
+            return NextResponse.json({ error: "Branch is required for staff updates." }, { status: 400 });
         }
 
         if (normalizedRoles) {
@@ -152,6 +180,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                     lastName: lastName ?? undefined,
                     email: email ?? undefined,
                     phone: phone ?? undefined,
+                    schoolId: targetSchoolId,
                     roles: normalizedRoles ? (normalizedRoles as UserRole[]) : undefined,
                     isActive: isActive !== undefined ? isActive : undefined
                 },
@@ -165,10 +194,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 }
             });
 
+            await tx.userBranch.upsert({
+                where: { userId_schoolId: { userId: user.id, schoolId: targetSchoolId } },
+                create: {
+                    userId: user.id,
+                    schoolId: targetSchoolId,
+                    roles: effectiveRoles as UserRole[],
+                    isActive: true,
+                    assignedById: actor.id,
+                },
+                update: {
+                    roles: effectiveRoles as UserRole[],
+                    isActive: true,
+                },
+            });
+
             // If CLASS_TEACHER role is removed, unassign class teacher records.
             if (normalizedRoles && !normalizedRoles.includes("CLASS_TEACHER")) {
                 await tx.classArm.updateMany({
-                    where: { classTeacherId: user.id },
+                    where: { classTeacherId: user.id, class: { schoolId: targetSchoolId } },
                     data: { classTeacherId: null }
                 });
             }
@@ -176,12 +220,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             // Sync Class Assignments only when provided.
             if (effectiveRoles.includes("CLASS_TEACHER") && classArmIds) {
                 await tx.classArm.updateMany({
-                    where: { classTeacherId: user.id },
+                    where: { classTeacherId: user.id, class: { schoolId: targetSchoolId } },
                     data: { classTeacherId: null }
                 });
                 if (classArmIds.length > 0) {
                     await tx.classArm.updateMany({
-                        where: { id: { in: classArmIds }, class: { schoolId } },
+                        where: { id: { in: classArmIds }, class: { schoolId: targetSchoolId } },
                         data: { classTeacherId: user.id }
                     });
                 }
@@ -190,7 +234,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             // If SUBJECT_TEACHER role is removed, clear all subject assignments.
             if (normalizedRoles && !normalizedRoles.includes("SUBJECT_TEACHER")) {
                 await tx.teacherSubject.deleteMany({
-                    where: { teacherId: user.id }
+                    where: { teacherId: user.id, classArm: { class: { schoolId: targetSchoolId } } }
                 });
             }
 
@@ -201,11 +245,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
                 const [subjects, classArms] = await Promise.all([
                     tx.subject.findMany({
-                        where: { id: { in: subjectIds }, schoolId },
+                        where: { id: { in: subjectIds }, schoolId: targetSchoolId },
                         select: { id: true, name: true, subjectKind: true }
                     }),
                     tx.classArm.findMany({
-                        where: { id: { in: classArmAssignmentIds }, class: { schoolId } },
+                        where: { id: { in: classArmAssignmentIds }, class: { schoolId: targetSchoolId } },
                         select: {
                             id: true,
                             armName: true,
@@ -272,7 +316,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 }
 
                 await tx.teacherSubject.deleteMany({
-                    where: { teacherId: user.id }
+                    where: { teacherId: user.id, classArm: { class: { schoolId: targetSchoolId } } }
                 });
 
                 if (normalizedSubjectAssignments.length > 0) {

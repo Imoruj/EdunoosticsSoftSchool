@@ -15,6 +15,7 @@ const CreateTeacherSchema = z.object({
     lastName: z.string().min(1, "Last name is required").max(100),
     email: z.string().email("Invalid email address"),
     phone: z.string().max(20).optional(),
+    branchId: z.string().optional(),
     roles: z.array(z.string()).min(1, "At least one role is required"),
     classArmIds: z.array(z.string()).optional(),
     subjectAssignments: z.array(z.object({ subjectId: z.string(), classArmId: z.string() })).optional(),
@@ -89,6 +90,20 @@ function resolveSubjectAssignments(
     return normalizeSubjectAssignments(generatedAssignments);
 }
 
+async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
+    const activeSchool = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { organizationId: true },
+    });
+    if (!activeSchool?.organizationId) return [schoolId];
+
+    const orgSchools = await prisma.school.findMany({
+        where: { organizationId: activeSchool.organizationId, isActive: true },
+        select: { id: true },
+    });
+    return orgSchools.map((school) => school.id);
+}
+
 // GET /api/teachers - List all teachers in the school
 export async function GET(req: NextRequest) {
     try {
@@ -106,22 +121,29 @@ export async function GET(req: NextRequest) {
         }
 
         const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
+        const allowedSchoolIds = await getOrgSchoolIds(schoolId);
 
         const { searchParams } = new URL(req.url);
         const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
         const limit = clampLimit(searchParams.get("limit") ?? "500");
+        const metadataBranchId = searchParams.get("metadataBranchId");
+        const metadataOnly = searchParams.get("metadataOnly") === "true";
+        const metadataSchoolId = metadataBranchId && allowedSchoolIds.includes(metadataBranchId)
+            ? metadataBranchId
+            : schoolId;
         const teacherWhere = {
             schoolId,
             roles: { hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"] as UserRole[] },
         };
 
-        const [teachers, total] = await Promise.all([
+        const [teachers, total] = metadataOnly ? [[], 0] : await Promise.all([
           prisma.user.findMany({
             where: teacherWhere,
             skip: (page - 1) * limit,
             take: limit,
             select: {
                 id: true,
+                schoolId: true,
                 firstName: true,
                 lastName: true,
                 email: true,
@@ -199,9 +221,15 @@ export async function GET(req: NextRequest) {
         }));
 
         // Fetch active metadata for the form
+        const availableBranches = await prisma.school.findMany({
+            where: { id: { in: allowedSchoolIds }, isActive: true },
+            select: { id: true, name: true, branchCode: true, isHeadBranch: true },
+            orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
+        });
+
         const availableClasses = await prisma.classArm.findMany({
             where: {
-                class: { schoolId }
+                class: { schoolId: metadataSchoolId }
             },
             select: {
                 id: true,
@@ -213,7 +241,7 @@ export async function GET(req: NextRequest) {
 
         const availableSubjects = await prisma.subject.findMany({
             where: {
-                schoolId,
+                schoolId: metadataSchoolId,
                 isActive: true,
                 subjectKind: { not: SubjectKind.COMPOSITE_PARENT },
             },
@@ -230,7 +258,38 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        const existingSubjectAssignments = teachers.flatMap((t: any) =>
+        const metadataTeachers = await prisma.user.findMany({
+            where: {
+                schoolId: metadataSchoolId,
+                roles: { hasSome: ["CLASS_TEACHER", "SUBJECT_TEACHER", "SCHOOL_ADMIN", "PROPRIETOR"] as UserRole[] },
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                teacherSubjects: {
+                    select: {
+                        subjectId: true,
+                        classArmId: true,
+                        subject: {
+                            select: {
+                                name: true,
+                                subjectKind: true,
+                                defaultParentSubject: { select: { name: true } },
+                            },
+                        },
+                        classArm: {
+                            select: {
+                                armName: true,
+                                class: { select: { name: true } },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const existingSubjectAssignments = metadataTeachers.flatMap((t: any) =>
             t.teacherSubjects.map((ts: any) => ({
                 teacherId: t.id,
                 teacherName: `${t.firstName} ${t.lastName}`,
@@ -249,7 +308,7 @@ export async function GET(req: NextRequest) {
         const subjectClassArms = await prisma.subjectClassArm.findMany({
             where: {
                 classArm: {
-                    class: { schoolId }
+                    class: { schoolId: metadataSchoolId }
                 }
             },
             select: {
@@ -262,6 +321,9 @@ export async function GET(req: NextRequest) {
             teachers: formattedTeachers,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
             metadata: {
+                activeSchoolId: schoolId,
+                selectedBranchId: metadataSchoolId,
+                branches: availableBranches,
                 classes: availableClasses.map((c: any) => ({
                     id: c.id,
                     name: `${c.class.name} ${c.armName}`,
@@ -300,6 +362,7 @@ export async function POST(req: NextRequest) {
         const user = session.user as any;
 
         const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
+        const allowedSchoolIds = await getOrgSchoolIds(schoolId);
         const parsed = CreateTeacherSchema.safeParse(await req.json());
         if (!parsed.success) {
             return apiError(parsed.error.issues.map(e => e.message).join(", "), 422);
@@ -309,12 +372,26 @@ export async function POST(req: NextRequest) {
             lastName,
             email,
             phone,
+            branchId,
             roles,
             classArmIds,
             subjectAssignments: rawSubjectAssignments,
             subjectIds: rawSubjectIds,
             subjectClassArmIds: rawSubjectClassArmIds,
         } = parsed.data;
+        if (!branchId) {
+            return NextResponse.json(
+                { error: "Branch is required for staff creation." },
+                { status: 400 }
+            );
+        }
+        if (!allowedSchoolIds.includes(branchId)) {
+            return NextResponse.json(
+                { error: "Selected branch is not available to your organization." },
+                { status: 400 }
+            );
+        }
+        const targetSchoolId = branchId;
 
         const normalizedSubjectAssignments = resolveSubjectAssignments(
             rawSubjectAssignments,
@@ -375,15 +452,30 @@ export async function POST(req: NextRequest) {
                     phone,
                     roles: normalizedRoles as UserRole[],
                     passwordHash,
-                    schoolId,
+                    schoolId: targetSchoolId,
                     isActive: true
                 }
+            });
+
+            await tx.userBranch.upsert({
+                where: { userId_schoolId: { userId: user.id, schoolId: targetSchoolId } },
+                create: {
+                    userId: user.id,
+                    schoolId: targetSchoolId,
+                    roles: normalizedRoles as UserRole[],
+                    isActive: true,
+                    assignedById: (session.user as any).id,
+                },
+                update: {
+                    roles: normalizedRoles as UserRole[],
+                    isActive: true,
+                },
             });
 
             // Handle Class Assignments if CLASS_TEACHER role is present
             if (normalizedRoles.includes("CLASS_TEACHER") && (classArmIds?.length ?? 0) > 0) {
                 await tx.classArm.updateMany({
-                    where: { id: { in: classArmIds }, class: { schoolId } },
+                    where: { id: { in: classArmIds }, class: { schoolId: targetSchoolId } },
                     data: { classTeacherId: user.id }
                 });
             }
@@ -395,11 +487,11 @@ export async function POST(req: NextRequest) {
 
                 const [subjects, classArms] = await Promise.all([
                     tx.subject.findMany({
-                        where: { id: { in: subjectIds }, schoolId },
+                        where: { id: { in: subjectIds }, schoolId: targetSchoolId },
                         select: { id: true, name: true, subjectKind: true }
                     }),
                     tx.classArm.findMany({
-                        where: { id: { in: classArmAssignmentIds }, class: { schoolId } },
+                        where: { id: { in: classArmAssignmentIds }, class: { schoolId: targetSchoolId } },
                         select: {
                             id: true,
                             armName: true,
@@ -491,4 +583,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-

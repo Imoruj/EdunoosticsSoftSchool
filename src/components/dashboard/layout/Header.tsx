@@ -420,7 +420,7 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                         {branchMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
-                                <div className="absolute left-0 mt-2 w-56 rounded-xl border border-gray-200 bg-white shadow-lg z-50 overflow-hidden">
+                                <div className="absolute left-0 mt-2 min-w-[16rem] max-w-xs rounded-xl border border-gray-200 bg-white shadow-lg z-50 overflow-hidden">
                                     <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
                                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Switch Branch</p>
                                     </div>
@@ -428,19 +428,19 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                                         <button
                                             key={branch.id}
                                             onClick={() => handleBranchSwitch(branch.id)}
-                                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors ${branch.id === activeBranchId ? "bg-primary-50 text-primary-700 font-semibold" : "text-gray-700"}`}
+                                            className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors ${branch.id === activeBranchId ? "bg-primary-50 text-primary-700 font-semibold" : "text-gray-700"}`}
                                         >
-                                            <svg className={`w-4 h-4 shrink-0 ${branch.id === activeBranchId ? "text-primary-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className={`w-4 h-4 shrink-0 mt-0.5 ${branch.id === activeBranchId ? "text-primary-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
-                                            <div className="min-w-0">
-                                                <p className="truncate">{branch.name}</p>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="whitespace-normal break-words leading-snug">{branch.name}</p>
                                                 {branch.branchCode && (
                                                     <p className="text-xs text-gray-400">{branch.branchCode}</p>
                                                 )}
                                             </div>
                                             {branch.id === activeBranchId && (
-                                                <svg className="w-4 h-4 text-primary-600 ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
                                             )}
