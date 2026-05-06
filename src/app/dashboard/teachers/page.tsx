@@ -249,12 +249,13 @@ export default function TeachersPage() {
 
     useEffect(() => {
         if (editingTeacher) {
+            const initialBranchId = editingTeacher.schoolId || metadata.selectedBranchId || metadata.activeSchoolId || "";
             setFormData({
                 firstName: editingTeacher.firstName,
                 lastName: editingTeacher.lastName,
                 email: editingTeacher.email,
                 phone: editingTeacher.phone || "",
-                branchId: editingTeacher.schoolId || metadata.selectedBranchId || metadata.activeSchoolId || "",
+                branchId: initialBranchId,
                 roles: editingTeacher.roles,
                 classArmIds: editingTeacher.classArmIds || [],
             });
@@ -262,6 +263,10 @@ export default function TeachersPage() {
             setCurrentSubject("");
             setCurrentClassArms([]);
             setShowAddModal(true);
+            // Load branch-scoped classes, subjects, and existing assignments for the initial branch
+            if (initialBranchId) {
+                void loadBranchMetadata(initialBranchId, editingTeacher.id);
+            }
         } else {
             setFormData({
                 firstName: "",
@@ -298,15 +303,25 @@ export default function TeachersPage() {
         }
     }, []);
 
-    const loadBranchMetadata = async (branchId: string) => {
+    const loadBranchMetadata = async (branchId: string, teacherId?: string) => {
         if (!branchId) return;
         try {
-            const response = await fetch(`/api/teachers?metadataOnly=true&metadataBranchId=${encodeURIComponent(branchId)}`);
-            if (!response.ok) throw new Error("Failed to load branch assignments");
-            const data = await response.json();
+            const [metaRes, assignRes] = await Promise.all([
+                fetch(`/api/teachers?metadataOnly=true&metadataBranchId=${encodeURIComponent(branchId)}`),
+                teacherId ? fetch(`/api/teachers/${teacherId}?branchId=${encodeURIComponent(branchId)}`) : Promise.resolve(null),
+            ]);
+            if (!metaRes.ok) throw new Error("Failed to load branch metadata");
+            const data = await metaRes.json();
             setMetadata(data.metadata || { branches: [], classes: [], subjects: [], subjectAssignments: [], subjectClassArms: [] });
-            setFormData((prev) => ({ ...prev, branchId, classArmIds: [] }));
-            setSavedSubjectPairs([]);
+
+            if (assignRes && assignRes.ok) {
+                const assignments = await assignRes.json();
+                setFormData((prev) => ({ ...prev, branchId, classArmIds: assignments.classArmIds ?? [] }));
+                setSavedSubjectPairs(assignments.subjectAssignments ?? []);
+            } else {
+                setFormData((prev) => ({ ...prev, branchId, classArmIds: [] }));
+                setSavedSubjectPairs([]);
+            }
             setCurrentSubject("");
             setCurrentClassArms([]);
             setBulkSubjectIds([]);
@@ -1327,7 +1342,7 @@ export default function TeachersPage() {
                                     onChange={(e) => {
                                         const branchId = e.target.value;
                                         setFormData({ ...formData, branchId });
-                                        void loadBranchMetadata(branchId);
+                                        void loadBranchMetadata(branchId, editingTeacher?.id);
                                     }}
                                     required
                                     className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"

@@ -88,6 +88,59 @@ async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
     return orgSchools.map((school) => school.id);
 }
 
+/** GET /api/teachers/[id]?branchId=X
+ *  Returns the teacher's class arm and subject assignments scoped to a specific branch.
+ *  Used by the Edit Staff modal when the admin switches branches.
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    try {
+        const session = await requireSchoolAdmin(req);
+        if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+        const actor = session.user as any;
+        const schoolId = (await getActiveSchoolId(actor.schoolId)) as string | null;
+        if (!schoolId) return NextResponse.json({ error: "No school context" }, { status: 400 });
+
+        const allowedSchoolIds = await getOrgSchoolIds(schoolId);
+        const { searchParams } = new URL(req.url);
+        const branchId = searchParams.get("branchId") || schoolId;
+
+        if (!allowedSchoolIds.includes(branchId)) {
+            return NextResponse.json({ error: "Branch not in your organisation" }, { status: 403 });
+        }
+
+        const [classArmRows, subjectRows] = await Promise.all([
+            prisma.classArm.findMany({
+                where: { classTeacherId: id, class: { schoolId: branchId } },
+                select: { id: true, armName: true, class: { select: { name: true } } },
+            }),
+            prisma.teacherSubject.findMany({
+                where: { teacherId: id, classArm: { class: { schoolId: branchId } } },
+                select: {
+                    subjectId: true,
+                    classArmId: true,
+                    subject: { select: { name: true } },
+                    classArm: { select: { armName: true, class: { select: { name: true } } } },
+                },
+            }),
+        ]);
+
+        return NextResponse.json({
+            classArmIds: classArmRows.map((r) => r.id),
+            subjectAssignments: subjectRows.map((r) => ({
+                subjectId: r.subjectId,
+                classArmId: r.classArmId,
+                subjectName: r.subject.name,
+                className: r.classArm.class.name,
+                classArmName: r.classArm.armName,
+            })),
+        });
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message || "Failed to load teacher assignments" }, { status: 500 });
+    }
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     try {
