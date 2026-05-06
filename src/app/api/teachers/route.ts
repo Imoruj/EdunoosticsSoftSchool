@@ -128,6 +128,8 @@ export async function GET(req: NextRequest) {
                 phone: true,
                 roles: true,
                 isActive: true,
+                canSwitchBranches: true,
+                branches: { where: { isActive: true }, select: { schoolId: true } },
                 classArms: {
                     select: {
                         id: true,
@@ -169,6 +171,8 @@ export async function GET(req: NextRequest) {
         // Format for frontend
         const formattedTeachers = teachers.map((t: any) => ({
             ...t,
+            canSwitchBranches: t.canSwitchBranches ?? true,
+            branchCount: (t.branches?.length ?? 0) + 1, // +1 for primary school
             assignedClass: t.classArms[0] ? `${t.classArms[0].class.name} ${t.classArms[0].armName}` : null,
             assignedClasses: t.classArms.map((ca: any) => ({
                 id: ca.id,

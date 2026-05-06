@@ -18,6 +18,13 @@ interface SubjectAssignment {
     classArmName?: string;
 }
 
+interface Branch {
+    id: string;
+    name: string;
+    branchCode: string | null;
+    isHeadBranch: boolean;
+}
+
 interface Teacher {
     id: string;
     firstName: string;
@@ -31,6 +38,8 @@ interface Teacher {
     classArmIds: string[];
     subjectIds: string[];
     subjectAssignments: SubjectAssignment[];
+    canSwitchBranches: boolean;
+    branchCount: number;
 }
 
 const roleLabels: Record<string, { label: string; color: string }> = {
@@ -97,6 +106,68 @@ export default function TeachersPage() {
         errors: string[];
         dryRun?: boolean;
     } | null>(null);
+
+    // Branch management modal
+    const [branchModalTeacher, setBranchModalTeacher] = useState<Teacher | null>(null);
+    const [branchModalData, setBranchModalData] = useState<{
+        canSwitchBranches: boolean;
+        assignedBranchIds: string[];
+        availableBranches: Branch[];
+    } | null>(null);
+    const [branchModalLoading, setBranchModalLoading] = useState(false);
+    const [branchModalSaving, setBranchModalSaving] = useState(false);
+
+    const openBranchModal = async (teacher: Teacher) => {
+        setBranchModalTeacher(teacher);
+        setBranchModalData(null);
+        setBranchModalLoading(true);
+        try {
+            const res = await fetch(`/api/teachers/${teacher.id}/branches`);
+            if (res.ok) {
+                const data = await res.json();
+                setBranchModalData(data);
+            }
+        } catch {}
+        setBranchModalLoading(false);
+    };
+
+    const saveBranchModal = async () => {
+        if (!branchModalTeacher || !branchModalData) return;
+        setBranchModalSaving(true);
+        try {
+            const res = await fetch(`/api/teachers/${branchModalTeacher.id}/branches`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    assignedBranchIds: branchModalData.assignedBranchIds,
+                    canSwitchBranches: branchModalData.canSwitchBranches,
+                }),
+            });
+            if (res.ok) {
+                setTeachers((prev) =>
+                    prev.map((t) =>
+                        t.id === branchModalTeacher.id
+                            ? { ...t, canSwitchBranches: branchModalData.canSwitchBranches, branchCount: branchModalData.assignedBranchIds.length }
+                            : t
+                    )
+                );
+                setBranchModalTeacher(null);
+                setBranchModalData(null);
+            }
+        } catch {}
+        setBranchModalSaving(false);
+    };
+
+    const toggleBranchId = (branchId: string) => {
+        if (!branchModalData) return;
+        const exists = branchModalData.assignedBranchIds.includes(branchId);
+        setBranchModalData({
+            ...branchModalData,
+            assignedBranchIds: exists
+                ? branchModalData.assignedBranchIds.filter((id) => id !== branchId)
+                : [...branchModalData.assignedBranchIds, branchId],
+        });
+    };
 
     useEffect(() => {
         if (editingTeacher) {
@@ -710,6 +781,15 @@ export default function TeachersPage() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <button
+                                        onClick={() => openBranchModal(teacher)}
+                                        className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all"
+                                        title="Manage Branch Access"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        </svg>
+                                    </button>
+                                    <button
                                         onClick={() => setEditingTeacher(teacher)}
                                         className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
                                         title="Edit Staff Member"
@@ -777,6 +857,21 @@ export default function TeachersPage() {
                                     </div>
                                 )}
 
+                                {/* Branch access row */}
+                                <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        </svg>
+                                        <span className="text-xs font-medium text-slate-600">
+                                            {teacher.branchCount > 1 ? `${teacher.branchCount} branches` : "1 branch"}
+                                        </span>
+                                    </div>
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${teacher.canSwitchBranches ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-500"}`}>
+                                        {teacher.canSwitchBranches ? "Can switch" : "Fixed branch"}
+                                    </span>
+                                </div>
+
                                 <div className="pt-3 border-t border-slate-100">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 block">Subjects & Classes</span>
                                     {(teacher.subjectAssignments || []).length === 0 ? (
@@ -817,6 +912,109 @@ export default function TeachersPage() {
                             </div>
                         </Card>
                     ))}
+                </div>
+            )}
+
+            {/* Branch Management Modal */}
+            {branchModalTeacher && (
+                <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} />
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col border-none animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Branch Access</h3>
+                                <p className="text-sm text-slate-500">{branchModalTeacher.firstName} {branchModalTeacher.lastName}</p>
+                            </div>
+                            <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                            {branchModalLoading ? (
+                                <div className="space-y-3">
+                                    {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}
+                                </div>
+                            ) : !branchModalData ? (
+                                <p className="text-sm text-slate-500 text-center py-4">Failed to load branch data.</p>
+                            ) : (
+                                <>
+                                    {/* Branch Switching Toggle */}
+                                    <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800">Branch Switching</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">Allow this staff member to switch between branches</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setBranchModalData({ ...branchModalData, canSwitchBranches: !branchModalData.canSwitchBranches })}
+                                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${branchModalData.canSwitchBranches ? "bg-violet-600" : "bg-slate-300"}`}
+                                        >
+                                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${branchModalData.canSwitchBranches ? "translate-x-5" : "translate-x-0"}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Single Login Credential */}
+                                    <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+                                        <div className="flex items-start gap-3">
+                                            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                            </svg>
+                                            <div>
+                                                <p className="text-sm font-semibold text-amber-800">Single Login Credential</p>
+                                                <p className="text-xs text-amber-700 mt-0.5">This staff member uses one email + password to access all assigned branches. Assign branches below — they will be accessible after login via the branch switcher.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Available Branches */}
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Accessible Branches</p>
+                                        <div className="space-y-2">
+                                            {branchModalData.availableBranches.map((branch) => {
+                                                const isChecked = branchModalData.assignedBranchIds.includes(branch.id);
+                                                return (
+                                                    <button
+                                                        key={branch.id}
+                                                        onClick={() => toggleBranchId(branch.id)}
+                                                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${isChecked ? "border-violet-500 bg-violet-50" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                                                    >
+                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isChecked ? "bg-violet-600" : "border-2 border-slate-300 bg-white"}`}>
+                                                            {isChecked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-slate-800 truncate">{branch.name}</p>
+                                                            <p className="text-xs text-slate-500">{branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code"}</p>
+                                                        </div>
+                                                        {branch.isHeadBranch && (
+                                                            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase shrink-0">Head</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        {branchModalData && (
+                            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100 rounded-b-3xl">
+                                <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveBranchModal}
+                                    disabled={branchModalSaving}
+                                    className="px-5 py-2 text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition-all disabled:opacity-60 flex items-center gap-2"
+                                >
+                                    {branchModalSaving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                    Save Changes
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
