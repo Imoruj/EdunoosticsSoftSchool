@@ -316,7 +316,12 @@ export default function TeachersPage() {
 
             if (assignRes && assignRes.ok) {
                 const assignments = await assignRes.json();
-                setFormData((prev) => ({ ...prev, branchId, classArmIds: assignments.classArmIds ?? [] }));
+                setFormData((prev) => ({
+                    ...prev,
+                    branchId,
+                    classArmIds: assignments.classArmIds ?? [],
+                    roles: assignments.roles?.length ? assignments.roles : prev.roles,
+                }));
                 setSavedSubjectPairs(assignments.subjectAssignments ?? []);
             } else {
                 setFormData((prev) => ({ ...prev, branchId, classArmIds: [] }));
@@ -1400,7 +1405,12 @@ export default function TeachersPage() {
                                     <div className="max-h-40 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                                         {metadata.classes
                                             .filter(cls => {
-                                                return !cls.classTeacherId || (editingTeacher && cls.classTeacherId === editingTeacher.id);
+                                                // Show class arms that: have no teacher, are already assigned to this teacher
+                                                // in the selected branch (formData.classArmIds), or are assigned to this
+                                                // teacher's primary account (editingTeacher.id).
+                                                return !cls.classTeacherId ||
+                                                    formData.classArmIds.includes(cls.id) ||
+                                                    (editingTeacher && cls.classTeacherId === editingTeacher.id);
                                             })
                                             .map((cls) => (
                                                 <label key={cls.id} className="flex items-center gap-3 cursor-pointer group hover:bg-white p-2 rounded-xl transition-all border border-transparent hover:border-slate-100">
@@ -1418,7 +1428,11 @@ export default function TeachersPage() {
                                                     <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{cls.name}</span>
                                                 </label>
                                             ))}
-                                        {metadata.classes.filter(cls => !cls.classTeacherId || (editingTeacher && cls.classTeacherId === editingTeacher.id)).length === 0 && (
+                                        {metadata.classes.filter(cls =>
+                                            !cls.classTeacherId ||
+                                            formData.classArmIds.includes(cls.id) ||
+                                            (editingTeacher && cls.classTeacherId === editingTeacher.id)
+                                        ).length === 0 && (
                                             <div className="py-8 text-center">
                                                 <p className="text-sm text-slate-400 font-medium italic">No available classes to assign</p>
                                             </div>

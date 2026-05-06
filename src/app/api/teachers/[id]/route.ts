@@ -110,7 +110,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: "Branch not in your organisation" }, { status: 403 });
         }
 
-        const [classArmRows, subjectRows] = await Promise.all([
+        const [classArmRows, subjectRows, userBranchRow] = await Promise.all([
             prisma.classArm.findMany({
                 where: { classTeacherId: id, class: { schoolId: branchId } },
                 select: { id: true, armName: true, class: { select: { name: true } } },
@@ -124,10 +124,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                     classArm: { select: { armName: true, class: { select: { name: true } } } },
                 },
             }),
+            (prisma as any).userBranch.findUnique({
+                where: { userId_schoolId: { userId: id, schoolId: branchId } },
+                select: { roles: true },
+            }),
         ]);
+
+        // Fall back to the user's global roles if no UserBranch record exists for this branch
+        const teacher = await prisma.user.findUnique({ where: { id }, select: { roles: true } });
+        const branchRoles: string[] = userBranchRow?.roles?.length
+            ? userBranchRow.roles
+            : (teacher?.roles ?? []);
 
         return NextResponse.json({
             classArmIds: classArmRows.map((r) => r.id),
+            roles: branchRoles,
             subjectAssignments: subjectRows.map((r) => ({
                 subjectId: r.subjectId,
                 classArmId: r.classArmId,
