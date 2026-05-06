@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { getActiveBranchProfile } from "@/lib/activeBranchProfile";
 
 export async function GET() {
     const session = await getServerSession(authOptions);
@@ -11,13 +11,14 @@ export async function GET() {
     }
 
     const user = session.user as any;
-    const schoolId = await getActiveSchoolId(user.schoolId);
+    const activeProfile = await getActiveBranchProfile(user);
+    const schoolId = activeProfile.schoolId;
     if (!schoolId) {
         return NextResponse.json({ assignedClass: null });
     }
 
     // If the active branch is the primary branch, the JWT value is already correct
-    if (schoolId === user.schoolId) {
+    if (schoolId === user.schoolId && activeProfile.userId === user.id) {
         return NextResponse.json({ assignedClass: user.assignedClass ?? null });
     }
 
@@ -26,7 +27,7 @@ export async function GET() {
         const classArm = await prisma.classArm.findFirst({
             where: {
                 class: { schoolId },
-                classTeacherId: user.id,
+                classTeacherId: activeProfile.userId,
             },
             include: { class: { select: { name: true } } },
         });

@@ -420,6 +420,15 @@ export const authOptions: NextAuthOptions = {
                 if (session.user.mustChangePassword !== undefined) {
                     token.mustChangePassword = session.user.mustChangePassword;
                 }
+                if (Array.isArray((session.user as any).roles)) {
+                    token.roles = (session.user as any).roles;
+                }
+                if ((session.user as any).activeBranchUserId !== undefined) {
+                    token.activeBranchUserId = (session.user as any).activeBranchUserId;
+                }
+                if ((session.user as any).assignedClass !== undefined) {
+                    token.assignedClass = (session.user as any).assignedClass;
+                }
                 // Branch switching — validated server-side before update() is called
                 if (session.activeBranchId !== undefined) {
                     const currentBranchIds: string[] = token.branchIds ?? [];
@@ -448,6 +457,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.image = token.avatarUrl ?? null;
                 session.user.mustChangePassword = token.mustChangePassword ?? false;
                 session.user.activeBranchId = token.activeBranchId ?? token.schoolId ?? null;
+                (session.user as any).activeBranchUserId = token.activeBranchUserId ?? token.id;
                 session.user.branchIds = token.branchIds ?? [];
                 session.user.canSwitchBranches = token.canSwitchBranches ?? true;
             }
@@ -461,4 +471,3 @@ export const authOptions: NextAuthOptions = {
     debug: process.env.NODE_ENV === "development",
     secret: process.env.NEXTAUTH_SECRET,
 };
-

@@ -35,7 +35,7 @@ function getCookie(name: string): string | null {
 }
 
 export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps) {
-    const { data: session } = useSession();
+    const { data: session, update } = useSession();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -118,6 +118,17 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                 return;
             }
             const data = await res.json();
+            await update({
+                activeBranchId: data.branchId,
+                user: {
+                    ...(session?.user as any),
+                    roles: data.roles ?? (session?.user as any)?.roles ?? [],
+                    activeBranchUserId: data.activeBranchUserId,
+                    assignedClass: data.assignedClass ?? null,
+                },
+            });
+            window.dispatchEvent(new Event("role-permissions-updated"));
+            window.dispatchEvent(new Event("school-features-updated"));
             // Cookie is now set by the server. All API routes read active_branch_id via
             // getActiveSchoolId() so a full page reload will serve the new branch's data.
             // Hard navigation is required because dashboard pages are client components

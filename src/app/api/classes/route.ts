@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { getSafeServerSession } from "@/lib/server-session";
+import { getActiveBranchProfile } from "@/lib/activeBranchProfile";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/classes - List all classes with arms
@@ -18,8 +19,10 @@ export async function GET(req: NextRequest) {
         const sessionId = searchParams.get("sessionId");
 
         const user = session.user as any;
-        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
-        const roles = user.roles || [];
+        const activeProfile = await getActiveBranchProfile(user);
+        const schoolId = activeProfile.schoolId as any;
+        const roles = activeProfile.roles || [];
+        const userId = activeProfile.userId;
 
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -29,15 +32,19 @@ export async function GET(req: NextRequest) {
 
         // If teacher (class teacher or subject teacher), only show classes they are assigned to
         if (!isAdmin && (roles.includes("CLASS_TEACHER") || roles.includes("SUBJECT_TEACHER"))) {
+            if (!userId) {
+                return NextResponse.json({ classes: [] });
+            }
+
             // Find class arm IDs where user is the class teacher
             const classArmAsTeacher = await prisma.classArm.findMany({
-                where: { classTeacherId: user.id },
+                where: { classTeacherId: userId },
                 select: { id: true }
             });
 
             // Find class arm IDs where user is a subject teacher
             const classArmAsSubjectTeacher = await prisma.teacherSubject.findMany({
-                where: { teacherId: user.id },
+                where: { teacherId: userId },
                 select: { classArmId: true }
             });
 

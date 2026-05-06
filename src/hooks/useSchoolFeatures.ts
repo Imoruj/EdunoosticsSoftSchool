@@ -69,7 +69,19 @@ export function useSchoolFeatures(): { features: FeatureFlags; loading: boolean 
         };
 
         load();
-        return () => { mounted = false; };
+        const handleRefresh = () => {
+            cache = null;
+            if (mounted) {
+                setLoading(true);
+            }
+            void load();
+        };
+
+        window.addEventListener("school-features-updated", handleRefresh);
+        return () => {
+            mounted = false;
+            window.removeEventListener("school-features-updated", handleRefresh);
+        };
     }, []);
 
     return { features, loading };

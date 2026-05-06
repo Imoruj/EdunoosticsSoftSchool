@@ -6,7 +6,7 @@ import {
     type PermissionKey,
 } from "@/lib/permissions";
 import { getEffectivePermissionsForUser } from "@/lib/rolePermissions";
-import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { getActiveBranchProfile } from "@/lib/activeBranchProfile";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -21,9 +21,10 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const activeProfile = await getActiveBranchProfile(session.user as any);
         const permissions = await getEffectivePermissionsForUser({
-            roles: (session.user as any).roles,
-            schoolId: await getActiveSchoolId((session.user as any).schoolId) as string,
+            roles: activeProfile.roles,
+            schoolId: activeProfile.schoolId as string,
         });
 
         return NextResponse.json(

@@ -39,6 +39,43 @@ async function canLoginIdentityUseBranch(userId: string, branchId: string) {
     );
 }
 
+async function getBranchLoginProfile(userId: string, branchId: string) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            firstName: true,
+            lastName: true,
+            schoolId: true,
+            roles: true,
+            classArms: { include: { class: true } },
+        },
+    });
+    if (!user) return null;
+
+    const branchUsers = await (prisma as any).user.findMany({
+        where: { schoolId: branchId },
+        select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            roles: true,
+            classArms: { include: { class: true } },
+        },
+    });
+    const branchUser = branchUsers.find((candidate: any) =>
+        emailMatchesNameLoginPrefix(candidate.email, user.firstName, user.lastName)
+    );
+
+    if (branchUser) {
+        return branchUser;
+    }
+
+    return branchId === user.schoolId
+        ? { id: userId, roles: user.roles, classArms: user.classArms }
+        : null;
+}
+
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -70,6 +107,18 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    const branchProfile = await getBranchLoginProfile(user.id, branchId);
+    if (!branchProfile) {
+        return NextResponse.json(
+            { error: "Your branch login profile could not be resolved" },
+            { status: 403 }
+        );
+    }
+
+    const assignedClass = branchProfile.classArms?.[0]
+        ? `${branchProfile.classArms[0].class.name} ${branchProfile.classArms[0].armName}`
+        : null;
+
     // Set a lightweight cookie so the client can read the active branch without
     // needing to call NextAuth's update() (which requires NEXTAUTH_URL to match
     // the current domain and can cause a logout if it fails).
@@ -77,6 +126,9 @@ export async function POST(req: NextRequest) {
         ok: true,
         branchId: userBranch.school.id,
         branchName: userBranch.school.name,
+        activeBranchUserId: branchProfile.id,
+        roles: branchProfile.roles ?? [],
+        assignedClass,
     });
 
     response.cookies.set("active_branch_id", userBranch.school.id, {

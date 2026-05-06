@@ -12,7 +12,7 @@ import {
     resolveCompositeSubjectContext,
     resolveSubjectScoreProfile,
 } from "@/lib/composite-subjects";
-import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { getActiveBranchProfile } from "@/lib/activeBranchProfile";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -77,9 +77,10 @@ export async function GET(req: NextRequest) {
         let termId = searchParams.get("termId");
 
         const user = session.user as any;
-        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
-        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const userId = typeof user.id === "string" ? user.id : null;
+        const activeProfile = await getActiveBranchProfile(user);
+        const schoolId = activeProfile.schoolId as any;
+        const roles: string[] = activeProfile.roles;
+        const userId = activeProfile.userId;
 
         if (!classArmId || !subjectId) {
             return NextResponse.json(
@@ -508,9 +509,10 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
-        const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const userId = typeof user.id === "string" ? user.id : null;
+        const activeProfile = await getActiveBranchProfile(user);
+        const schoolId = activeProfile.schoolId as any;
+        const roles: string[] = activeProfile.roles;
+        const userId = activeProfile.userId;
 
         if (!schoolId) {
             return NextResponse.json({ error: "School context is required" }, { status: 400 });
@@ -918,4 +920,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-

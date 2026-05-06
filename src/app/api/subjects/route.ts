@@ -6,6 +6,7 @@ import { isCompositeReportVisible } from "@/lib/composite-subjects";
 import { getSafeServerSession } from "@/lib/server-session";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 import { apiError, clampLimit } from "@/lib/apiError";
+import { getActiveBranchProfile } from "@/lib/activeBranchProfile";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const CreateSubjectSchema = z.object({
@@ -32,8 +33,10 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
-        const roles = user.roles || [];
+        const activeProfile = await getActiveBranchProfile(user);
+        const schoolId = activeProfile.schoolId as any;
+        const roles = activeProfile.roles || [];
+        const userId = activeProfile.userId;
 
         const { searchParams } = new URL(req.url);
         const category = searchParams.get("category");
@@ -61,8 +64,12 @@ export async function GET(req: NextRequest) {
 
         // If subject teacher, also include component subjects that inherit from assigned parent subjects.
         if (!isAdmin && roles.includes("SUBJECT_TEACHER")) {
+            if (!userId) {
+                return NextResponse.json({ subjects: [] });
+            }
+
             const teacherSubjectAssignments = await prisma.teacherSubject.findMany({
-                where: { teacherId: user.id },
+                where: { teacherId: userId },
                 select: { subjectId: true }
             });
 
@@ -947,4 +954,3 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
-
