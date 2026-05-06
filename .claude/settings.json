@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Edunostics\\.claude\\projects\\c--Users-Edunostics-Desktop-BEETER-ReportCardManagementSystem\\memory",

@@ -130,11 +130,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             }),
         ]);
 
-        // Fall back to the user's global roles if no UserBranch record exists for this branch
-        const teacher = await prisma.user.findUnique({ where: { id }, select: { roles: true } });
-        const branchRoles: string[] = userBranchRow?.roles?.length
-            ? userBranchRow.roles
-            : (teacher?.roles ?? []);
+        const inferredBranchRoles = new Set<string>();
+        if (classArmRows.length > 0) inferredBranchRoles.add("CLASS_TEACHER");
+        if (subjectRows.length > 0) inferredBranchRoles.add("SUBJECT_TEACHER");
+
+        const branchRoles = Array.from(new Set([
+            ...(userBranchRow?.roles ?? []),
+            ...Array.from(inferredBranchRoles),
+        ]));
 
         return NextResponse.json({
             classArmIds: classArmRows.map((r) => r.id),

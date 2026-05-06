@@ -62,6 +62,7 @@ export default function TeachersPage() {
     const [selectedRole, setSelectedRole] = useState("All");
 
     const [isSaving, setIsSaving] = useState(false);
+    const [branchMetadataLoading, setBranchMetadataLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<{
         activeSchoolId?: string;
@@ -305,6 +306,7 @@ export default function TeachersPage() {
 
     const loadBranchMetadata = async (branchId: string, teacherId?: string) => {
         if (!branchId) return;
+        setBranchMetadataLoading(true);
         try {
             const [metaRes, assignRes] = await Promise.all([
                 fetch(`/api/teachers?metadataOnly=true&metadataBranchId=${encodeURIComponent(branchId)}`),
@@ -320,11 +322,11 @@ export default function TeachersPage() {
                     ...prev,
                     branchId,
                     classArmIds: assignments.classArmIds ?? [],
-                    roles: assignments.roles?.length ? assignments.roles : prev.roles,
+                    roles: assignments.roles ?? [],
                 }));
                 setSavedSubjectPairs(assignments.subjectAssignments ?? []);
             } else {
-                setFormData((prev) => ({ ...prev, branchId, classArmIds: [] }));
+                setFormData((prev) => ({ ...prev, branchId, roles: teacherId ? [] : prev.roles, classArmIds: [] }));
                 setSavedSubjectPairs([]);
             }
             setCurrentSubject("");
@@ -333,6 +335,8 @@ export default function TeachersPage() {
             setBulkSubjectClassArmIds([]);
         } catch (err: any) {
             setError(err.message || "Failed to load branch assignments");
+        } finally {
+            setBranchMetadataLoading(false);
         }
     };
 
@@ -1346,9 +1350,10 @@ export default function TeachersPage() {
                                     value={formData.branchId}
                                     onChange={(e) => {
                                         const branchId = e.target.value;
-                                        setFormData({ ...formData, branchId });
+                                        setFormData((prev) => ({ ...prev, branchId }));
                                         void loadBranchMetadata(branchId, editingTeacher?.id);
                                     }}
+                                    disabled={branchMetadataLoading}
                                     required
                                     className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
@@ -1360,7 +1365,7 @@ export default function TeachersPage() {
                                     ))}
                                 </select>
                                 <p className="text-[11px] text-slate-500 ml-1">
-                                    Roles, classes, and subjects below will be assigned in this branch.
+                                    {branchMetadataLoading ? "Loading this branch's roles, classes, and subjects..." : "Roles, classes, and subjects below will be assigned in this branch."}
                                 </p>
                             </div>
 
