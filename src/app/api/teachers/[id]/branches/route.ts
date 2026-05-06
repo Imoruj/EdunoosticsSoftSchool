@@ -16,9 +16,22 @@ async function authorizeAdmin(req: NextRequest) {
     return { user, schoolId };
 }
 
+async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
+    const activeSchool = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { organizationId: true },
+    });
+    if (!activeSchool?.organizationId) return [schoolId];
+    const orgSchools = await prisma.school.findMany({
+        where: { organizationId: activeSchool.organizationId, isActive: true },
+        select: { id: true },
+    });
+    return orgSchools.map((s) => s.id);
+}
+
 /** GET /api/teachers/[id]/branches
- *  Returns the teacher's current branch assignments and all available branches
- *  in the same organization as the active school.
+ *  Returns branch assignments, available branches, and any duplicate accounts
+ *  found across the organisation for the same email address.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const auth = await authorizeAdmin(req);
@@ -27,59 +40,62 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const { schoolId } = auth;
 
-    // Get teacher basic info + canSwitchBranches
     const teacher = await (prisma as any).user.findUnique({
         where: { id },
-        select: { id: true, canSwitchBranches: true, schoolId: true },
+        select: { id: true, email: true, firstName: true, lastName: true, canSwitchBranches: true, schoolId: true },
     });
     if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
-    // Get the active school's organization (to list sibling branches)
     const activeSchool = await prisma.school.findUnique({
         where: { id: schoolId },
         select: { organizationId: true, name: true },
     });
 
     let availableBranches: { id: string; name: string; branchCode: string | null; isHeadBranch: boolean }[] = [];
+    const allowedSchoolIds = await getOrgSchoolIds(schoolId);
 
-    if (activeSchool?.organizationId) {
-        availableBranches = await prisma.school.findMany({
-            where: { organizationId: activeSchool.organizationId, isActive: true },
-            select: { id: true, name: true, branchCode: true, isHeadBranch: true },
-            orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
-        }) as any;
-    } else {
-        // No org — only the current school is available
-        const s = await prisma.school.findUnique({
-            where: { id: schoolId },
-            select: { id: true, name: true, branchCode: true, isHeadBranch: true },
-        });
-        if (s) availableBranches = [s as any];
-    }
+    availableBranches = await prisma.school.findMany({
+        where: { id: { in: allowedSchoolIds }, isActive: true },
+        select: { id: true, name: true, branchCode: true, isHeadBranch: true },
+        orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
+    }) as any;
 
-    // Get this teacher's current UserBranch records
     const userBranches = await (prisma as any).userBranch.findMany({
         where: { userId: id, isActive: true },
         select: { schoolId: true },
     });
     const assignedBranchIds: string[] = userBranches.map((ub: any) => ub.schoolId);
-
-    // Always include the teacher's primary schoolId
     if (teacher.schoolId && !assignedBranchIds.includes(teacher.schoolId)) {
         assignedBranchIds.unshift(teacher.schoolId);
     }
+
+    // Find other active User accounts with the same email in org schools (duplicate accounts)
+    const duplicateAccounts = await (prisma as any).user.findMany({
+        where: {
+            email: teacher.email,
+            id: { not: id },
+            schoolId: { in: allowedSchoolIds },
+            isActive: true,
+        },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            schoolId: true,
+            school: { select: { name: true, branchCode: true } },
+        },
+    });
 
     return NextResponse.json({
         canSwitchBranches: teacher.canSwitchBranches ?? true,
         assignedBranchIds,
         availableBranches,
+        duplicateAccounts,
     });
 }
 
-/** PATCH /api/teachers/[id]/branches
- *  Body: { assignedBranchIds: string[], canSwitchBranches: boolean }
- *  Updates UserBranch records and canSwitchBranches flag.
- */
+/** PATCH /api/teachers/[id]/branches — update branch assignments + canSwitchBranches */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const auth = await authorizeAdmin(req);
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -96,7 +112,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, schoolId: true } });
     if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
-    // toggleOnly = just update canSwitchBranches, skip branch upsert
     if (toggleOnly) {
         await (prisma as any).user.update({ where: { id }, data: { canSwitchBranches: Boolean(canSwitchBranches) } });
         return NextResponse.json({ ok: true });
@@ -106,24 +121,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         return NextResponse.json({ error: "assignedBranchIds must be an array" }, { status: 400 });
     }
 
-    // Verify all requested branches belong to the same organization
-    const activeSchool = await prisma.school.findUnique({
-        where: { id: schoolId },
-        select: { organizationId: true },
-    });
-
-    let allowedSchoolIds: string[] = [schoolId];
-    if (activeSchool?.organizationId) {
-        const orgSchools = await prisma.school.findMany({
-            where: { organizationId: activeSchool.organizationId, isActive: true },
-            select: { id: true },
-        });
-        allowedSchoolIds = orgSchools.map((s) => s.id);
-    }
-
+    const allowedSchoolIds = await getOrgSchoolIds(schoolId);
     const validBranchIds = assignedBranchIds.filter((sid) => allowedSchoolIds.includes(sid));
 
-    // Upsert UserBranch records for each valid branch
     await Promise.all(
         validBranchIds.map((sid) =>
             (prisma as any).userBranch.upsert({
@@ -134,20 +134,80 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         )
     );
 
-    // Deactivate branches that were removed (only within org scope)
     await (prisma as any).userBranch.updateMany({
-        where: {
-            userId: id,
-            schoolId: { in: allowedSchoolIds, notIn: validBranchIds },
-        },
+        where: { userId: id, schoolId: { in: allowedSchoolIds, notIn: validBranchIds } },
         data: { isActive: false },
     });
 
-    // Update canSwitchBranches
     await (prisma as any).user.update({
         where: { id },
         data: { canSwitchBranches: Boolean(canSwitchBranches) },
     });
 
     return NextResponse.json({ ok: true });
+}
+
+/** POST /api/teachers/[id]/branches  (body: { action: "adopt-credential", duplicateUserIds: string[] })
+ *  Adopts the selected duplicate accounts:
+ *  - Adds their schools as UserBranch records on the primary account
+ *  - Deactivates the duplicate User accounts so their credentials no longer work
+ */
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const auth = await authorizeAdmin(req);
+    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const { user: actor, schoolId } = auth;
+    const body = await req.json();
+    const { action, duplicateUserIds } = body as { action: string; duplicateUserIds: string[] };
+
+    if (action !== "adopt-credential" || !Array.isArray(duplicateUserIds) || duplicateUserIds.length === 0) {
+        return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, email: true, schoolId: true } });
+    if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+
+    const allowedSchoolIds = await getOrgSchoolIds(schoolId);
+
+    // Fetch the duplicate accounts to verify they belong to org schools and have the same email
+    const duplicates = await (prisma as any).user.findMany({
+        where: {
+            id: { in: duplicateUserIds },
+            email: teacher.email,
+            schoolId: { in: allowedSchoolIds },
+            isActive: true,
+        },
+        select: { id: true, schoolId: true },
+    });
+
+    if (duplicates.length === 0) {
+        return NextResponse.json({ error: "No valid duplicate accounts found" }, { status: 400 });
+    }
+
+    // For each duplicate: create a UserBranch on the primary account + deactivate the duplicate
+    await Promise.all(
+        duplicates.map(async (dup: any) => {
+            if (!dup.schoolId) return;
+            // Grant access to that branch on the primary account
+            await (prisma as any).userBranch.upsert({
+                where: { userId_schoolId: { userId: id, schoolId: dup.schoolId } },
+                create: { userId: id, schoolId: dup.schoolId, isActive: true, assignedById: actor.id },
+                update: { isActive: true },
+            });
+            // Deactivate the duplicate account
+            await (prisma as any).user.update({
+                where: { id: dup.id },
+                data: { isActive: false },
+            });
+        })
+    );
+
+    // Enable branch switching since they now have multiple branches
+    await (prisma as any).user.update({
+        where: { id },
+        data: { canSwitchBranches: true },
+    });
+
+    return NextResponse.json({ ok: true, adoptedCount: duplicates.length });
 }

@@ -113,22 +113,66 @@ export default function TeachersPage() {
         canSwitchBranches: boolean;
         assignedBranchIds: string[];
         availableBranches: Branch[];
+        duplicateAccounts: { id: string; firstName: string; lastName: string; email: string; schoolId: string; school: { name: string; branchCode: string | null } }[];
     } | null>(null);
     const [branchModalLoading, setBranchModalLoading] = useState(false);
     const [branchModalSaving, setBranchModalSaving] = useState(false);
+    const [adoptingCredential, setAdoptingCredential] = useState(false);
+    const [adoptConfirmOpen, setAdoptConfirmOpen] = useState(false);
+    const [selectedDuplicateIds, setSelectedDuplicateIds] = useState<string[]>([]);
 
     const openBranchModal = async (teacher: Teacher) => {
         setBranchModalTeacher(teacher);
         setBranchModalData(null);
         setBranchModalLoading(true);
+        setAdoptConfirmOpen(false);
+        setSelectedDuplicateIds([]);
         try {
             const res = await fetch(`/api/teachers/${teacher.id}/branches`);
             if (res.ok) {
                 const data = await res.json();
-                setBranchModalData(data);
+                setBranchModalData({ ...data, duplicateAccounts: data.duplicateAccounts ?? [] });
+                // Pre-select all detected duplicates
+                setSelectedDuplicateIds((data.duplicateAccounts ?? []).map((d: any) => d.id));
             }
         } catch {}
         setBranchModalLoading(false);
+    };
+
+    const adoptCredential = async () => {
+        if (!branchModalTeacher || selectedDuplicateIds.length === 0) return;
+        setAdoptingCredential(true);
+        try {
+            const res = await fetch(`/api/teachers/${branchModalTeacher.id}/branches`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "adopt-credential", duplicateUserIds: selectedDuplicateIds }),
+            });
+            if (res.ok) {
+                const result = await res.json();
+                // Remove adopted duplicates from the list + enable switching
+                setBranchModalData((prev) => prev ? {
+                    ...prev,
+                    canSwitchBranches: true,
+                    duplicateAccounts: prev.duplicateAccounts.filter((d) => !selectedDuplicateIds.includes(d.id)),
+                } : prev);
+                setTeachers((prev) => prev.map((t) =>
+                    t.id === branchModalTeacher.id ? { ...t, canSwitchBranches: true } : t
+                ));
+                setAdoptConfirmOpen(false);
+                setSelectedDuplicateIds([]);
+                // Refresh modal data to get updated branch list
+                const refresh = await fetch(`/api/teachers/${branchModalTeacher.id}/branches`);
+                if (refresh.ok) {
+                    const data = await refresh.json();
+                    setBranchModalData({ ...data, duplicateAccounts: data.duplicateAccounts ?? [] });
+                    setTeachers((prev) => prev.map((t) =>
+                        t.id === branchModalTeacher.id ? { ...t, branchCount: (data.assignedBranchIds ?? []).length } : t
+                    ));
+                }
+            }
+        } catch {}
+        setAdoptingCredential(false);
     };
 
     const saveBranchModal = async () => {
@@ -979,17 +1023,78 @@ export default function TeachersPage() {
                                     </div>
 
                                     {/* Single Login Credential */}
-                                    <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
-                                        <div className="flex items-start gap-3">
-                                            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                    {branchModalData.duplicateAccounts.length === 0 ? (
+                                        <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
+                                            <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             <div>
-                                                <p className="text-sm font-semibold text-amber-800">Single Login Credential</p>
-                                                <p className="text-xs text-amber-700 mt-0.5">This staff member uses one email + password to access all assigned branches. Assign branches below — they will be accessible after login via the branch switcher.</p>
+                                                <p className="text-sm font-semibold text-emerald-800">Single Login Credential Active</p>
+                                                <p className="text-xs text-emerald-700 mt-0.5">No duplicate accounts found. This staff member uses one set of credentials across all assigned branches.</p>
                                             </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="rounded-2xl border border-amber-300 bg-amber-50 overflow-hidden">
+                                            <div className="flex items-start gap-3 p-4">
+                                                <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-amber-800">Duplicate Accounts Detected</p>
+                                                    <p className="text-xs text-amber-700 mt-0.5">{branchModalData.duplicateAccounts.length} separate account{branchModalData.duplicateAccounts.length > 1 ? "s" : ""} found with the same email in other branches. Adopt single credential to merge access and disable the duplicates.</p>
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-amber-200 divide-y divide-amber-100">
+                                                {branchModalData.duplicateAccounts.map((dup) => (
+                                                    <label key={dup.id} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDuplicateIds.includes(dup.id)}
+                                                            onChange={(e) => setSelectedDuplicateIds((prev) =>
+                                                                e.target.checked ? [...prev, dup.id] : prev.filter((x) => x !== dup.id)
+                                                            )}
+                                                            className="w-4 h-4 text-amber-600 rounded border-amber-300"
+                                                        />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-semibold text-slate-800">{dup.school?.name ?? dup.schoolId}</p>
+                                                            <p className="text-[10px] text-slate-500">{dup.email}</p>
+                                                        </div>
+                                                        {dup.school?.branchCode && (
+                                                            <span className="text-[10px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded shrink-0">{dup.school.branchCode}</span>
+                                                        )}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {!adoptConfirmOpen ? (
+                                                <div className="p-3 border-t border-amber-200">
+                                                    <button
+                                                        onClick={() => setAdoptConfirmOpen(true)}
+                                                        disabled={selectedDuplicateIds.length === 0}
+                                                        className="w-full py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl transition-all"
+                                                    >
+                                                        Adopt Single Credential ({selectedDuplicateIds.length} selected)
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 border-t border-amber-200 space-y-2">
+                                                    <p className="text-xs font-semibold text-red-700">⚠ This will deactivate {selectedDuplicateIds.length} account(s). Those users will no longer be able to log in with their old credentials. Confirm?</p>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => setAdoptConfirmOpen(false)} className="flex-1 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={adoptCredential}
+                                                            disabled={adoptingCredential}
+                                                            className="flex-1 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-1"
+                                                        >
+                                                            {adoptingCredential && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                                            Confirm & Disable
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Available Branches */}
                                     <div>
