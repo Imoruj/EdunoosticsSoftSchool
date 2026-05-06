@@ -75,6 +75,19 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [importing, setImporting] = useState(false);
     const [resettingUserId, setResettingUserId] = useState<string | null>(null);
     const [passwordResetTarget, setPasswordResetTarget] = useState<Student | null>(null);
+
+    // Transfer state
+    const [transferStudent, setTransferStudent] = useState<Student | null>(null);
+    const [transferBranches, setTransferBranches] = useState<{
+        id: string; name: string; branchCode: string | null; isHeadBranch: boolean;
+        classes: { id: string; name: string; arms: { id: string; armName: string }[] }[];
+    }[]>([]);
+    const [transferCurrentBranchId, setTransferCurrentBranchId] = useState<string | null>(null);
+    const [transferTargetBranchId, setTransferTargetBranchId] = useState("");
+    const [transferTargetClassArmId, setTransferTargetClassArmId] = useState("");
+    const [transferReason, setTransferReason] = useState("");
+    const [transferLoading, setTransferLoading] = useState(false);
+    const [transferring, setTransferring] = useState(false);
     const [importDryRun, setImportDryRun] = useState(false);
     const [createLoginAccounts, setCreateLoginAccounts] = useState(true);
     const [credentialAction, setCredentialAction] = useState<"download" | "print" | null>(null);
@@ -745,6 +758,50 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
     const handleDelete = (studentId: string) => {
         setShowDeleteConfirm(studentId);
+    };
+
+    const openTransferModal = async (student: Student) => {
+        setTransferStudent(student);
+        setTransferTargetBranchId("");
+        setTransferTargetClassArmId("");
+        setTransferReason("");
+        setTransferLoading(true);
+        try {
+            const res = await fetch(`/api/students/${student.id}/transfer`);
+            if (res.ok) {
+                const data = await res.json();
+                setTransferBranches(data.branches ?? []);
+                setTransferCurrentBranchId(data.currentBranchId ?? null);
+            }
+        } catch {}
+        setTransferLoading(false);
+    };
+
+    const handleTransfer = async () => {
+        if (!transferStudent || !transferTargetBranchId) return;
+        setTransferring(true);
+        try {
+            const res = await fetch(`/api/students/${transferStudent.id}/transfer`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    toBranchId: transferTargetBranchId,
+                    toClassArmId: transferTargetClassArmId || null,
+                    reason: transferReason || undefined,
+                }),
+            });
+            if (res.ok) {
+                toast.success(`${transferStudent.firstName} transferred successfully`);
+                setTransferStudent(null);
+                setStudents((prev) => prev.filter((s) => s.id !== transferStudent.id));
+            } else {
+                const data = await res.json();
+                toast.error(data.error || "Transfer failed");
+            }
+        } catch {
+            toast.error("Transfer failed");
+        }
+        setTransferring(false);
     };
 
     const handleEdit = (studentId: string) => {
@@ -1518,6 +1575,17 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </button>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => openTransferModal(student)}
+                                                        title="Transfer to Another Branch"
+                                                        className="inline-flex items-center justify-center p-2 rounded-md text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12m0 0l-4-4m4 4l-4 4" />
+                                                        </svg>
+                                                    </button>
+                                                )}
                                                 {canRequestStudentChanges && (
                                                     <button
                                                         onClick={() => handleEdit(student.id)}
@@ -2471,6 +2539,114 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     student={viewStudent}
                     onClose={() => setViewStudent(null)}
                 />
+            )}
+
+            {/* Transfer Modal */}
+            {transferStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-base font-bold text-slate-800">Transfer Student</h2>
+                                <p className="text-xs text-slate-500 mt-0.5">{transferStudent.firstName} {transferStudent.lastName}</p>
+                            </div>
+                            <button onClick={() => setTransferStudent(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        {transferLoading ? (
+                            <div className="flex items-center justify-center py-16">
+                                <div className="w-8 h-8 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                            </div>
+                        ) : (
+                            <div className="p-6 space-y-4">
+                                {/* Info banner */}
+                                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-violet-50 border border-violet-100">
+                                    <svg className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-xs text-violet-700">All existing records (scores, reports, attendance) remain accessible from the new branch.</p>
+                                </div>
+
+                                {/* Target branch */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Target Branch <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={transferTargetBranchId}
+                                        onChange={(e) => { setTransferTargetBranchId(e.target.value); setTransferTargetClassArmId(""); }}
+                                        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                    >
+                                        <option value="">Select a branch…</option>
+                                        {transferBranches
+                                            .filter((b) => b.id !== transferCurrentBranchId)
+                                            .map((b) => (
+                                                <option key={b.id} value={b.id}>
+                                                    {b.name}{b.branchCode ? ` (${b.branchCode})` : ""}{b.isHeadBranch ? " — HEAD" : ""}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+
+                                {/* Target class arm */}
+                                {transferTargetBranchId && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Class Arm in New Branch</label>
+                                        {(() => {
+                                            const branch = transferBranches.find((b) => b.id === transferTargetBranchId);
+                                            const allArms = (branch?.classes ?? []).flatMap((cls) =>
+                                                cls.arms.map((arm) => ({ id: arm.id, label: `${cls.name} ${arm.armName}` }))
+                                            );
+                                            return (
+                                                <select
+                                                    value={transferTargetClassArmId}
+                                                    onChange={(e) => setTransferTargetClassArmId(e.target.value)}
+                                                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                >
+                                                    <option value="">No class arm (assign later)</option>
+                                                    {allArms.map((arm) => (
+                                                        <option key={arm.id} value={arm.id}>{arm.label}</option>
+                                                    ))}
+                                                </select>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+
+                                {/* Reason */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Reason <span className="text-slate-400 font-normal">(optional)</span></label>
+                                    <textarea
+                                        value={transferReason}
+                                        onChange={(e) => setTransferReason(e.target.value)}
+                                        rows={2}
+                                        placeholder="e.g. Parent relocation, branch consolidation…"
+                                        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 pt-1">
+                                    <button
+                                        onClick={() => setTransferStudent(null)}
+                                        className="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleTransfer}
+                                        disabled={!transferTargetBranchId || transferring}
+                                        className="flex-1 py-2.5 text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-40 rounded-xl transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        {transferring && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                                        {transferring ? "Transferring…" : "Transfer Student"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
             <StudentPhotoEditor
                 file={photoEditorDraft?.file ?? null}
