@@ -60,12 +60,24 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     // updates before the branches list re-fetches after router.refresh()
     const [optimisticBranchName, setOptimisticBranchName] = useState<string | null>(null);
     const activeBranch = branches.find((b) => b.id === activeBranchId) ?? branches[0] ?? null;
+    const [activeBranchAssignedClass, setActiveBranchAssignedClass] = useState<string | null>(
+        (session?.user as any)?.assignedClass ?? null
+    );
 
     // Sync activeBranchId from cookie on mount (cookie may not be readable during SSR init)
     useEffect(() => {
         const cookie = getCookie("active_branch_id");
         if (cookie) setActiveBranchId(cookie);
     }, []);
+
+    // Refresh assigned class whenever the active branch changes
+    useEffect(() => {
+        if (!session?.user) return;
+        fetch("/api/me/assigned-class")
+            .then((r) => r.ok ? r.json() : { assignedClass: null })
+            .then((data) => setActiveBranchAssignedClass(data.assignedClass ?? null))
+            .catch(() => {});
+    }, [activeBranchId, session?.user]);
 
     // Fetch branches accessible to this user; clear optimistic label once list arrives
     useEffect(() => {
@@ -364,12 +376,12 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                             <span className="truncate">
                                 {currentTermInfo ? `${currentTermInfo.session} - ${currentTermInfo.term}` : "Loading term info..."}
                             </span>
-                            {(session?.user as any)?.assignedClass && (
+                            {activeBranchAssignedClass && (
                                 <span className="hidden md:flex items-center gap-1 bg-primary-50 text-primary-700 px-2 py-0.5 rounded-md font-medium text-xs border border-primary-100">
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
-                                    {(session?.user as any)?.assignedClass}
+                                    {activeBranchAssignedClass}
                                 </span>
                             )}
                         </div>
