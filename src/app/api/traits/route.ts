@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
-// GET - Fetch all traits for the school
+// GET - Fetch all traits for the school (with class assignments)
 export async function GET(req: NextRequest) {
     try {
         const session = await requireSchoolAdmin(req);
@@ -27,9 +27,20 @@ export async function GET(req: NextRequest) {
         const traits = await prisma.affectiveTrait.findMany({
             where: { schoolId },
             orderBy: { orderIndex: "asc" },
+            include: {
+                classes: {
+                    select: { classId: true }
+                }
+            }
         });
 
-        return NextResponse.json(traits);
+        return NextResponse.json(
+            traits.map((t) => ({
+                ...t,
+                classIds: t.classes.map((c) => c.classId),
+                classes: undefined,
+            }))
+        );
     } catch (error: any) {
         console.error("Error fetching traits:", error);
         return NextResponse.json(
@@ -61,7 +72,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { name } = body;
+        const { name, classIds } = body;
 
         if (!name) {
             return NextResponse.json(
@@ -70,7 +81,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Get max order index to append to end
         const lastTrait = await prisma.affectiveTrait.findFirst({
             where: { schoolId },
             orderBy: { orderIndex: "desc" },
@@ -78,15 +88,26 @@ export async function POST(req: NextRequest) {
 
         const newOrderIndex = (lastTrait?.orderIndex ?? 0) + 1;
 
-        const trait = await prisma.affectiveTrait.create({
-            data: {
-                name,
-                orderIndex: newOrderIndex,
-                schoolId,
-            },
+        const trait = await prisma.$transaction(async (tx: any) => {
+            const created = await tx.affectiveTrait.create({
+                data: {
+                    name,
+                    orderIndex: newOrderIndex,
+                    schoolId,
+                },
+            });
+
+            if (Array.isArray(classIds) && classIds.length > 0) {
+                await tx.affectiveTraitClass.createMany({
+                    data: classIds.map((classId: string) => ({ traitId: created.id, classId })),
+                    skipDuplicates: true,
+                });
+            }
+
+            return created;
         });
 
-        return NextResponse.json(trait, { status: 201 });
+        return NextResponse.json({ ...trait, classIds: classIds ?? [] }, { status: 201 });
     } catch (error: any) {
         console.error("Error creating trait:", error);
         if (error.code === "P2002") {
@@ -102,7 +123,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// PUT - Update a trait
+// PUT - Update a trait (name, orderIndex, isActive, classIds)
 export async function PUT(req: NextRequest) {
     try {
         const session = await requireSchoolAdmin(req);
@@ -116,7 +137,7 @@ export async function PUT(req: NextRequest) {
 
         const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const body = await req.json();
-        const { id, name, orderIndex, isActive } = body;
+        const { id, name, orderIndex, isActive, classIds } = body;
 
         if (!id) {
             return NextResponse.json(
@@ -137,16 +158,34 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const trait = await prisma.affectiveTrait.update({
-            where: { id: existingTrait.id },
-            data: {
-                name,
-                orderIndex: orderIndex !== undefined ? parseInt(orderIndex) : undefined,
-                isActive: isActive !== undefined ? isActive : undefined,
-            },
+        const trait = await prisma.$transaction(async (tx: any) => {
+            const updated = await tx.affectiveTrait.update({
+                where: { id: existingTrait.id },
+                data: {
+                    name,
+                    orderIndex: orderIndex !== undefined ? parseInt(orderIndex) : undefined,
+                    isActive: isActive !== undefined ? isActive : undefined,
+                },
+            });
+
+            if (Array.isArray(classIds)) {
+                await tx.affectiveTraitClass.deleteMany({ where: { traitId: updated.id } });
+                if (classIds.length > 0) {
+                    await tx.affectiveTraitClass.createMany({
+                        data: classIds.map((classId: string) => ({ traitId: updated.id, classId })),
+                        skipDuplicates: true,
+                    });
+                }
+            }
+
+            return updated;
         });
 
-        return NextResponse.json(trait);
+        const finalClassIds = Array.isArray(classIds)
+            ? classIds
+            : (await prisma.affectiveTraitClass.findMany({ where: { traitId: trait.id }, select: { classId: true } })).map((c) => c.classId);
+
+        return NextResponse.json({ ...trait, classIds: finalClassIds });
     } catch (error: any) {
         console.error("Error updating trait:", error);
         return NextResponse.json(
@@ -204,4 +243,3 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
-

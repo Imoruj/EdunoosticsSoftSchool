@@ -182,6 +182,8 @@ model Class {
   schemesOfWork           SchemeOfWork[]
   classAssessmentTypes    ClassAssessmentType[]
   compositeSubjectConfigs CompositeSubjectConfig[]
+  affectiveTraitClasses   AffectiveTraitClass[]
+  psychomotorSkillClasses PsychomotorSkillClass[]
 
   @@unique([schoolId, name])
 }
@@ -438,16 +440,27 @@ model ReportCard {
 }
 
 model PsychomotorSkill {
-  id         String              @id @default(cuid())
+  id         String                  @id @default(cuid())
   name       String
   orderIndex Int
-  isActive   Boolean             @default(true)
-  createdAt  DateTime            @default(now())
+  isActive   Boolean                 @default(true)
+  createdAt  DateTime                @default(now())
   schoolId   String?
   ratings    PsychomotorRating[]
-  school     School?             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes    PsychomotorSkillClass[]
+  school     School?                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
+}
+
+model PsychomotorSkillClass {
+  id      String           @id @default(cuid())
+  skillId String
+  classId String
+  skill   PsychomotorSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  class   Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, classId])
 }
 
 model PsychomotorRating {
@@ -463,16 +476,27 @@ model PsychomotorRating {
 }
 
 model AffectiveTrait {
-  id         String            @id @default(cuid())
+  id         String               @id @default(cuid())
   name       String
   orderIndex Int
-  isActive   Boolean           @default(true)
-  createdAt  DateTime          @default(now())
+  isActive   Boolean              @default(true)
+  createdAt  DateTime             @default(now())
   schoolId   String?
   ratings    AffectiveRating[]
-  school     School?           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes    AffectiveTraitClass[]
+  school     School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, name])
+}
+
+model AffectiveTraitClass {
+  id      String         @id @default(cuid())
+  traitId String
+  classId String
+  trait   AffectiveTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([traitId, classId])
 }
 
 model AffectiveRating {

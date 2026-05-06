@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
                     id: classArmId,
                     class: { schoolId }
                 },
-                select: { id: true, classTeacherId: true }
+                select: { id: true, classTeacherId: true, classId: true }
             }),
             requestedTermId
                 ? prisma.term.findFirst({
@@ -152,13 +152,30 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch Metadata (Traits & Skills)
+        // Traits/skills with no class assignments apply to all classes.
+        // Traits/skills with class assignments only apply to those classes.
+        const classId = classArm.classId;
         const [traits, skills] = await Promise.all([
             prisma.affectiveTrait.findMany({
-                where: { schoolId, isActive: true },
+                where: {
+                    schoolId,
+                    isActive: true,
+                    OR: [
+                        { classes: { none: {} } },
+                        { classes: { some: { classId } } },
+                    ],
+                },
                 orderBy: { orderIndex: "asc" }
             }),
             prisma.psychomotorSkill.findMany({
-                where: { schoolId, isActive: true },
+                where: {
+                    schoolId,
+                    isActive: true,
+                    OR: [
+                        { classes: { none: {} } },
+                        { classes: { some: { classId } } },
+                    ],
+                },
                 orderBy: { orderIndex: "asc" }
             })
         ]);
