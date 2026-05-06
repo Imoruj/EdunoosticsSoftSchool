@@ -24,7 +24,7 @@ export default function RootLayout({
                 {/* Inter (body) + Manrope (UI/product text) — Google Fonts */}
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet" />
             </head>
-            <body>
+            <body suppressHydrationWarning>
                 <Providers>{children}</Providers>
             </body>
         </html>
