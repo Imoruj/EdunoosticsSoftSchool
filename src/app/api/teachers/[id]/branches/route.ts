@@ -87,17 +87,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const { user: actor, schoolId } = auth;
     const body = await req.json();
-    const { assignedBranchIds, canSwitchBranches } = body as {
-        assignedBranchIds: string[];
+    const { assignedBranchIds, canSwitchBranches, toggleOnly } = body as {
+        assignedBranchIds: string[] | null;
         canSwitchBranches: boolean;
+        toggleOnly?: boolean;
     };
+
+    const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, schoolId: true } });
+    if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
+
+    // toggleOnly = just update canSwitchBranches, skip branch upsert
+    if (toggleOnly) {
+        await (prisma as any).user.update({ where: { id }, data: { canSwitchBranches: Boolean(canSwitchBranches) } });
+        return NextResponse.json({ ok: true });
+    }
 
     if (!Array.isArray(assignedBranchIds)) {
         return NextResponse.json({ error: "assignedBranchIds must be an array" }, { status: 400 });
     }
-
-    const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, schoolId: true } });
-    if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
     // Verify all requested branches belong to the same organization
     const activeSchool = await prisma.school.findUnique({

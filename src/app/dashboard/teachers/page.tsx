@@ -158,6 +158,25 @@ export default function TeachersPage() {
         setBranchModalSaving(false);
     };
 
+    const toggleCanSwitch = async (teacher: Teacher) => {
+        const newValue = !teacher.canSwitchBranches;
+        // Optimistic update
+        setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: newValue } : t));
+        try {
+            const res = await fetch(`/api/teachers/${teacher.id}/branches`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ assignedBranchIds: null, canSwitchBranches: newValue, toggleOnly: true }),
+            });
+            if (!res.ok) {
+                // Revert on failure
+                setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: !newValue } : t));
+            }
+        } catch {
+            setTeachers((prev) => prev.map((t) => t.id === teacher.id ? { ...t, canSwitchBranches: !newValue } : t));
+        }
+    };
+
     const toggleBranchId = (branchId: string) => {
         if (!branchModalData) return;
         const exists = branchModalData.assignedBranchIds.includes(branchId);
@@ -858,18 +877,23 @@ export default function TeachersPage() {
                                 )}
 
                                 {/* Branch access row */}
-                                <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-100">
                                     <div className="flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                                         </svg>
-                                        <span className="text-xs font-medium text-slate-600">
-                                            {teacher.branchCount > 1 ? `${teacher.branchCount} branches` : "1 branch"}
-                                        </span>
+                                        <div>
+                                            <p className="text-xs font-semibold text-slate-700 leading-tight">Branch switching</p>
+                                            <p className="text-[10px] text-slate-400 leading-tight">{teacher.branchCount > 1 ? `${teacher.branchCount} branches` : "1 branch"}</p>
+                                        </div>
                                     </div>
-                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${teacher.canSwitchBranches ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-500"}`}>
-                                        {teacher.canSwitchBranches ? "Can switch" : "Fixed branch"}
-                                    </span>
+                                    <button
+                                        onClick={() => toggleCanSwitch(teacher)}
+                                        title={teacher.canSwitchBranches ? "Disable branch switching" : "Enable branch switching"}
+                                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${teacher.canSwitchBranches ? "bg-violet-600" : "bg-slate-300"}`}
+                                    >
+                                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${teacher.canSwitchBranches ? "translate-x-4" : "translate-x-0"}`} />
+                                    </button>
                                 </div>
 
                                 <div className="pt-3 border-t border-slate-100">
