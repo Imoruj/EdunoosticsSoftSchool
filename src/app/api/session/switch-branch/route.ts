@@ -2,6 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { emailMatchesNameLoginPrefix } from "@/lib/branchLoginIdentity";
+
+async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
+    const activeSchool = await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { organizationId: true },
+    });
+    if (!activeSchool?.organizationId) return [schoolId];
+
+    const orgSchools = await prisma.school.findMany({
+        where: { organizationId: activeSchool.organizationId, isActive: true },
+        select: { id: true },
+    });
+    return orgSchools.map((school) => school.id);
+}
+
+async function canLoginIdentityUseBranch(userId: string, branchId: string) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true, schoolId: true },
+    });
+    if (!user?.schoolId) return false;
+
+    const allowedSchoolIds = await getOrgSchoolIds(user.schoolId);
+    if (!allowedSchoolIds.includes(branchId)) return false;
+
+    const candidateUsers = await (prisma as any).user.findMany({
+        where: { schoolId: { in: allowedSchoolIds } },
+        select: { email: true, schoolId: true },
+    });
+
+    return candidateUsers.some((candidate: any) =>
+        candidate.schoolId === branchId &&
+        emailMatchesNameLoginPrefix(candidate.email, user.firstName, user.lastName)
+    );
+}
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -24,6 +60,14 @@ export async function POST(req: NextRequest) {
 
     if (!userBranch) {
         return NextResponse.json({ error: "You are not assigned to this branch" }, { status: 403 });
+    }
+
+    const isEligibleBranch = await canLoginIdentityUseBranch(user.id, branchId);
+    if (!isEligibleBranch) {
+        return NextResponse.json(
+            { error: "Your login email does not exist for this branch" },
+            { status: 403 }
+        );
     }
 
     // Set a lightweight cookie so the client can read the active branch without

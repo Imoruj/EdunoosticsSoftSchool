@@ -23,6 +23,8 @@ interface Branch {
     name: string;
     branchCode: string | null;
     isHeadBranch: boolean;
+    loginEmail?: string;
+    loginUserId?: string;
 }
 
 interface Teacher {
@@ -1151,7 +1153,7 @@ export default function TeachersPage() {
 
                                     {/* Available Branches */}
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Accessible Branches</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Branches With Matching Login Email</p>
                                         <div className="space-y-2">
                                             {branchModalData.availableBranches.map((branch) => {
                                                 const isChecked = branchModalData.assignedBranchIds.includes(branch.id);
@@ -1166,7 +1168,10 @@ export default function TeachersPage() {
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-semibold text-slate-800 truncate">{branch.name}</p>
-                                                            <p className="text-xs text-slate-500">{branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code"}</p>
+                                                            <p className="text-xs text-slate-500 truncate">{branch.loginEmail || (branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code")}</p>
+                                                            {branch.loginEmail && (
+                                                                <p className="text-[10px] text-slate-400">{branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code"}</p>
+                                                            )}
                                                         </div>
                                                         {branch.isHeadBranch && (
                                                             <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase shrink-0">Head</span>
