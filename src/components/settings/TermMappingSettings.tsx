@@ -27,6 +27,14 @@ interface ClassItem {
     name: string;
 }
 
+interface OrgBranch {
+    id: string;
+    name: string;
+    branchCode: string | null;
+    isHeadBranch: boolean;
+    isCurrent: boolean;
+}
+
 interface ClassOverride {
     halfTerm: string;
     endOfTerm: string;
@@ -49,6 +57,8 @@ export default function TermMappingSettings() {
     const [mappings, setMappings] = useState<TermMapping>({});
     const [defaultTemplateId, setDefaultTemplateId] = useState("classic");
     const [classes, setClasses] = useState<ClassItem[]>([]);
+    const [orgBranches, setOrgBranches] = useState<OrgBranch[]>([]);
+    const [targetBranchIds, setTargetBranchIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -58,10 +68,11 @@ export default function TermMappingSettings() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [sessionsRes, configRes, classesRes] = await Promise.all([
+                const [sessionsRes, configRes, classesRes, branchesRes] = await Promise.all([
                     fetch("/api/sessions"),
                     fetch("/api/settings/report-card"),
                     fetch("/api/classes"),
+                    fetch("/api/settings/branches"),
                 ]);
 
                 if (!sessionsRes.ok || !configRes.ok) {
@@ -71,6 +82,8 @@ export default function TermMappingSettings() {
                 const sessionsData = await sessionsRes.json();
                 const configData = await configRes.json();
                 const classesData = classesRes.ok ? await classesRes.json() : { classes: [] };
+                const branchesData = branchesRes.ok ? await branchesRes.json() : { branches: [] };
+                setOrgBranches(branchesData.branches ?? []);
 
                 const sessionsList: SessionItem[] = sessionsData.sessions || [];
                 setSessions(sessionsList);
@@ -190,7 +203,10 @@ export default function TermMappingSettings() {
             const res = await fetch("/api/settings/report-card", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ termMappings: mappings }),
+                body: JSON.stringify({
+                    termMappings: mappings,
+                    ...(targetBranchIds.length > 0 ? { targetBranchIds } : {}),
+                }),
             });
 
             if (res.ok) {
@@ -204,6 +220,23 @@ export default function TermMappingSettings() {
             toast.error(error.message || "Failed to save mappings");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const otherBranches = orgBranches.filter((b) => !b.isCurrent);
+    const allOtherSelected = otherBranches.length > 0 && otherBranches.every((b) => targetBranchIds.includes(b.id));
+
+    const toggleBranch = (branchId: string) => {
+        setTargetBranchIds((prev) =>
+            prev.includes(branchId) ? prev.filter((id) => id !== branchId) : [...prev, branchId]
+        );
+    };
+
+    const toggleAllBranches = () => {
+        if (allOtherSelected) {
+            setTargetBranchIds([]);
+        } else {
+            setTargetBranchIds(otherBranches.map((b) => b.id));
         }
     };
 
@@ -237,6 +270,61 @@ export default function TermMappingSettings() {
                         ))}
                     </select>
                 </div>
+
+                {otherBranches.length > 0 && (
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between pl-1">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                Apply to Branches
+                            </label>
+                            <button
+                                type="button"
+                                onClick={toggleAllBranches}
+                                className="text-[9px] font-black uppercase tracking-widest text-primary-600 hover:text-primary-800 transition-colors"
+                            >
+                                {allOtherSelected ? "Deselect All" : "Select All"}
+                            </button>
+                        </div>
+                        <div className="bg-white border-2 border-gray-200 rounded-xl p-3 space-y-1.5 max-h-36 overflow-y-auto shadow-sm">
+                            {otherBranches.map((branch) => {
+                                const checked = targetBranchIds.includes(branch.id);
+                                return (
+                                    <label
+                                        key={branch.id}
+                                        className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${checked ? "bg-primary-50" : "hover:bg-gray-50"}`}
+                                    >
+                                        <div
+                                            onClick={() => toggleBranch(branch.id)}
+                                            className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                                                checked ? "bg-primary-600 border-primary-600" : "border-gray-300 bg-white"
+                                            }`}
+                                        >
+                                            {checked && (
+                                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-800 leading-tight flex-1" onClick={() => toggleBranch(branch.id)}>
+                                            {branch.name}
+                                            {branch.isHeadBranch && (
+                                                <span className="ml-1.5 text-[9px] font-black text-amber-600 uppercase tracking-widest">Head</span>
+                                            )}
+                                            {branch.branchCode && (
+                                                <span className="ml-1.5 text-[9px] font-bold text-gray-400">({branch.branchCode})</span>
+                                            )}
+                                        </span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                        {targetBranchIds.length > 0 && (
+                            <p className="text-[10px] font-bold text-primary-600 pl-1">
+                                Mappings will also be copied to {targetBranchIds.length} other branch{targetBranchIds.length > 1 ? "es" : ""}.
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="space-y-6">
@@ -415,7 +503,11 @@ export default function TermMappingSettings() {
                 isOpen={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
                 title="Mappings Saved!"
-                message="Your report template assignments have been updated for the selected session terms."
+                message={
+                    targetBranchIds.length > 0
+                        ? `Mappings saved and copied to ${targetBranchIds.length} other branch${targetBranchIds.length > 1 ? "es" : ""}.`
+                        : "Your report template assignments have been updated for the selected session terms."
+                }
             />
         </div>
     );
