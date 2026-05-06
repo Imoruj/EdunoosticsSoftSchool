@@ -106,21 +106,12 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                 return;
             }
             const data = await res.json();
-            // Cookie is set by the server; update local state immediately so the switcher
-            // label flips before the branches list re-fetches after router.refresh().
-            setActiveBranchId(branchId);
+            // Cookie is now set by the server. All API routes read active_branch_id via
+            // getActiveSchoolId() so a full page reload will serve the new branch's data.
+            // Hard navigation is required because dashboard pages are client components
+            // whose useEffect data-fetches don't re-run on router.refresh().
             if (data.branchName) setOptimisticBranchName(data.branchName);
-            // Re-fetch branches list so the dropdown reflects the new active branch
-            fetch("/api/user/branches")
-                .then((r) => r.ok ? r.json() : { branches: [] })
-                .then((d) => { setBranches(d.branches ?? []); setOptimisticBranchName(null); })
-                .catch(() => {});
-            // Soft navigation: re-fetches all server components with the new cookie in place.
-            // All API routes now read active_branch_id cookie via getActiveSchoolId(), so
-            // no hard reload or session JWT update is needed.
-            router.refresh();
-            // Notify client components that manage their own data fetches
-            window.dispatchEvent(new CustomEvent("branch-switched", { detail: { branchId } }));
+            window.location.replace(window.location.pathname);
         } catch {
             toast.error("Could not switch branch");
         } finally {
