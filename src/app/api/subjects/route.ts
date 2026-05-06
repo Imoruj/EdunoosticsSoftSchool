@@ -6,6 +6,7 @@ import { isCompositeReportVisible } from "@/lib/composite-subjects";
 import { getSafeServerSession } from "@/lib/server-session";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
 import { apiError, clampLimit } from "@/lib/apiError";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const CreateSubjectSchema = z.object({
     name: z.string().min(1, "Name is required").max(100),
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
 
         const { searchParams } = new URL(req.url);
@@ -743,7 +744,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Subject ID is required" }, { status: 400 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Verify ownership
         const existingSubject = await withPrismaRetry(
@@ -829,7 +830,7 @@ export async function POST(req: NextRequest) {
         }
         const { name, code, category, classIds } = parsed.data;
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Check if subject name already exists
         const existingSubject = await withPrismaRetry(
@@ -911,7 +912,7 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Verify subject belongs to school
         const existingSubject = await prisma.subject.findFirst({

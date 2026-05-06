@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET: List upload requests (admin only)
 export async function GET(req: NextRequest) {
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
 
         const requests = await prisma.scoreUploadRequest.findMany({
             where: {
-                schoolId: user.schoolId,
+                schoolId: schoolId,
                 ...(status !== "ALL" && { status: status as any }),
             },
             include: {

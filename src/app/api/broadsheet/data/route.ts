@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateBroadsheetData } from "@/services/broadsheetService";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function POST(req: NextRequest) {
     try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
         const user = session.user as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const userId = typeof user.id === "string" ? user.id : "";
         const isAdmin =
             roles.includes(UserRole.SUPER_ADMIN) ||

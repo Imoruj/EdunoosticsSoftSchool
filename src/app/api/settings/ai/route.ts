@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function getConfiguredAiProvider(): "openrouter" | "gemini" {
     if (process.env.OPENROUTER_API_KEY) return "openrouter";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "School ID not found" }, { status: 400 });
         }
@@ -69,7 +70,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "School ID not found" }, { status: 400 });
         }

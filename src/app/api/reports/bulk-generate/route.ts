@@ -7,6 +7,7 @@ import { bulkGenerateReportCardData, generateReportCardStream } from "@/services
 import archiver from "archiver";
 import fs from "fs";
 import path from "path";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 async function resolveAllowedSessionIdsForClassArm(
     schoolId: string,
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
 
         const user = session.user as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const userId = typeof user.id === "string" ? user.id : "";
         const isAdmin =
             roles.includes(UserRole.SUPER_ADMIN) ||

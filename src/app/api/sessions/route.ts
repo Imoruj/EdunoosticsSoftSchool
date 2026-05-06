@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { getSafeServerSession } from "@/lib/server-session";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function calculateTotalWeeks(startDate?: Date, endDate?: Date) {
     if (!startDate || !endDate) return null;
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Auto-sync current term based on date ranges
         if (schoolId) await syncCurrentTerm(schoolId);
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const body = await req.json();
 
         const { sessionId, sessionName, currentTerm, terms } = body;

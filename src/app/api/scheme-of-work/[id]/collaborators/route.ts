@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/scheme-of-work/[id]/collaborators
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
@@ -105,7 +106,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 

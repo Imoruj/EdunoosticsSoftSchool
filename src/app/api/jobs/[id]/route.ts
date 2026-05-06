@@ -2,6 +2,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const jobId = id;
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!jobId) {
             return NextResponse.json({ error: "Job ID required" }, { status: 400 });

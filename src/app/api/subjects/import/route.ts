@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSafeServerSession } from "@/lib/server-session";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const VALID_CATEGORIES = ["CORE", "SCIENCE", "ARTS", "COMMERCIAL", "VOCATIONAL", "LANGUAGE"];
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Parse the form data
         const formData = await req.formData();

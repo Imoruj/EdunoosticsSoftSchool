@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { AttendanceStatus } from "@prisma/client";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function parsePeriod(value: string | null): "MORNING" | "AFTERNOON" {
     return value === "AFTERNOON" ? "AFTERNOON" : "MORNING";
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
 
         // RBAC CHECK
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
         const period = parsePeriod(periodStr);
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
 
         // RBAC CHECK

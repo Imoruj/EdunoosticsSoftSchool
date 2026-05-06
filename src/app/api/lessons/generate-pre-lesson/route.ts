@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -181,6 +182,7 @@ export async function POST(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         const body = await req.json().catch(() => ({}));
         const { field, outputFormat, subjectId, lessonTitle, weekContent, generalObjectives, className, referenceMaterials, customInstructions } = body as {
@@ -203,7 +205,7 @@ export async function POST(req: NextRequest) {
         let subjectName = "the subject";
         if (subjectId) {
             const subject = await prisma.subject.findFirst({
-                where: { id: subjectId, schoolId: user.schoolId },
+                where: { id: subjectId, schoolId: schoolId },
                 select: { name: true },
             });
             if (subject) subjectName = subject.name;

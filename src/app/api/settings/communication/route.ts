@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 import { encryptSecret } from "@/lib/serverEncrypt";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const communicationConfigSchema = z.object({
     smsProvider: z.string().trim().min(1).max(50).optional(),
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const config = await prisma.communicationConfig.findUnique({
             where: { schoolId },
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const parsed = communicationConfigSchema.safeParse(await req.json());
         if (!parsed.success) {
             return NextResponse.json({ error: "Invalid settings payload" }, { status: 400 });

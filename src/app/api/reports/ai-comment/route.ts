@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { generateTeacherComment, generatePrincipalComment } from "@/services/aiService";
 import { formatAttendancePoints } from "@/lib/attendance-points";
 import { buildReportCommentPayload } from "@/lib/reportPayloadBuilder";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const bodySchema = z.object({
     studentId:  z.string().trim().min(1).max(100),
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
 

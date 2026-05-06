@@ -5,6 +5,7 @@ import {
     getRolePermissionAssignments,
     saveRolePermissionAssignments,
 } from "@/lib/rolePermissions";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -19,7 +20,7 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId as string | null;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "School not found for current user." }, { status: 400 });
         }
@@ -43,7 +44,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId as string | null;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "School not found for current user." }, { status: 400 });
         }

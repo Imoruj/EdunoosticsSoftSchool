@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET(req: NextRequest) {
     try {
@@ -9,7 +10,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "School ID not found" }, { status: 400 });
         }

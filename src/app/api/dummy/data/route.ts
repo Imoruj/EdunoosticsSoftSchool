@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { syncCurrentTerm } from "@/lib/currentTerm";
 import { generateDummySheetData } from "@/services/dummySheetService";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json(
                 { error: "Your account is not associated with a school." },

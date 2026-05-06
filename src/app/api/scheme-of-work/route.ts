@@ -6,6 +6,7 @@ import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { clampLimit } from "@/lib/apiError";
 import { resolveVisibleSubjectIdsForStudent } from "@/lib/studentAudience";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/scheme-of-work — list SOWs
 export async function GET(req: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
         const isTeacher = roles.includes(UserRole.SUBJECT_TEACHER) || roles.includes(UserRole.CLASS_TEACHER);
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
         const isTeacher = roles.includes(UserRole.SUBJECT_TEACHER) || roles.includes(UserRole.CLASS_TEACHER);

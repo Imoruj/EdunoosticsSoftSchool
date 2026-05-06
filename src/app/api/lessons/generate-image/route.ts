@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
 import { buildReferenceMaterialsBlock, type ReferenceMaterialPromptInput } from "@/lib/lessons/referenceMaterialPrompt";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         const apiKey = process.env.GOOGLE_AI_API_KEY;
         if (!apiKey) {
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
 
         const uploaded = await prisma.uploadedFile.create({
             data: {
-                schoolId: user.schoolId ?? null,
+                schoolId: schoolId ?? null,
                 uploadedById: user.id,
                 uploadType: "lesson_image",
                 originalName: `ai-generated-image${ext}`,

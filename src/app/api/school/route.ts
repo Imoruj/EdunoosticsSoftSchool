@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
 import { normalizeSignatureDataUrl } from "@/lib/signature-images";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET(req: NextRequest) {
     try {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(

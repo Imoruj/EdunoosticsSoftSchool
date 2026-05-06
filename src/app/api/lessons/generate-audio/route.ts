@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -177,6 +178,7 @@ export async function POST(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const apiKey = process.env.GOOGLE_AI_API_KEY;
         if (!apiKey) {
             return NextResponse.json({ error: "Audio generation not configured" }, { status: 503 });
@@ -204,7 +206,7 @@ export async function POST(req: NextRequest) {
 
         const uploaded = await prisma.uploadedFile.create({
             data: {
-                schoolId: user.schoolId ?? null,
+                schoolId: schoolId ?? null,
                 uploadedById: user.id,
                 uploadType: "lesson_audio",
                 originalName: audio.fileName,

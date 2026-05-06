@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { sanitizeCsv } from "@/lib/csvUtils";
 import { resolveSubjectScoreProfile } from "@/lib/composite-subjects";
 import { mapAssessmentTypesToScoreFields } from "@/lib/assessment-types";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET(req: NextRequest) {
     try {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
         const columns = searchParams.get("columns") || "all"; // comma-separated: ca1,ca2,ca3,exam or "all"
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const userId = typeof user.id === "string" ? user.id : null;
 

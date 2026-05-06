@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 interface SnapshotWeek {
     weekId: string;
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) return NextResponse.json({ error: "No school associated" }, { status: 400 });
 
         const { searchParams } = new URL(req.url);

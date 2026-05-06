@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { getSafeServerSession } from "@/lib/server-session";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/classes - List all classes with arms
 export async function GET(req: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         const sessionId = searchParams.get("sessionId");
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
 
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         // Split names by comma to support bulk creation/update
         const classNames = name.split(",").map((n: string) => n.trim()).filter((n: string) => n);
@@ -258,7 +259,7 @@ export async function DELETE(req: NextRequest) {
         await prisma.class.delete({
             where: {
                 id,
-                schoolId: (session.user as any).schoolId,
+                schoolId: await getActiveSchoolId((session.user as any).schoolId) as string,
             },
         });
 

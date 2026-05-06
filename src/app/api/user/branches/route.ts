@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET() {
     const session = await getServerSession(authOptions);
@@ -41,7 +42,7 @@ export async function GET() {
         return NextResponse.json({ branches });
     } catch {
         // UserBranch table may not exist yet (pre-migration fallback)
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) return NextResponse.json({ branches: [] });
 
         const school = await prisma.school.findUnique({

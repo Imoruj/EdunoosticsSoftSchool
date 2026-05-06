@@ -9,6 +9,7 @@ import {
     getPresetLabel,
     isPresetAllowedForCategory,
 } from "@/lib/gradingPresets";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const VALID_CATEGORIES = new Set<GradingCategory>(["PRIMARY", "JUNIOR_SECONDARY", "SENIOR_SECONDARY"]);
 const VALID_PRESETS = new Set<GradingPreset>(["WAEC"]);
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as { schoolId?: string; roles?: string[] };
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 

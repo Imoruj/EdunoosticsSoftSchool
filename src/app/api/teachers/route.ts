@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { SubjectKind, UserRole } from "@prisma/client";
 import { apiError, clampLimit } from "@/lib/apiError";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const CreateTeacherSchema = z.object({
     firstName: z.string().min(1, "First name is required").max(100),
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         const { searchParams } = new URL(req.url);
         const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
@@ -294,7 +295,7 @@ export async function POST(req: NextRequest) {
 
         const user = session.user as any;
 
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const parsed = CreateTeacherSchema.safeParse(await req.json());
         if (!parsed.success) {
             return apiError(parsed.error.issues.map(e => e.message).join(", "), 422);

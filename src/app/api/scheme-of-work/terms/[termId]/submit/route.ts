@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // POST /api/scheme-of-work/terms/[termId]/submit
 // Owner submits a term for admin review. Works for DRAFT, REJECTED, and APPROVED terms
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ter
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const actorName = (user.name as string) || "A teacher";
 
         const term = await prisma.schemeOfWorkTerm.findFirst({

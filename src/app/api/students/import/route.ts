@@ -10,6 +10,7 @@ import {
     generateStudentDefaultPasswordHash,
     syncStudentTemporaryLoginCredentials,
 } from "@/lib/studentLoginCredentials";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function generateTempPassword(): string {
     return randomBytes(6).toString("base64url");
@@ -301,7 +302,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(

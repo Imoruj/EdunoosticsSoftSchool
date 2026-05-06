@@ -9,6 +9,7 @@ import {
     SessionMap,
     getSessionIdsByClassArms,
 } from "@/lib/classArmSessionMap";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type SessionUser = {
     id?: string;
@@ -25,7 +26,7 @@ export async function GET() {
 
         const user = session.user as SessionUser;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const userId = typeof user.id === "string" ? user.id : "";
 
         const isAdmin =

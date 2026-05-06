@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 async function resolveAssessmentType(id: string, schoolId: string) {
     return prisma.assessmentType.findFirst({
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const { id } = await params;
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const at = await resolveAssessmentType(id, schoolId);
         if (!at) return NextResponse.json({ error: "Assessment type not found" }, { status: 404 });
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const { id } = await params;
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const at = await resolveAssessmentType(id, schoolId);
         if (!at) return NextResponse.json({ error: "Assessment type not found" }, { status: 404 });
@@ -79,7 +80,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const { id } = await params;
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const at = await resolveAssessmentType(id, schoolId);
         if (!at) return NextResponse.json({ error: "Assessment type not found" }, { status: 404 });
@@ -132,7 +133,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         const { id } = await params;
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const at = await resolveAssessmentType(id, schoolId);
         if (!at) return NextResponse.json({ error: "Assessment type not found" }, { status: 404 });

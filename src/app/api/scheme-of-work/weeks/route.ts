@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // POST /api/scheme-of-work/weeks — create a week
 export async function POST(req: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 

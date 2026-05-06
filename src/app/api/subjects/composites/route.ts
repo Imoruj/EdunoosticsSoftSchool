@@ -11,6 +11,7 @@ import {
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
 import { isSchoolAdmin } from "@/lib/rbac";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function compositeBusyResponse(action: string) {
     return NextResponse.json(
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const { searchParams } = new URL(req.url);
         const parentSubjectId = searchParams.get("parentSubjectId");
         const sessionId = searchParams.get("sessionId");
@@ -171,7 +172,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const body = await req.json();
         const { parentSubjectId, sessionId, classId, components } = body;
 
@@ -241,7 +242,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const { searchParams } = new URL(req.url);
         const configId = searchParams.get("id");
         const parentSubjectId = searchParams.get("parentSubjectId");

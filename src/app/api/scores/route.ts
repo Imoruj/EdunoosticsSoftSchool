@@ -12,6 +12,7 @@ import {
     resolveCompositeSubjectContext,
     resolveSubjectScoreProfile,
 } from "@/lib/composite-subjects";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
         let termId = searchParams.get("termId");
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const userId = typeof user.id === "string" ? user.id : null;
 
@@ -507,7 +508,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const userId = typeof user.id === "string" ? user.id : null;
 

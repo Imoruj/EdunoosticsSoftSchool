@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const SCORE_WORKFLOW_TABLE_HINTS = [
     "ScoreSheetWorkflow",
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
 
         const user = session.user as any;
         const userId = typeof user.id === "string" ? user.id : null;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
         const isClassTeacher = roles.includes("CLASS_TEACHER");

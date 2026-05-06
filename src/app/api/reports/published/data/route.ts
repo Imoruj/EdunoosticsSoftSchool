@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { generateReportCardData } from "@/services/reportService";
 import { isStudentSessionUser, resolveStudentRecordIdForUser } from "@/lib/student-session";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function toClientReportType(reportType?: string | null): "halfTerm" | "endOfTerm" {
     return reportType === "HALF_TERM" ? "halfTerm" : "endOfTerm";
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
+        const activeSchoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
         const isClassTeacher = roles.includes("CLASS_TEACHER");
@@ -50,7 +52,7 @@ export async function GET(req: NextRequest) {
         }
 
         const schoolId = reportCard.classArm.class.schoolId;
-        if ((user.schoolId as string | undefined) && user.schoolId !== schoolId && !isAdmin) {
+        if (activeSchoolId && activeSchoolId !== schoolId && !isAdmin) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 

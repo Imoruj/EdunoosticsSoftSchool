@@ -8,6 +8,7 @@ import { getStudentAndParentNotificationUserIds } from "@/lib/studentAudience";
 import { generatePrincipalComment, generateTeacherComment } from "@/services/aiService";
 import { formatAttendancePoints } from "@/lib/attendance-points";
 import { buildReportCommentPayload, ReportCommentConfig } from "@/lib/reportPayloadBuilder";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type WorkflowAction =
     | "broadcast_result"
@@ -723,7 +724,7 @@ export async function GET(req: NextRequest) {
 
         const user = session.user as any;
         const userId = typeof user.id === "string" ? user.id : null;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
         const isClassTeacher = roles.includes("CLASS_TEACHER");
@@ -827,7 +828,7 @@ export async function POST(req: NextRequest) {
 
         const user = session.user as any;
         const userId = typeof user.id === "string" ? user.id : null;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN") || roles.includes("PROPRIETOR");
         const isClassTeacher = roles.includes("CLASS_TEACHER");

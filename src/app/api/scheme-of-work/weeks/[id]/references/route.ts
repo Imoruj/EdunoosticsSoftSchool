@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const VALID_TYPES = ["TEXT", "IMAGE", "AUDIO", "YOUTUBE", "FILE", "GOOGLE_DRIVE"];
 
@@ -36,10 +37,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {
@@ -69,10 +71,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(id, user.id, schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {

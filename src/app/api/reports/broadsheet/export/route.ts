@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/apiError";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/reports/broadsheet/export?termId=...&classArmId=...&format=csv|excel
 export async function GET(req: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
 
         const user = session.user as any;
         const roles: string[] = user.roles ?? [];
-        const schoolId: string = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
         const isClassTeacher = roles.includes("CLASS_TEACHER");

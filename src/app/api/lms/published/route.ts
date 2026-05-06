@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { Assignment, Lesson, Quiz } from "@/lib/db/types";
 import { resolveAudienceStudents } from "@/lib/studentAudience";
 import { createUserNotifications } from "@/lib/userNotifications";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type PublishedContentType = "lesson" | "quiz" | "assignment";
 type PublishedContentPayload = Lesson | Quiz | Assignment;
@@ -259,7 +260,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const isStudent = user.loginType === "student" || (Array.isArray(user.roles) && user.roles.includes("STUDENT"));
 
         if (!schoolId) {

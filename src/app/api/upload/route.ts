@@ -10,6 +10,7 @@ import { validateMagicBytes } from "@/lib/magicBytes";
 import { checkCsrf } from "@/lib/csrf";
 import { makeTransparentSignature } from "@/lib/signature-images";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB for student/user photos
 const MAX_RICH_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB for lesson and quiz images
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
 
         const formData = await req.formData();
@@ -176,7 +178,7 @@ export async function POST(req: NextRequest) {
 
         uploadContext = {
             userId: user.id,
-            schoolId: user.schoolId ?? null,
+            schoolId: schoolId ?? null,
             fileName: file.name || null,
             fileType: file.type || null,
             fileSize: file.size,
@@ -249,7 +251,7 @@ export async function POST(req: NextRequest) {
                 prismaDirect.$transaction(async (tx) => {
                     const uploadedFile = await tx.uploadedFile.create({
                         data: {
-                            schoolId: user.schoolId ?? null,
+                            schoolId: schoolId ?? null,
                             uploadedById: user.id,
                             uploadType: resolvedUploadType,
                             originalName: file.name || storedName,
@@ -266,7 +268,7 @@ export async function POST(req: NextRequest) {
                     const updatedStudents = await tx.student.updateMany({
                         where: {
                             id: studentId,
-                            schoolId: user.schoolId,
+                            schoolId: schoolId,
                         },
                         data: { photoUrl: url },
                     });
@@ -285,7 +287,7 @@ export async function POST(req: NextRequest) {
         const uploadedFile = await withPrismaRetry("/api/upload file create", () =>
             prismaDirect.uploadedFile.create({
                 data: {
-                    schoolId: user.schoolId ?? null,
+                    schoolId: schoolId ?? null,
                     uploadedById: user.id,
                     uploadType: resolvedUploadType,
                     originalName: file.name || storedName,

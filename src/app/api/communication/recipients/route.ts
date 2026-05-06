@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/apiError";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/communication/recipients?channel=SMS&group=all_parents|all_students|all_teachers|class:classArmId
 export async function GET(req: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
 
         const user = session.user as any;
         const roles = user.roles || [];
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         if (!roles.includes("SUPER_ADMIN") && !roles.includes("SCHOOL_ADMIN")) {
             return apiError("Forbidden", 403);

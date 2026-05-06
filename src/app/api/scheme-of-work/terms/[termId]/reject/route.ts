@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { createUserNotification } from "@/lib/userNotifications";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // POST /api/scheme-of-work/terms/[termId]/reject
 // Admin rejects a term with a required reason. Teacher can revise and resubmit.
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ter
 
         const user = session.user as any;
         const roles: string[] = user.roles || [];
-        const schoolId = user.schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         if (!roles.includes(UserRole.SUPER_ADMIN) && !roles.includes(UserRole.SCHOOL_ADMIN)) {
             return NextResponse.json({ error: "Admin access required" }, { status: 403 });

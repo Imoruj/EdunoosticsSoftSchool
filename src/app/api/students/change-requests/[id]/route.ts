@@ -9,6 +9,7 @@ import {
     applyStudentUpdateTransaction,
     normalizeStudentUpdatePayload,
 } from "@/lib/students/changeRequests";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // PATCH /api/classes/arms/[id] - Update arm details (teacher assignment, name)
 export async function PATCH(
@@ -27,7 +28,7 @@ export async function PATCH(
         }
 
         const armId = id;
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (classTeacherId) {
             const teacher = await prisma.user.findFirst({
@@ -97,7 +98,7 @@ export async function DELETE(
         }
 
         const armId = id;
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const arm = await prisma.classArm.findUnique({
             where: { id: armId },

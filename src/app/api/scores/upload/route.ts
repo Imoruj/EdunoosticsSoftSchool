@@ -8,6 +8,7 @@ import {
     recomputeCompositeParentScores,
     resolveSubjectScoreProfile,
 } from "@/lib/composite-subjects";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // CSV line parser that handles quoted values
 function parseCSVLine(line: string): string[] {
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : null;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
         const userId = typeof user.id === "string" ? user.id : null;
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");

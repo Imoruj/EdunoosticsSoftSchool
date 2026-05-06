@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET /api/settings/broadsheet - Fetch the current configuration
 export async function GET() {
@@ -11,7 +12,7 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "No school associated with user" }, { status: 400 });
         }
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "No school associated with user" }, { status: 400 });
         }

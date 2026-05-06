@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { UserRole } from "@prisma/client";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function generateTempPassword(): string {
     return randomBytes(6).toString("base64url");
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         // Parse the form data
         const formData = await req.formData();

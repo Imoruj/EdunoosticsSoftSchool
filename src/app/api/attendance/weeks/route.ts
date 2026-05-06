@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { listAttendanceWeekMarks, upsertAttendanceWeekMark } from "@/lib/attendance-week-marks";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function parseDateStr(value: string): Date {
     const [year, month, day] = value.split("-").map(Number);
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const userId = typeof user.id === "string" ? user.id : "";
         const roles = Array.isArray(user.roles) ? user.roles : [];
 
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const userId = typeof user.id === "string" ? user.id : "";
         const roles = Array.isArray(user.roles) ? user.roles : [];
 

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
 import { calculateEndOfTermScoreTotals } from "@/lib/assessment-types";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type ScoreField = "ca1" | "ca2" | "ca3" | "exam";
 
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId as string | undefined;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin =
             roles.includes(UserRole.SUPER_ADMIN) ||

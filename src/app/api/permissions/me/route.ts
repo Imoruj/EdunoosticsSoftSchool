@@ -6,6 +6,7 @@ import {
     type PermissionKey,
 } from "@/lib/permissions";
 import { getEffectivePermissionsForUser } from "@/lib/rolePermissions";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -22,7 +23,7 @@ export async function GET() {
 
         const permissions = await getEffectivePermissionsForUser({
             roles: (session.user as any).roles,
-            schoolId: (session.user as any).schoolId,
+            schoolId: await getActiveSchoolId((session.user as any).schoolId) as string,
         });
 
         return NextResponse.json(

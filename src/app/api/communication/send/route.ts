@@ -7,6 +7,7 @@ import { sendEmail } from "@/services/emailService";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 import { checkCsrf } from "@/lib/csrf";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const sendPayloadSchema = z.object({
     channel: z.enum(["SMS", "EMAIL"]),
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const userId = (session.user as any).id;
         const parsed = sendPayloadSchema.safeParse(await req.json());
         if (!parsed.success) {

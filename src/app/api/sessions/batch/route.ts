@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function POST(req: NextRequest) {
     try {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "No school associated with account" }, { status: 400 });
         }

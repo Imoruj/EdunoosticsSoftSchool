@@ -56,6 +56,9 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const [activeBranchId, setActiveBranchId] = useState<string | null>(
         () => getCookie("active_branch_id") ?? ((session?.user as any)?.activeBranchId as string | null) ?? null
     );
+    // Optimistic branch name — set immediately from the switch API response so the label
+    // updates before the branches list re-fetches after router.refresh()
+    const [optimisticBranchName, setOptimisticBranchName] = useState<string | null>(null);
     const activeBranch = branches.find((b) => b.id === activeBranchId) ?? branches[0] ?? null;
 
     // Sync activeBranchId from cookie on mount (cookie may not be readable during SSR init)
@@ -64,12 +67,15 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
         if (cookie) setActiveBranchId(cookie);
     }, []);
 
-    // Fetch branches accessible to this user
+    // Fetch branches accessible to this user; clear optimistic label once list arrives
     useEffect(() => {
         if (!session?.user) return;
         fetch("/api/user/branches")
             .then((r) => r.ok ? r.json() : { branches: [] })
-            .then((data) => setBranches(data.branches ?? []))
+            .then((data) => {
+                setBranches(data.branches ?? []);
+                setOptimisticBranchName(null);
+            })
             .catch(() => {});
     }, [session?.user]);
 
@@ -99,12 +105,25 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                 setSwitchingBranch(false);
                 return;
             }
-            // Server sets active_branch_id cookie; hard-navigate to reload all server data
-            // without touching NextAuth update() which requires NEXTAUTH_URL to match current domain
+            const data = await res.json();
+            // Cookie is set by the server; update local state immediately so the switcher
+            // label flips before the branches list re-fetches after router.refresh().
             setActiveBranchId(branchId);
-            window.location.replace(window.location.pathname);
+            if (data.branchName) setOptimisticBranchName(data.branchName);
+            // Re-fetch branches list so the dropdown reflects the new active branch
+            fetch("/api/user/branches")
+                .then((r) => r.ok ? r.json() : { branches: [] })
+                .then((d) => { setBranches(d.branches ?? []); setOptimisticBranchName(null); })
+                .catch(() => {});
+            // Soft navigation: re-fetches all server components with the new cookie in place.
+            // All API routes now read active_branch_id cookie via getActiveSchoolId(), so
+            // no hard reload or session JWT update is needed.
+            router.refresh();
+            // Notify client components that manage their own data fetches
+            window.dispatchEvent(new CustomEvent("branch-switched", { detail: { branchId } }));
         } catch {
             toast.error("Could not switch branch");
+        } finally {
             setSwitchingBranch(false);
         }
     };
@@ -378,7 +397,7 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                             <svg className="w-4 h-4 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
-                            <span className="truncate">{activeBranch?.branchCode ?? activeBranch?.name ?? "Branch"}</span>
+                            <span className="truncate">{activeBranch?.branchCode ?? activeBranch?.name ?? optimisticBranchName ?? "Branch"}</span>
                             <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>

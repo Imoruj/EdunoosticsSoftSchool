@@ -7,6 +7,7 @@ import { clampLimit } from "@/lib/apiError";
 import { checkCsrf } from "@/lib/csrf";
 import { createUserNotifications, getSchoolAdminUserIds } from "@/lib/userNotifications";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 // Use shared calculation and assessment type utilities
 import {
     applyStudentUpdateTransaction,
@@ -164,7 +165,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin =
             roles.includes(UserRole.SUPER_ADMIN) ||
@@ -584,7 +585,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(
@@ -794,7 +795,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Student ID is required" }, { status: 400 });
         }
 
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }
@@ -995,7 +996,7 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }

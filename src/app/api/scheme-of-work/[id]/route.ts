@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { resolveVisibleSubjectIdsForStudent } from "@/lib/studentAudience";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const SOW_FULL_INCLUDE = {
     terms: {
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
         const isStudent = roles.includes(UserRole.STUDENT) || user.loginType === "student";
@@ -173,7 +174,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
@@ -216,7 +217,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 

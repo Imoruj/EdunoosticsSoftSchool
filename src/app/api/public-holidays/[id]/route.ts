@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // DELETE: Remove a public holiday (admin only)
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +15,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         }
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
         if (!isAdmin) {

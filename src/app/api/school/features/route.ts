@@ -6,6 +6,7 @@ import {
     extractFeatureFlags,
     getSchoolFeatures,
 } from "@/lib/getSchoolFeatures";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -28,7 +29,7 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             // Super admin or users with no school => all features enabled
             return NextResponse.json(

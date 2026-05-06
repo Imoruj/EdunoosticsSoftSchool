@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // GET - Fetch grading rules for the school, optionally filtered by category
 export async function GET(req: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         if (!schoolId) {
             return NextResponse.json(
@@ -116,7 +117,7 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const body = await req.json();
         const { id, grade, minScore, maxScore, remark, schoolCategory } = body;
 
@@ -181,7 +182,7 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const { searchParams } = new URL(req.url);
         const id = searchParams.get("id");
 

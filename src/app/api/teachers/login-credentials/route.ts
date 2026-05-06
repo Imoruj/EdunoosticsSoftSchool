@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const ROLE_LABELS: Record<string, string> = {
     SUPER_ADMIN: "Platform Admin",
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             return NextResponse.json({ error: "Your account is not associated with a school." }, { status: 400 });
         }

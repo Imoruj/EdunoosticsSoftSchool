@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncCurrentTerm } from "@/lib/currentTerm";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type SessionUser = {
     id?: string;
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as SessionUser;
-        const schoolId = typeof user.schoolId === "string" ? user.schoolId : "";
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
 
         if (!schoolId) {

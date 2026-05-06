@@ -9,6 +9,7 @@ import {
     recomputeCompositeParentScores,
     resolveSubjectScoreProfile,
 } from "@/lib/composite-subjects";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 // Grade calculation helper
 function normalizeScoreForRuleScale(total: number, rules: any[]) {
@@ -47,6 +48,7 @@ export async function PATCH(
         }
 
         const user = session.user as any;
+        const activeSchoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -68,7 +70,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Request not found" }, { status: 404 });
         }
 
-        if (request.schoolId !== user.schoolId) {
+        if (request.schoolId !== activeSchoolId) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -115,7 +117,7 @@ export async function PATCH(
 
         // Approve: apply scores
         const scoreData = request.scoreData as any[];
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
 
         const selectedTerm = await prisma.term.findUnique({
             where: { id: request.termId },
@@ -410,6 +412,7 @@ export async function GET(
         }
 
         const user = session.user as any;
+        const activeSchoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -438,7 +441,7 @@ export async function GET(
             },
         });
 
-        if (!request || request.schoolId !== user.schoolId) {
+        if (!request || request.schoolId !== activeSchoolId) {
             return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
 

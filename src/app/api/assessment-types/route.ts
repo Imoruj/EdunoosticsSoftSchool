@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/rbac";
 import { validateAssessmentTypeCollection } from "@/lib/assessment-types";
 import { ensureAssessmentTypeColumns } from "@/lib/assessment-types-server";
 import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 function normalizeName(value: string) {
     return value.trim().replace(/\s+/g, " ");
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) {
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
 
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) {
@@ -181,7 +182,7 @@ export async function PUT(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) {
             return sessionError;
@@ -279,7 +280,7 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) {
             return sessionError;

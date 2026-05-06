@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { sanitizeCsv } from "@/lib/csvUtils";
 import { getResolvedAssessmentTypesForClassContext } from "@/lib/assessment-types-server";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 export async function GET(req: NextRequest) {
     try {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         const subjectId = searchParams.get("subjectId");
 
         const user = session.user as any;
-        const schoolId = user.schoolId;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
 
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");

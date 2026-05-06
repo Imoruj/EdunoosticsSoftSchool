@@ -6,6 +6,7 @@ import { UserRole, SowStatus } from "@prisma/client";
 import { checkCsrf } from "@/lib/csrf";
 import { normalizeObjectivePayload, normalizeObjectiveSection } from "@/lib/sowObjectiveSegments";
 import { extractObjectivePayloadFromModelOutput, parseJsonFromModelOutput } from "@/lib/aiJson";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 async function resolveWeekAccess(weekId: string, userId: string, schoolId: string) {
     const week = await prisma.schemeOfWorkWeek.findFirst({
@@ -312,11 +313,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles: string[] = user.roles || [];
         const isAdmin = roles.includes(UserRole.SUPER_ADMIN) || roles.includes(UserRole.SCHOOL_ADMIN);
 
         const { id: weekId } = await params;
-        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(weekId, user.id, user.schoolId);
+        const { week, sow, isOwner, isCollaborator } = await resolveWeekAccess(weekId, user.id, schoolId);
         if (!week || !sow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
         if (!isAdmin && !isOwner && !isCollaborator) {

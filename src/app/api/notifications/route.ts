@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prismaDirect } from "@/lib/prisma";
 import { getSafeServerSession } from "@/lib/server-session";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 const USER_NOTIFICATION_TABLE_HINTS = [
     "UserNotification",
@@ -88,6 +89,7 @@ export async function GET(req: NextRequest) {
         }
 
         const user = session.user as any;
+        const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         const roles = user.roles || [];
         const isAdmin = roles.includes("SUPER_ADMIN") || roles.includes("SCHOOL_ADMIN");
 
@@ -139,7 +141,7 @@ export async function GET(req: NextRequest) {
         let pendingUploadCount = 0;
         let pendingUploadRequests: any[] = [];
 
-        if (isAdmin && user.schoolId) {
+        if (isAdmin && schoolId) {
             try {
                 [pendingUploadCount, pendingUploadRequests] = await withPrismaRetry(
                     "/api/notifications pending uploads",
@@ -147,13 +149,13 @@ export async function GET(req: NextRequest) {
                         prismaDirect.$transaction([
                             prismaDirect.scoreUploadRequest.count({
                                 where: {
-                                    schoolId: user.schoolId,
+                                    schoolId: schoolId,
                                     status: "PENDING",
                                 },
                             }),
                             prismaDirect.scoreUploadRequest.findMany({
                                 where: {
-                                    schoolId: user.schoolId,
+                                    schoolId: schoolId,
                                     status: "PENDING",
                                 },
                                 orderBy: { createdAt: "desc" },

@@ -5,6 +5,7 @@ import { validateAssessmentTypeCollection } from "@/lib/assessment-types";
 import { ensureClassAssessmentTypesTable, requireClassAssessmentTypeDelegate } from "@/lib/assessment-types-server";
 import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prisma-transient";
+import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 
 type ClassAssessmentTypeRow = {
     id: string;
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) return sessionError;
         const classId = req.nextUrl.searchParams.get("classId");
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) return sessionError;
         const body = await req.json();
@@ -199,7 +200,7 @@ export async function PUT(req: NextRequest) {
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) return sessionError;
         const body = await req.json();
@@ -275,7 +276,7 @@ export async function DELETE(req: NextRequest) {
         const session = await requireSchoolAdmin(req);
         if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-        const schoolId = (session.user as any).schoolId;
+        const schoolId = (await getActiveSchoolId((session.user as any).schoolId)) as any;
         const sessionError = await validateSchoolSession(schoolId);
         if (sessionError) return sessionError;
         const id = req.nextUrl.searchParams.get("id");
