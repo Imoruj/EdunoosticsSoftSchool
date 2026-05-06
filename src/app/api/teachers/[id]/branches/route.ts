@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const teacher = await (prisma as any).user.findUnique({
         where: { id },
-        select: { id: true, email: true, firstName: true, lastName: true, canSwitchBranches: true, schoolId: true },
+        select: { id: true, email: true, firstName: true, lastName: true, canSwitchBranches: true, schoolId: true, roles: true },
     });
     if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
@@ -69,10 +69,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         assignedBranchIds.unshift(teacher.schoolId);
     }
 
-    // Find other active User accounts with the same email in org schools (duplicate accounts)
+    // Find other active User accounts with the same firstName+lastName in org schools (duplicate accounts).
+    // Match by name rather than email — teachers across branches often have different email addresses.
     const duplicateAccounts = await (prisma as any).user.findMany({
         where: {
-            email: teacher.email,
+            firstName: { equals: teacher.firstName, mode: "insensitive" },
+            lastName: { equals: teacher.lastName, mode: "insensitive" },
             id: { not: id },
             schoolId: { in: allowedSchoolIds },
             isActive: true,
@@ -165,16 +167,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, email: true, schoolId: true } });
+    const teacher = await (prisma as any).user.findUnique({ where: { id }, select: { id: true, email: true, firstName: true, lastName: true, schoolId: true } });
     if (!teacher) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
     const allowedSchoolIds = await getOrgSchoolIds(schoolId);
 
-    // Fetch the duplicate accounts to verify they belong to org schools and have the same email
+    // Verify duplicates belong to org schools and share the same first+last name
     const duplicates = await (prisma as any).user.findMany({
         where: {
             id: { in: duplicateUserIds },
-            email: teacher.email,
+            firstName: { equals: teacher.firstName, mode: "insensitive" },
+            lastName: { equals: teacher.lastName, mode: "insensitive" },
             schoolId: { in: allowedSchoolIds },
             isActive: true,
         },
