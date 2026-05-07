@@ -414,8 +414,8 @@ export default function ScoresClient({
 
     // Helper to calculate grade locally for immediate feedback
     const calculateGrade = (total: number) => {
-        const score = normalizeScoreForRuleScale(Number(total), activeGradingRules);
-        const rule = activeGradingRules.find(r => score >= r.minScore && score <= r.maxScore);
+        const score = Math.round(normalizeScoreForRuleScale(Number(total), activeGradingRules) * 10) / 10;
+        const rule = activeGradingRules.find(r => score >= Number(r.minScore) && score <= Number(r.maxScore));
 
         if (rule) {
             let color = "bg-gray-100 text-gray-800";

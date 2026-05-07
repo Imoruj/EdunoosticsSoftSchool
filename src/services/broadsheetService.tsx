@@ -233,9 +233,10 @@ export async function generateBroadsheetData(
         ? categorySpecificRules
         : allGradingRules.filter((rule) => rule.schoolCategory === null);
 
-    // Helper: get grade from total
+    // Helper: get grade from total — round to 1dp to avoid float boundary errors (e.g. 9.3+12.4+38.2 = 59.900000000000006).
     const getGrade = (total: number): string => {
-        const rule = gradingRules.find(r => total >= r.minScore && total <= r.maxScore);
+        const rounded = Math.round(total * 10) / 10;
+        const rule = gradingRules.find(r => rounded >= Number(r.minScore) && rounded <= Number(r.maxScore));
         return rule ? rule.grade : "-";
     };
 

@@ -35,8 +35,9 @@ function getArrayMinMax(arr: number[]): { min: number; max: number } {
 }
 
 function calculateGrade(total: number, rules: Array<{ minScore: number; maxScore: number; grade: string; remark: string }>) {
-    const normalizedTotal = normalizeScoreForRuleScale(total, rules);
-    const rule = rules.find((item) => normalizedTotal >= item.minScore && normalizedTotal <= item.maxScore);
+    // Round to 1 decimal to avoid floating-point boundary errors (e.g. 9.3+12.4+38.2 = 59.900000000000006 in JS).
+    const normalizedTotal = Math.round(normalizeScoreForRuleScale(total, rules) * 10) / 10;
+    const rule = rules.find((item) => normalizedTotal >= Number(item.minScore) && normalizedTotal <= Number(item.maxScore));
     if (rule) {
         return { grade: rule.grade, remark: rule.remark };
     }

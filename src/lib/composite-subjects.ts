@@ -164,8 +164,8 @@ function normalizeScoreForRuleScale(total: number, rules: Array<{ maxScore: numb
 }
 
 function calculateGrade(total: number, rules: Array<{ minScore: number; maxScore: number; grade: string; remark: string }>) {
-    const normalizedTotal = normalizeScoreForRuleScale(total, rules);
-    const rule = rules.find((item) => normalizedTotal >= item.minScore && normalizedTotal <= item.maxScore);
+    const normalizedTotal = Math.round(normalizeScoreForRuleScale(total, rules) * 10) / 10;
+    const rule = rules.find((item) => normalizedTotal >= Number(item.minScore) && normalizedTotal <= Number(item.maxScore));
     if (rule) {
         return { grade: rule.grade, remark: rule.remark };
     }
