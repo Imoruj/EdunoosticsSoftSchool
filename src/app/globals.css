@@ -240,3 +240,105 @@ body {
   page-break-after: always;
   break-after: page;
 }
+
+/* Dashboard dark-mode compatibility.
+   Several dashboard screens predate the shared theme tokens and use light-only
+   Tailwind utilities. Scope these overrides to the dashboard content area so
+   legacy pages remain readable when the root `.dark` class is active. */
+.dark .dashboard-content {
+  color: #f3f4f6;
+}
+
+.dark .dashboard-content .bg-white,
+.dark .dashboard-content .bg-gray-50,
+.dark .dashboard-content .bg-slate-50,
+.dark .dashboard-content .bg-slate-50\/50,
+.dark .dashboard-content .bg-slate-50\/60,
+.dark .dashboard-content .bg-slate-50\/70,
+.dark .dashboard-content .bg-gray-100,
+.dark .dashboard-content .bg-slate-100,
+.dark .dashboard-content .bg-slate-100\/50 {
+  background-color: #1f2937 !important;
+}
+
+.dark .dashboard-content .bg-gray-50\/50,
+.dark .dashboard-content .bg-slate-50\/80,
+.dark .dashboard-content .bg-primary-50\/80 {
+  background-color: rgba(31, 41, 55, 0.72) !important;
+}
+
+.dark .dashboard-content .text-gray-950,
+.dark .dashboard-content .text-gray-900,
+.dark .dashboard-content .text-slate-950,
+.dark .dashboard-content .text-slate-900,
+.dark .dashboard-content .text-slate-800 {
+  color: #f9fafb !important;
+}
+
+.dark .dashboard-content .text-gray-800,
+.dark .dashboard-content .text-gray-700,
+.dark .dashboard-content .text-slate-700,
+.dark .dashboard-content .text-slate-600 {
+  color: #d1d5db !important;
+}
+
+.dark .dashboard-content .text-gray-600,
+.dark .dashboard-content .text-gray-500,
+.dark .dashboard-content .text-gray-400,
+.dark .dashboard-content .text-slate-500,
+.dark .dashboard-content .text-slate-400,
+.dark .dashboard-content .text-slate-300 {
+  color: #9ca3af !important;
+}
+
+.dark .dashboard-content .border-gray-50,
+.dark .dashboard-content .border-gray-100,
+.dark .dashboard-content .border-gray-200,
+.dark .dashboard-content .border-gray-300,
+.dark .dashboard-content .border-slate-50,
+.dark .dashboard-content .border-slate-100,
+.dark .dashboard-content .border-slate-100\/80,
+.dark .dashboard-content .border-slate-200,
+.dark .dashboard-content .border-slate-200\/50,
+.dark .dashboard-content .border-slate-200\/80,
+.dark .dashboard-content .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .dashboard-content .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #374151 !important;
+}
+
+.dark .dashboard-content input:not([type="checkbox"]):not([type="radio"]),
+.dark .dashboard-content textarea,
+.dark .dashboard-content select {
+  background-color: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .dashboard-content input::placeholder,
+.dark .dashboard-content textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+.dark .dashboard-content option {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+.dark .dashboard-content table {
+  color: #f3f4f6;
+}
+
+.dark .dashboard-content thead,
+.dark .dashboard-content .bg-gray-50 {
+  background-color: #111827 !important;
+}
+
+.dark .dashboard-content tbody {
+  background-color: #1f2937 !important;
+}
+
+.dark .dashboard-content tr:hover,
+.dark .dashboard-content .hover\:bg-gray-50:hover,
+.dark .dashboard-content .hover\:bg-slate-50:hover {
+  background-color: #263244 !important;
+}

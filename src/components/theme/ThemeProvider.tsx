@@ -23,8 +23,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<Theme>("light");
 
     useEffect(() => {
-        localStorage.removeItem("ed-theme");
-        applyTheme("light");
+        const savedTheme = localStorage.getItem("ed-theme");
+        const nextTheme: Theme = savedTheme === "dark" ? "dark" : "light";
+        setTheme(nextTheme);
+        applyTheme(nextTheme);
     }, []);
 
     const toggleTheme = () => {

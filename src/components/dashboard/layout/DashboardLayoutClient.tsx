@@ -80,7 +80,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
                     findPageTitle={findPageTitle}
                     topBarRef={topBarRef}
                 />
-                <main className="min-w-0 px-4 pb-8 pt-20 lg:px-8 xl:px-16 2xl:px-24 lg:pb-10 lg:pt-24">{children}</main>
+                <main className="dashboard-content min-w-0 px-4 pb-8 pt-20 lg:px-8 xl:px-16 2xl:px-24 lg:pb-10 lg:pt-24">{children}</main>
             </div>
         </div>
     );
