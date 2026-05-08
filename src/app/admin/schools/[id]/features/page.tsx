@@ -31,6 +31,7 @@ const FEATURES: FeatureToggleItem[] = [
     { key: "communicationEnabled", label: "Communication", description: "SMS and email messaging" },
     { key: "feesEnabled", label: "Fees", description: "Fee structures and payment tracking" },
     { key: "settingsEnabled", label: "Settings", description: "School configuration and settings" },
+    { key: "darkModeEnabled", label: "Dark Mode", description: "Allow users at this school to switch the dashboard theme" },
 ];
 
 const GROUP_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ const GROUP_LABELS: Record<string, string> = {
     uploadRequestsEnabled: "Reports",
     attendanceEnabled: "School", behaviourEnabled: "School",
     communicationEnabled: "School", feesEnabled: "School",
-    settingsEnabled: "General",
+    settingsEnabled: "General", darkModeEnabled: "General",
 };
 
 export default function SchoolFeaturesPage() {
@@ -119,7 +120,7 @@ export default function SchoolFeaturesPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Feature Controls</h1>
                     <p className="mt-1 text-sm text-gray-500">
                         Toggle features on or off for <span className="font-medium text-gray-700">{schoolName}</span>.
-                        Disabled features are hidden from all admin and teacher users at that school.
+                        Disabled features are hidden for users at that school. Global platform controls can still override school settings.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

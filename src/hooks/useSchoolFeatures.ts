@@ -29,7 +29,7 @@ const DEFAULT_FEATURES: FeatureFlags = {
 
 let cache: { features: FeatureFlags; fetchedAt: number } | null = null;
 let inFlight: Promise<FeatureFlags> | null = null;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 1000;
 
 export function useSchoolFeatures(): { features: FeatureFlags; loading: boolean } {
     const [features, setFeatures] = useState<FeatureFlags>(DEFAULT_FEATURES);
@@ -77,11 +77,20 @@ export function useSchoolFeatures(): { features: FeatureFlags; loading: boolean 
             }
             void load();
         };
+        const handleVisibilityRefresh = () => {
+            if (document.visibilityState === "visible") {
+                handleRefresh();
+            }
+        };
 
         window.addEventListener("school-features-updated", handleRefresh);
+        window.addEventListener("focus", handleRefresh);
+        document.addEventListener("visibilitychange", handleVisibilityRefresh);
         return () => {
             mounted = false;
             window.removeEventListener("school-features-updated", handleRefresh);
+            window.removeEventListener("focus", handleRefresh);
+            document.removeEventListener("visibilitychange", handleVisibilityRefresh);
         };
     }, []);
 

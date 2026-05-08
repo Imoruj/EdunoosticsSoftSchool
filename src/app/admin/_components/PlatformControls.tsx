@@ -74,7 +74,7 @@ export default function PlatformControls({
                                     ? "Loading..."
                                     : darkModeEnabled
                                         ? "Users can switch the dashboard between light and dark mode."
-                                        : "Dark mode is disabled. Dashboards stay in light mode."}
+                                        : "Dark mode is hidden for all schools and organizations."}
                             </p>
                             <span className={`inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded-full ${darkModeEnabled === false ? "bg-gray-100 text-gray-700" : "bg-blue-100 text-blue-700"}`}>
                                 {darkModeEnabled === null ? "..." : darkModeEnabled ? "ENABLED" : "DISABLED"}

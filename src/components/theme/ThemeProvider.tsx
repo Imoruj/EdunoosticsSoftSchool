@@ -58,12 +58,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             applyTheme(nextTheme);
         };
 
+        const syncWhenVisible = () => {
+            if (document.visibilityState === "visible") {
+                void syncThemeAvailability();
+            }
+        };
+
         void syncThemeAvailability();
         window.addEventListener("school-features-updated", syncThemeAvailability);
+        window.addEventListener("focus", syncThemeAvailability);
+        document.addEventListener("visibilitychange", syncWhenVisible);
 
         return () => {
             cancelled = true;
             window.removeEventListener("school-features-updated", syncThemeAvailability);
+            window.removeEventListener("focus", syncThemeAvailability);
+            document.removeEventListener("visibilitychange", syncWhenVisible);
         };
     }, []);
 

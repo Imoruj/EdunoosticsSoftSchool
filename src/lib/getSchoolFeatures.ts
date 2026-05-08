@@ -24,7 +24,7 @@ export interface FeatureFlags {
     settingsEnabled: boolean;
 }
 
-export type SchoolFeatureField = Exclude<keyof FeatureFlags, "darkModeEnabled">;
+export type SchoolFeatureField = keyof FeatureFlags;
 
 export const SCHOOL_FEATURE_SELECT = {
     studentsEnabled: true,
@@ -47,6 +47,7 @@ export const SCHOOL_FEATURE_SELECT = {
     communicationEnabled: true,
     feesEnabled: true,
     settingsEnabled: true,
+    darkModeEnabled: true,
 } satisfies Record<SchoolFeatureField, true>;
 
 export const ALL_ENABLED_FEATURES: FeatureFlags = {
@@ -106,7 +107,7 @@ export const SCHOOL_FEATURE_FIELDS = [
     "classesEnabled", "broadsheetEnabled", "transcriptsEnabled",
     "reportCardsEnabled", "legacyRecordsEnabled", "uploadRequestsEnabled",
     "attendanceEnabled", "behaviourEnabled", "communicationEnabled",
-    "feesEnabled", "settingsEnabled",
+    "feesEnabled", "settingsEnabled", "darkModeEnabled",
 ] as const;
 
 /**
@@ -119,7 +120,6 @@ export function extractFeatureFlags(
     for (const field of SCHOOL_FEATURE_FIELDS) {
         features[field] = typeof raw[field] === "boolean" ? raw[field] as boolean : true;
     }
-    features.darkModeEnabled = typeof raw.darkModeEnabled === "boolean" ? raw.darkModeEnabled : true;
     return features;
 }
 

@@ -1023,6 +1023,7 @@ model SchoolFeatureControl {
 
   // Settings
   settingsEnabled Boolean @default(true)
+  darkModeEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

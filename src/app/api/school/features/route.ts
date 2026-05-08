@@ -19,6 +19,15 @@ type SessionUser = {
     schoolId?: string;
 };
 
+async function getPlatformDarkModeEnabled() {
+    const platformSettings = await prisma.platformSettings.findUnique({
+        where: { id: "platform" },
+        select: { darkModeEnabled: true },
+    });
+
+    return platformSettings?.darkModeEnabled ?? true;
+}
+
 // GET /api/school/features
 // Returns feature flags for the currently logged-in school admin
 export async function GET() {
@@ -30,14 +39,10 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const platformSettings = await prisma.platformSettings.findUnique({
-            where: { id: "platform" },
-            select: { darkModeEnabled: true },
-        });
-        const darkModeEnabled = platformSettings?.darkModeEnabled ?? true;
+        const platformDarkModeEnabled = await getPlatformDarkModeEnabled();
         const withPlatformFeatures = (features: typeof ALL_ENABLED_FEATURES) => ({
             ...features,
-            darkModeEnabled,
+            darkModeEnabled: platformDarkModeEnabled && features.darkModeEnabled,
         });
 
         const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
@@ -57,9 +62,21 @@ export async function GET() {
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unknown error";
         console.error("[features] Error fetching school features, returning defaults:", message);
-        // Never return 500 - return all-enabled defaults so dashboard doesn't break
+        let platformDarkModeEnabled = true;
+        try {
+            platformDarkModeEnabled = await getPlatformDarkModeEnabled();
+        } catch {
+            platformDarkModeEnabled = false;
+        }
+
+        // Never return 500 - return safe defaults so dashboard doesn't break.
         return NextResponse.json(
-            { features: ALL_ENABLED_FEATURES },
+            {
+                features: {
+                    ...ALL_ENABLED_FEATURES,
+                    darkModeEnabled: platformDarkModeEnabled,
+                },
+            },
             { headers: NO_CACHE_HEADERS }
         );
     }
