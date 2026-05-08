@@ -485,3 +485,70 @@ body {
 .dark .dashboard-content .border-red-200 {
   border-color: currentColor !important;
 }
+
+/* Some dashboard children are intentionally light work surfaces: slide editor
+   controls and printable report previews. Keep their document/editor styling
+   independent from the dashboard dark compatibility layer. */
+.dark .dashboard-content .dashboard-light-surface {
+  background-color: #f8fafc !important;
+  color: #111827 !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .bg-white,
+.dark .dashboard-content .dashboard-light-surface.bg-white {
+  background-color: #ffffff !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .bg-gray-50,
+.dark .dashboard-content .dashboard-light-surface .bg-slate-50,
+.dark .dashboard-content .dashboard-light-surface .bg-gray-100,
+.dark .dashboard-content .dashboard-light-surface .bg-slate-100 {
+  background-color: #f9fafb !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .text-gray-950,
+.dark .dashboard-content .dashboard-light-surface .text-gray-900,
+.dark .dashboard-content .dashboard-light-surface .text-slate-950,
+.dark .dashboard-content .dashboard-light-surface .text-slate-900,
+.dark .dashboard-content .dashboard-light-surface .text-slate-800 {
+  color: #111827 !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .text-gray-800,
+.dark .dashboard-content .dashboard-light-surface .text-gray-700,
+.dark .dashboard-content .dashboard-light-surface .text-slate-700,
+.dark .dashboard-content .dashboard-light-surface .text-slate-600 {
+  color: #374151 !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .text-gray-600,
+.dark .dashboard-content .dashboard-light-surface .text-gray-500,
+.dark .dashboard-content .dashboard-light-surface .text-gray-400,
+.dark .dashboard-content .dashboard-light-surface .text-slate-500,
+.dark .dashboard-content .dashboard-light-surface .text-slate-400,
+.dark .dashboard-content .dashboard-light-surface .text-slate-300 {
+  color: #6b7280 !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface .border-gray-50,
+.dark .dashboard-content .dashboard-light-surface .border-gray-100,
+.dark .dashboard-content .dashboard-light-surface .border-gray-200,
+.dark .dashboard-content .dashboard-light-surface .border-gray-300,
+.dark .dashboard-content .dashboard-light-surface .border-slate-50,
+.dark .dashboard-content .dashboard-light-surface .border-slate-100,
+.dark .dashboard-content .dashboard-light-surface .border-slate-200 {
+  border-color: #e5e7eb !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface input:not([type="checkbox"]):not([type="radio"]),
+.dark .dashboard-content .dashboard-light-surface textarea,
+.dark .dashboard-content .dashboard-light-surface select {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+.dark .dashboard-content .dashboard-light-surface input::placeholder,
+.dark .dashboard-content .dashboard-light-surface textarea::placeholder {
+  color: #9ca3af !important;
+}

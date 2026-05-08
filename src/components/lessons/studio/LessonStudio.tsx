@@ -495,7 +495,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       <audio ref={narrationRef} preload="auto" style={{ display: 'none' }} />
 
       <div
-        className="fixed inset-0 flex flex-col overflow-hidden"
+        className="dashboard-light-surface fixed inset-0 flex flex-col overflow-hidden"
         style={{ background: '#f8fafc', zIndex: 9999 }}
       >
         {/* ── Header (spans full width) ── */}

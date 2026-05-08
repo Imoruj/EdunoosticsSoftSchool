@@ -1268,7 +1268,7 @@ export default function ReportCardSettingsPage() {
                         className="transition-transform duration-200 ease-out origin-top shadow-2xl"
                         style={{ transform: `scale(${zoom})` }}
                     >
-                        <div className="w-[794px] min-h-[1123px] bg-white">
+                        <div className="dashboard-light-surface w-[794px] min-h-[1123px] bg-white">
                             <StandardReportPreview config={config as any} />
                         </div>
                     </div>
