@@ -12,7 +12,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue>({
     theme: "light",
-    darkModeEnabled: true,
+    darkModeEnabled: false,
     toggleTheme: () => {},
 });
 
@@ -23,13 +23,13 @@ function applyTheme(t: Theme) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<Theme>("light");
-    const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+    const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
 
         const syncThemeAvailability = async () => {
-            let enabled = true;
+            let enabled = false;
             try {
                 const response = await fetch("/api/school/features", { cache: "no-store" });
                 if (response.ok) {
@@ -37,7 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                     enabled = data?.features?.darkModeEnabled !== false;
                 }
             } catch {
-                enabled = localStorage.getItem("ed-dark-mode-feature-enabled") !== "false";
+                enabled = false;
             }
 
             if (cancelled) return;
