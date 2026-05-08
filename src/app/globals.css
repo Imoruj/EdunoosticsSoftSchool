@@ -342,3 +342,146 @@ body {
 .dark .dashboard-content .hover\:bg-slate-50:hover {
   background-color: #263244 !important;
 }
+
+/* Preserve semantic badge and notice colors after the neutral compatibility
+   overrides above. These are used for class/gender/status pills, subject
+   categories, assignment notices, and progress labels. */
+.dark .dashboard-content .bg-blue-50,
+.dark .dashboard-content .bg-blue-50\/40,
+.dark .dashboard-content .bg-blue-50\/50 {
+  background-color: rgba(30, 58, 138, 0.36) !important;
+}
+
+.dark .dashboard-content .bg-blue-100 {
+  background-color: rgba(30, 64, 175, 0.44) !important;
+}
+
+.dark .dashboard-content .text-blue-600,
+.dark .dashboard-content .text-blue-700,
+.dark .dashboard-content .text-blue-800,
+.dark .dashboard-content .text-blue-900 {
+  color: #93c5fd !important;
+}
+
+.dark .dashboard-content .bg-green-50,
+.dark .dashboard-content .bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.42) !important;
+}
+
+.dark .dashboard-content .bg-green-100,
+.dark .dashboard-content .bg-emerald-100 {
+  background-color: rgba(5, 150, 105, 0.28) !important;
+}
+
+.dark .dashboard-content .text-green-600,
+.dark .dashboard-content .text-green-700,
+.dark .dashboard-content .text-green-800,
+.dark .dashboard-content .text-emerald-600,
+.dark .dashboard-content .text-emerald-700,
+.dark .dashboard-content .text-emerald-800 {
+  color: #86efac !important;
+}
+
+.dark .dashboard-content .bg-pink-50,
+.dark .dashboard-content .bg-rose-50 {
+  background-color: rgba(131, 24, 67, 0.42) !important;
+}
+
+.dark .dashboard-content .bg-pink-100,
+.dark .dashboard-content .bg-rose-100 {
+  background-color: rgba(190, 24, 93, 0.28) !important;
+}
+
+.dark .dashboard-content .text-pink-600,
+.dark .dashboard-content .text-pink-700,
+.dark .dashboard-content .text-pink-800,
+.dark .dashboard-content .text-rose-600,
+.dark .dashboard-content .text-rose-700,
+.dark .dashboard-content .text-rose-800,
+.dark .dashboard-content .text-rose-900 {
+  color: #f9a8d4 !important;
+}
+
+.dark .dashboard-content .bg-amber-50,
+.dark .dashboard-content .bg-yellow-50,
+.dark .dashboard-content .bg-orange-50 {
+  background-color: rgba(120, 53, 15, 0.42) !important;
+}
+
+.dark .dashboard-content .bg-amber-100,
+.dark .dashboard-content .bg-yellow-100,
+.dark .dashboard-content .bg-orange-100 {
+  background-color: rgba(180, 83, 9, 0.28) !important;
+}
+
+.dark .dashboard-content .text-amber-600,
+.dark .dashboard-content .text-amber-700,
+.dark .dashboard-content .text-amber-800,
+.dark .dashboard-content .text-yellow-700,
+.dark .dashboard-content .text-yellow-800,
+.dark .dashboard-content .text-orange-600,
+.dark .dashboard-content .text-orange-700 {
+  color: #fcd34d !important;
+}
+
+.dark .dashboard-content .bg-indigo-50,
+.dark .dashboard-content .bg-indigo-50\/40,
+.dark .dashboard-content .bg-indigo-50\/60,
+.dark .dashboard-content .bg-purple-50 {
+  background-color: rgba(49, 46, 129, 0.42) !important;
+}
+
+.dark .dashboard-content .bg-indigo-100,
+.dark .dashboard-content .bg-purple-100 {
+  background-color: rgba(67, 56, 202, 0.28) !important;
+}
+
+.dark .dashboard-content .text-indigo-600,
+.dark .dashboard-content .text-indigo-700,
+.dark .dashboard-content .text-indigo-800,
+.dark .dashboard-content .text-indigo-900,
+.dark .dashboard-content .text-purple-700,
+.dark .dashboard-content .text-purple-800 {
+  color: #c4b5fd !important;
+}
+
+.dark .dashboard-content .bg-cyan-100 {
+  background-color: rgba(21, 94, 117, 0.36) !important;
+}
+
+.dark .dashboard-content .text-cyan-800 {
+  color: #67e8f9 !important;
+}
+
+.dark .dashboard-content .bg-red-50 {
+  background-color: rgba(127, 29, 29, 0.42) !important;
+}
+
+.dark .dashboard-content .bg-red-100 {
+  background-color: rgba(185, 28, 28, 0.28) !important;
+}
+
+.dark .dashboard-content .text-red-500,
+.dark .dashboard-content .text-red-600,
+.dark .dashboard-content .text-red-700,
+.dark .dashboard-content .text-red-800,
+.dark .dashboard-content .text-red-900 {
+  color: #fca5a5 !important;
+}
+
+.dark .dashboard-content .border-blue-100,
+.dark .dashboard-content .border-blue-200,
+.dark .dashboard-content .border-emerald-100,
+.dark .dashboard-content .border-emerald-200,
+.dark .dashboard-content .border-green-200,
+.dark .dashboard-content .border-rose-100,
+.dark .dashboard-content .border-rose-200,
+.dark .dashboard-content .border-pink-200,
+.dark .dashboard-content .border-amber-100,
+.dark .dashboard-content .border-amber-200,
+.dark .dashboard-content .border-indigo-100,
+.dark .dashboard-content .border-indigo-200,
+.dark .dashboard-content .border-red-100,
+.dark .dashboard-content .border-red-200 {
+  border-color: currentColor !important;
+}
