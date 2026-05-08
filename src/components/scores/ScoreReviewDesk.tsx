@@ -88,24 +88,24 @@ function statusMeta(status: ReviewStatus) {
     if (status === "PENDING_REVIEW") {
         return {
             label: "Pending Review",
-            className: "bg-amber-100 text-amber-800 border border-amber-200",
+            className: "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/50",
         };
     }
     if (status === "APPROVED") {
         return {
             label: "Approved",
-            className: "bg-green-100 text-green-800 border border-green-200",
+            className: "bg-green-100 text-green-800 border border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800/50",
         };
     }
     if (status === "REJECTED") {
         return {
             label: "Rejected",
-            className: "bg-red-100 text-red-800 border border-red-200",
+            className: "bg-red-100 text-red-800 border border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800/50",
         };
     }
     return {
         label: "Broadcasted",
-        className: "bg-blue-100 text-blue-800 border border-blue-200",
+        className: "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800/50",
     };
 }
 
@@ -368,8 +368,8 @@ export default function ScoreReviewDesk({
     if (!hasTerms) {
         return (
             <div className="space-y-4">
-                <h1 className="text-3xl font-bold text-gray-900">Score Review Desk</h1>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Score Review Desk</h1>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800/50 dark:text-amber-300">
                     No academic term found. Configure a term first before reviewing scores.
                 </div>
             </div>
@@ -379,8 +379,8 @@ export default function ScoreReviewDesk({
     if (!hasClassArms) {
         return (
             <div className="space-y-4">
-                <h1 className="text-3xl font-bold text-gray-900">Score Review Desk</h1>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Score Review Desk</h1>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800/50 dark:text-amber-300">
                     No class assignment found for this account. Assign a class teacher before reviewing scores.
                 </div>
             </div>
@@ -390,20 +390,20 @@ export default function ScoreReviewDesk({
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Score Review Desk</h1>
-                <p className="mt-1 text-gray-600">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Score Review Desk</h1>
+                <p className="mt-1 text-gray-600 dark:text-gray-400">
                     Review submitted subject scores without mixing them with normal score entry selections.
                 </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                    <label htmlFor="review-term" className="mb-2 block text-sm font-medium text-gray-700">
+                    <label htmlFor="review-term" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Term
                     </label>
                     <select
                         id="review-term"
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                         value={selectedTermId}
                         onChange={(event) => setSelectedTermId(event.target.value)}
                     >
@@ -416,12 +416,12 @@ export default function ScoreReviewDesk({
                 </div>
 
                 <div>
-                    <label htmlFor="review-class-arm" className="mb-2 block text-sm font-medium text-gray-700">
+                    <label htmlFor="review-class-arm" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Class Arm
                     </label>
                     <select
                         id="review-class-arm"
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                         value={selectedClassArmId}
                         onChange={(event) => setSelectedClassArmId(event.target.value)}
                     >
@@ -436,22 +436,22 @@ export default function ScoreReviewDesk({
             </div>
 
             {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:bg-red-950/30 dark:border-red-800/50 dark:text-red-300">
                     {error}
                 </div>
             )}
 
             {success && (
-                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 dark:bg-green-950/30 dark:border-green-800/50 dark:text-green-300">
                     {success}
                 </div>
             )}
 
-            <div className="rounded-2xl border border-gray-200 bg-white">
-                <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+            <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Pending Subject Submissions</h2>
-                        <p className="text-sm text-gray-500">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pending Subject Submissions</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Click a subject submission to inspect scores and approve or reject.
                         </p>
                     </div>
@@ -459,8 +459,8 @@ export default function ScoreReviewDesk({
                         onClick={fetchQueue}
                         disabled={loadingQueue}
                         className={`rounded-lg px-3 py-2 text-sm font-medium ${loadingQueue
-                                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                : "bg-gray-900 text-white hover:bg-gray-800"
+                                ? "cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
+                                : "bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600"
                             }`}
                     >
                         {loadingQueue ? "Refreshing..." : "Refresh"}
@@ -472,7 +472,7 @@ export default function ScoreReviewDesk({
                         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600" />
                     </div>
                 ) : workflows.length === 0 ? (
-                    <div className="px-5 py-10 text-center text-gray-500">
+                    <div className="px-5 py-10 text-center text-gray-500 dark:text-gray-400">
                         No pending submissions found for the selected filters.
                     </div>
                 ) : (
@@ -496,10 +496,10 @@ export default function ScoreReviewDesk({
                                         onClick={() => setSelectedWorkflowId(workflow.id)}
                                         className={`cursor-pointer ${isSelected ? "bg-primary-50" : ""}`}
                                     >
-                                        <TableCell className="font-medium text-gray-900">{workflow.subjectName}</TableCell>
-                                        <TableCell className="text-gray-600">{workflow.classLabel}</TableCell>
-                                        <TableCell className="text-gray-600">{workflow.subjectTeacherName}</TableCell>
-                                        <TableCell className="text-gray-500">{formatDateTime(workflow.updatedAt)}</TableCell>
+                                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">{workflow.subjectName}</TableCell>
+                                        <TableCell className="text-gray-600 dark:text-gray-400">{workflow.classLabel}</TableCell>
+                                        <TableCell className="text-gray-600 dark:text-gray-400">{workflow.subjectTeacherName}</TableCell>
+                                        <TableCell className="text-gray-500 dark:text-gray-400">{formatDateTime(workflow.updatedAt)}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${meta.className}`}>
                                                 {meta.label}
@@ -514,29 +514,29 @@ export default function ScoreReviewDesk({
             </div>
 
             {selectedWorkflow && (
-                <div className="rounded-2xl border border-gray-200 bg-white">
-                    <div className="border-b border-gray-200 px-5 py-4">
+                <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                    <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
                         <div className="flex flex-wrap items-center gap-3">
-                            <h2 className="text-lg font-semibold text-gray-900">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {selectedWorkflow.subjectName} - {selectedWorkflow.classLabel}
                             </h2>
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusMeta(selectedWorkflow.status).className}`}>
                                 {statusMeta(selectedWorkflow.status).label}
                             </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             Submitted by {selectedWorkflow.subjectTeacherName} on {formatDateTime(selectedWorkflow.createdAt)}
                         </p>
                         {selectedWorkflow.rejectionReason && (
-                            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                            <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
                                 Rejection reason: {selectedWorkflow.rejectionReason}
                             </p>
                         )}
                     </div>
 
-                    <div className="border-b border-gray-200 px-5 py-4">
-                        <div className="text-sm text-gray-600">
-                            Class average: <span className="font-semibold text-gray-900">{classAverage}</span>
+                    <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Class average: <span className="font-semibold text-gray-900 dark:text-gray-100">{classAverage}</span>
                         </div>
                     </div>
 
@@ -546,11 +546,11 @@ export default function ScoreReviewDesk({
                                 <div className="h-7 w-7 animate-spin rounded-full border-b-2 border-primary-600" />
                             </div>
                         ) : assessmentColumns.length === 0 ? (
-                            <div className="py-8 text-center text-gray-500">
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
                                 No active assessment columns are configured by admin for this school.
                             </div>
                         ) : students.length === 0 ? (
-                            <div className="py-8 text-center text-gray-500">No score rows found for this submission.</div>
+                            <div className="py-8 text-center text-gray-500 dark:text-gray-400">No score rows found for this submission.</div>
                         ) : (
                             <Table>
                                 <TableHeader>
@@ -572,10 +572,10 @@ export default function ScoreReviewDesk({
                                         <TableRow key={student.id}>
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>
-                                                <div className="font-medium text-gray-900">
+                                                <div className="font-medium text-gray-900 dark:text-gray-100">
                                                     {student.lastName} {student.firstName}
                                                 </div>
-                                                <div className="text-xs text-gray-500">{student.admissionNumber}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">{student.admissionNumber}</div>
                                             </TableCell>
                                             {assessmentColumns.map((column) => (
                                                 <TableCell key={`${student.id}-${column.id}`} className="text-center">
@@ -594,7 +594,7 @@ export default function ScoreReviewDesk({
                         )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-700">
                         {showRejectBox && (
                             <div className="w-full md:w-auto md:min-w-[360px]">
                                 <Input
@@ -615,7 +615,7 @@ export default function ScoreReviewDesk({
                                                 setShowRejectBox(false);
                                                 setRejectNote("");
                                             }}
-                                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                         >
                                             Cancel
                                         </button>

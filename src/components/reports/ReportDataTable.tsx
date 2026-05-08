@@ -85,21 +85,21 @@ export default function ReportDataTable({
     return (
         <Card className="overflow-hidden">
             {(termId && classArmId) && (
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <span className="text-sm font-medium text-gray-700">{students.length} student(s)</span>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{students.length} student(s)</span>
                     <div className="relative">
                         <button
                             onClick={() => setExportOpen(v => !v)}
                             aria-label="Export broadsheet"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                         >
                             <Download className="h-4 w-4" />
                             Export
                         </button>
                         {exportOpen && (
-                            <div className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-gray-200 bg-white shadow-lg py-1">
-                                <button onClick={() => handleExport("csv")} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Download CSV</button>
-                                <button onClick={() => handleExport("excel")} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">Download Excel</button>
+                            <div className="absolute right-0 top-full mt-1 z-20 w-36 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-lg py-1">
+                                <button onClick={() => handleExport("csv")} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300">Download CSV</button>
+                                <button onClick={() => handleExport("excel")} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300">Download Excel</button>
                             </div>
                         )}
                     </div>
@@ -138,13 +138,13 @@ export default function ReportDataTable({
                                         onChange={() => handleSelectStudent(student.id)}
                                     />
                                 </TableCell>
-                                <TableCell className="font-medium text-slate-900">
+                                <TableCell className="font-medium text-slate-900 dark:text-gray-100">
                                     {student.lastName} {student.firstName}
                                 </TableCell>
-                                <TableCell className="text-slate-500">
+                                <TableCell className="text-slate-500 dark:text-gray-400">
                                     {student.admissionNumber}
                                 </TableCell>
-                                <TableCell className="text-slate-500 font-mono">
+                                <TableCell className="text-slate-500 dark:text-gray-400 font-mono">
                                     {student.average !== undefined ? `${formatScore(student.average)}%` : "-"}
                                 </TableCell>
                                 <TableCell>
@@ -153,7 +153,7 @@ export default function ReportDataTable({
                                             Published
                                         </span>
                                     ) : (
-                                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
+                                        <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 dark:bg-gray-700 text-slate-800 dark:text-gray-300">
                                             Unpublished
                                         </span>
                                     )}
@@ -168,7 +168,7 @@ export default function ReportDataTable({
                                         <button
                                             onClick={() => onOpenComment(student)}
                                             disabled={!commentEnabled}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-700 border border-transparent hover:border-slate-200 dark:hover:border-gray-600 transition-all disabled:cursor-not-allowed disabled:text-slate-400 dark:disabled:text-gray-600 disabled:hover:bg-transparent"
                                             title="Add/Edit Comments"
                                         >
                                             Comment
@@ -178,7 +178,7 @@ export default function ReportDataTable({
                                             <button
                                                 onClick={() => onClassApproveStudent(student)}
                                                 disabled={workflowBusyAction !== null}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
                                             >
                                                 Approve
                                             </button>
@@ -189,14 +189,14 @@ export default function ReportDataTable({
                                                 <button
                                                     onClick={() => onAdminApproveStudent(student)}
                                                     disabled={workflowBusyAction !== null}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
                                                 >
                                                     Admin Approve
                                                 </button>
                                                 <button
                                                     onClick={() => onAdminRejectStudent(student)}
                                                     disabled={workflowBusyAction !== null}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
                                                 >
                                                     Reject
                                                 </button>
@@ -214,26 +214,26 @@ export default function ReportDataTable({
                 </Table>
             </div>
 
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-100 sm:px-6">
+            <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-slate-100 dark:border-gray-700 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={safeCurrentPage === 1}
-                        className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="relative inline-flex items-center px-4 py-2 border border-slate-300 dark:border-gray-600 text-sm font-medium rounded-md text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Previous
                     </button>
                     <button
                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={safeCurrentPage >= totalPages}
-                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 dark:border-gray-600 text-sm font-medium rounded-md text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Next
                     </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-sm text-slate-700">
+                        <p className="text-sm text-slate-700 dark:text-gray-300">
                             Showing <span className="font-medium">{totalStudents > 0 ? startIndex + 1 : 0}</span> to{" "}
                             <span className="font-medium">{endIndex}</span> of{" "}
                             <span className="font-medium">{totalStudents}</span> results
@@ -244,7 +244,7 @@ export default function ReportDataTable({
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={safeCurrentPage === 1}
-                                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span className="sr-only">Previous</span>
                                 <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -260,7 +260,7 @@ export default function ReportDataTable({
                                     return (
                                         <React.Fragment key={pageNum}>
                                             {showEllipsis && (
-                                                <span className="relative inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium text-slate-700">
+                                                <span className="relative inline-flex items-center px-4 py-2 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-slate-700 dark:text-gray-300">
                                                     ...
                                                 </span>
                                             )}
@@ -269,7 +269,7 @@ export default function ReportDataTable({
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                     safeCurrentPage === pageNum
                                                         ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                                        : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                                                        : "bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600 text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700"
                                                 }`}
                                             >
                                                 {pageNum}
@@ -280,7 +280,7 @@ export default function ReportDataTable({
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 disabled={safeCurrentPage >= totalPages}
-                                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span className="sr-only">Next</span>
                                 <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

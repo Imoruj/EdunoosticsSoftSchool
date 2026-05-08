@@ -46,10 +46,10 @@ interface Teacher {
 }
 
 const roleLabels: Record<string, { label: string; color: string }> = {
-    CLASS_TEACHER: { label: "Class Teacher", color: "bg-blue-100 text-blue-800" },
-    SUBJECT_TEACHER: { label: "Subject Teacher", color: "bg-indigo-100 text-indigo-800" },
-    SCHOOL_ADMIN: { label: "Admin", color: "bg-green-100 text-green-800" },
-    PROPRIETOR: { label: "Proprietor", color: "bg-amber-100 text-amber-800" },
+    CLASS_TEACHER: { label: "Class Teacher", color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300" },
+    SUBJECT_TEACHER: { label: "Subject Teacher", color: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300" },
+    SCHOOL_ADMIN: { label: "Admin", color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300" },
+    PROPRIETOR: { label: "Proprietor", color: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300" },
 };
 
 export default function TeachersPage() {
@@ -691,8 +691,8 @@ export default function TeachersPage() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff</h1>
-                    <p className="text-slate-500 mt-1 font-medium">Manage teachers, executives, and school-level staff accounts</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100 tracking-tight">Staff</h1>
+                    <p className="text-slate-500 dark:text-gray-400 mt-1 font-medium">Manage teachers, executives, and school-level staff accounts</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <Button
@@ -747,7 +747,7 @@ export default function TeachersPage() {
 
             {/* Error / Success Messages */}
             {error && (
-                <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 p-4 rounded-xl border border-red-100 dark:border-red-900/50 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <svg className="w-5 h-5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -755,7 +755,7 @@ export default function TeachersPage() {
                 </div>
             )}
             {successMessage && (
-                <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <svg className="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -767,53 +767,53 @@ export default function TeachersPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="p-4 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center border border-primary-100/50">
+                        <div className="w-12 h-12 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center border border-primary-100/50 dark:border-primary-800/50">
                             <svg className="w-6 h-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{totalTeachers}</p>
-                            <p className="text-sm font-medium text-slate-500 mt-1">Total Staff</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-gray-100 leading-none">{totalTeachers}</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400 mt-1">Total Staff</p>
                         </div>
                     </div>
                 </Card>
                 <Card className="p-4 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100/50">
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center border border-blue-100/50 dark:border-blue-800/50">
                             <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{classTeachersCount}</p>
-                            <p className="text-sm font-medium text-slate-500 mt-1">Class Teachers</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-gray-100 leading-none">{classTeachersCount}</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400 mt-1">Class Teachers</p>
                         </div>
                     </div>
                 </Card>
                 <Card className="p-4 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center border border-purple-100/50">
+                        <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center border border-purple-100/50 dark:border-purple-800/50">
                             <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{executiveCount}</p>
-                            <p className="text-sm font-medium text-slate-500 mt-1">Executives</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-gray-100 leading-none">{executiveCount}</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400 mt-1">Executives</p>
                         </div>
                     </div>
                 </Card>
                 <Card className="p-4 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100/50">
+                        <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-800/50">
                             <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-slate-900 leading-none">{activeTeachers}</p>
-                            <p className="text-sm font-medium text-slate-500 mt-1">Active Staff</p>
+                            <p className="text-2xl font-bold text-slate-900 dark:text-gray-100 leading-none">{activeTeachers}</p>
+                            <p className="text-sm font-medium text-slate-500 dark:text-gray-400 mt-1">Active Staff</p>
                         </div>
                     </div>
                 </Card>
@@ -844,7 +844,7 @@ export default function TeachersPage() {
                     <select
                         value={selectedRole}
                         onChange={(e) => setSelectedRole(e.target.value)}
-                        className="flex h-10 w-full md:w-48 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full md:w-48 items-center justify-between rounded-md border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <option value="All">All Roles</option>
                         {Object.entries(roleLabels).map(([key, { label }]) => (
@@ -858,18 +858,18 @@ export default function TeachersPage() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
-                    <p className="text-slate-500 font-medium animate-pulse">Loading staff...</p>
+                    <p className="text-slate-500 dark:text-gray-400 font-medium animate-pulse">Loading staff...</p>
                 </div>
             ) : filteredTeachers.length === 0 ? (
-                <Card className="text-center py-16 border-dashed border-2 border-slate-200 bg-slate-50/50 rounded-2xl">
+                <Card className="text-center py-16 border-dashed border-2 border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 rounded-2xl">
                     <div className="max-w-xs mx-auto">
-                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900">No staff found</h3>
-                        <p className="text-slate-500 mt-1">Try adjusting your search or filters to find what you're looking for.</p>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100">No staff found</h3>
+                        <p className="text-slate-500 dark:text-gray-400 mt-1">Try adjusting your search or filters to find what you're looking for.</p>
                         <Button
                             variant="primary"
                             className="mt-6"
@@ -891,18 +891,18 @@ export default function TeachersPage() {
 
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary-100/50 bg-gradient-to-br from-primary-50 to-primary-100/30 transition-transform duration-300 group-hover:scale-110">
-                                        <span className="text-primary-700 font-bold text-lg uppercase">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary-100/50 dark:border-primary-800/50 bg-gradient-to-br from-primary-50 to-primary-100/30 dark:from-primary-900/30 dark:to-primary-800/20 transition-transform duration-300 group-hover:scale-110">
+                                        <span className="text-primary-700 dark:text-primary-300 font-bold text-lg uppercase">
                                             {teacher.firstName[0]}{teacher.lastName[0]}
                                         </span>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100 leading-tight truncate">
                                             {teacher.firstName} {teacher.lastName}
                                         </h3>
                                         <div className="flex flex-wrap gap-1 mt-1.5">
                                             {teacher.roles.map((role) => (
-                                                <span key={role} className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${roleLabels[role]?.color || "bg-slate-100 text-slate-800"}`}>
+                                                <span key={role} className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${roleLabels[role]?.color || "bg-slate-100 dark:bg-gray-700 text-slate-800 dark:text-gray-300"}`}>
                                                     {roleLabels[role]?.label || role}
                                                 </span>
                                             ))}
@@ -912,7 +912,7 @@ export default function TeachersPage() {
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => openBranchModal(teacher)}
-                                        className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-all"
+                                        className="p-2 text-slate-400 dark:text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-xl transition-all"
                                         title="Manage Branch Access"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -921,7 +921,7 @@ export default function TeachersPage() {
                                     </button>
                                     <button
                                         onClick={() => setEditingTeacher(teacher)}
-                                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+                                        className="p-2 text-slate-400 dark:text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
                                         title="Edit Staff Member"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -959,16 +959,16 @@ export default function TeachersPage() {
                             </div>
 
                             <div className="mt-6 space-y-3">
-                                <div className="flex items-center gap-3 text-sm text-slate-500">
-                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                                <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-gray-400">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-gray-700 flex items-center justify-center">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                         </svg>
                                     </div>
                                     <span className="truncate flex-1 font-medium">{teacher.email}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-slate-500">
-                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                                <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-gray-400">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-gray-700 flex items-center justify-center">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                         </svg>
@@ -977,8 +977,8 @@ export default function TeachersPage() {
                                 </div>
 
                                 {teacher.assignedClass && (
-                                    <div className="flex items-center gap-3 text-sm text-slate-500">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                                    <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-gray-400">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-gray-700 flex items-center justify-center">
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
@@ -988,14 +988,14 @@ export default function TeachersPage() {
                                 )}
 
                                 {/* Branch access row */}
-                                <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-gray-700/50 border border-slate-100 dark:border-gray-600">
                                     <div className="flex items-center gap-2">
                                         <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                                         </svg>
                                         <div>
-                                            <p className="text-xs font-semibold text-slate-700 leading-tight">Branch switching</p>
-                                            <p className="text-[10px] text-slate-400 leading-tight">{teacher.branchCount > 1 ? `${teacher.branchCount} branches` : "1 branch"}</p>
+                                            <p className="text-xs font-semibold text-slate-700 dark:text-gray-300 leading-tight">Branch switching</p>
+                                            <p className="text-[10px] text-slate-400 dark:text-gray-500 leading-tight">{teacher.branchCount > 1 ? `${teacher.branchCount} branches` : "1 branch"}</p>
                                         </div>
                                     </div>
                                     <button
@@ -1007,10 +1007,10 @@ export default function TeachersPage() {
                                     </button>
                                 </div>
 
-                                <div className="pt-3 border-t border-slate-100">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 block">Subjects & Classes</span>
+                                <div className="pt-3 border-t border-slate-100 dark:border-gray-700">
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-2.5 block">Subjects & Classes</span>
                                     {(teacher.subjectAssignments || []).length === 0 ? (
-                                        <p className="text-xs text-slate-400 italic">No subjects assigned</p>
+                                        <p className="text-xs text-slate-400 dark:text-gray-500 italic">No subjects assigned</p>
                                     ) : (
                                         <div className="space-y-2">
                                             {Object.entries(
@@ -1024,7 +1024,7 @@ export default function TeachersPage() {
                                                 <div key={subject} className="flex items-start gap-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-primary-400 mt-[6px] shrink-0" />
                                                     <div className="min-w-0">
-                                                        <span className="text-xs font-semibold text-slate-700 leading-tight">{subject}</span>
+                                                        <span className="text-xs font-semibold text-slate-700 dark:text-gray-300 leading-tight">{subject}</span>
                                                         <div className="flex flex-wrap gap-1 mt-0.5">
                                                             {classEntries.map((entry, i) => {
                                                                 const armShort = entry.armName ? entry.armName.slice(0, 3) : '';
@@ -1032,7 +1032,7 @@ export default function TeachersPage() {
                                                                     ? `${entry.className}${armShort}`
                                                                     : entry.armName || '—';
                                                                 return (
-                                                                    <span key={i} className="inline-flex items-center px-1.5 py-px rounded bg-primary-50 text-primary-700 text-[10px] font-medium border border-primary-100/60">
+                                                                    <span key={i} className="inline-flex items-center px-1.5 py-px rounded bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[10px] font-medium border border-primary-100/60 dark:border-primary-800/60">
                                                                         {label}
                                                                     </span>
                                                                 );
@@ -1054,14 +1054,14 @@ export default function TeachersPage() {
             {branchModalTeacher && (
                 <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} />
-                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col border-none animate-in zoom-in-95 duration-200">
+                    <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md flex flex-col border-none animate-in zoom-in-95 duration-200">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-700/50 rounded-t-3xl">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Branch Access</h3>
-                                <p className="text-sm text-slate-500">{branchModalTeacher.firstName} {branchModalTeacher.lastName}</p>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100">Branch Access</h3>
+                                <p className="text-sm text-slate-500 dark:text-gray-400">{branchModalTeacher.firstName} {branchModalTeacher.lastName}</p>
                             </div>
-                            <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all">
+                            <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="p-2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-full transition-all">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
@@ -1069,17 +1069,17 @@ export default function TeachersPage() {
                         <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
                             {branchModalLoading ? (
                                 <div className="space-y-3">
-                                    {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}
+                                    {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-slate-100 dark:bg-gray-700 rounded-xl animate-pulse" />)}
                                 </div>
                             ) : !branchModalData ? (
-                                <p className="text-sm text-slate-500 text-center py-4">Failed to load branch data.</p>
+                                <p className="text-sm text-slate-500 dark:text-gray-400 text-center py-4">Failed to load branch data.</p>
                             ) : (
                                 <>
                                     {/* Branch Switching Toggle */}
-                                    <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-slate-50">
+                                    <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700/50">
                                         <div>
-                                            <p className="text-sm font-semibold text-slate-800">Branch Switching</p>
-                                            <p className="text-xs text-slate-500 mt-0.5">Allow this staff member to switch between branches</p>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-gray-200">Branch Switching</p>
+                                            <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Allow this staff member to switch between branches</p>
                                         </div>
                                         <button
                                             onClick={() => setBranchModalData({ ...branchModalData, canSwitchBranches: !branchModalData.canSwitchBranches })}
@@ -1091,45 +1091,45 @@ export default function TeachersPage() {
 
                                     {/* Single Login Credential */}
                                     {branchModalData.duplicateAccounts.length === 0 ? (
-                                        <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 flex items-start gap-3">
+                                        <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 flex items-start gap-3">
                                             <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             <div>
-                                                <p className="text-sm font-semibold text-emerald-800">Single Login Credential Active</p>
-                                                <p className="text-xs text-emerald-700 mt-0.5">No duplicate accounts found. This staff member uses one set of credentials across all assigned branches.</p>
+                                                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Single Login Credential Active</p>
+                                                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">No duplicate accounts found. This staff member uses one set of credentials across all assigned branches.</p>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="rounded-2xl border border-amber-300 bg-amber-50 overflow-hidden">
+                                        <div className="rounded-2xl border border-amber-300 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 overflow-hidden">
                                             {/* Header */}
                                             <div className="flex items-start gap-3 p-4">
                                                 <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                 </svg>
                                                 <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-amber-800">Duplicate Accounts Detected</p>
-                                                    <p className="text-xs text-amber-700 mt-0.5">{branchModalData.duplicateAccounts.length} separate account{branchModalData.duplicateAccounts.length > 1 ? "s" : ""} with the same name found in other branches. Select which to adopt — their access is merged here and their old login is disabled.</p>
+                                                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Duplicate Accounts Detected</p>
+                                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{branchModalData.duplicateAccounts.length} separate account{branchModalData.duplicateAccounts.length > 1 ? "s" : ""} with the same name found in other branches. Select which to adopt — their access is merged here and their old login is disabled.</p>
                                                 </div>
                                             </div>
 
                                             {/* Select all / deselect all */}
-                                            <div className="flex items-center justify-between px-4 py-1.5 border-t border-amber-200 bg-amber-100/60">
-                                                <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">{selectedDuplicateIds.length} of {branchModalData.duplicateAccounts.length} selected to adopt</span>
+                                            <div className="flex items-center justify-between px-4 py-1.5 border-t border-amber-200 dark:border-amber-800/50 bg-amber-100/60 dark:bg-amber-900/20">
+                                                <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">{selectedDuplicateIds.length} of {branchModalData.duplicateAccounts.length} selected to adopt</span>
                                                 <button
                                                     onClick={() => setSelectedDuplicateIds(
                                                         selectedDuplicateIds.length === branchModalData.duplicateAccounts.length
                                                             ? []
                                                             : branchModalData.duplicateAccounts.map((d) => d.id)
                                                     )}
-                                                    className="text-[10px] font-bold text-amber-700 hover:text-amber-900 underline transition-colors"
+                                                    className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 underline transition-colors"
                                                 >
                                                     {selectedDuplicateIds.length === branchModalData.duplicateAccounts.length ? "Deselect all" : "Select all"}
                                                 </button>
                                             </div>
 
                                             {/* Account list */}
-                                            <div className="divide-y divide-amber-100 max-h-52 overflow-y-auto">
+                                            <div className="divide-y divide-amber-100 dark:divide-amber-900/50 max-h-52 overflow-y-auto">
                                                 {branchModalData.duplicateAccounts.map((dup) => {
                                                     const isSelected = selectedDuplicateIds.includes(dup.id);
                                                     return (
@@ -1138,10 +1138,10 @@ export default function TeachersPage() {
                                                             onClick={() => setSelectedDuplicateIds((prev) =>
                                                                 isSelected ? prev.filter((x) => x !== dup.id) : [...prev, dup.id]
                                                             )}
-                                                            className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected ? "bg-amber-100" : "hover:bg-amber-50/70"}`}
+                                                            className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected ? "bg-amber-100 dark:bg-amber-900/40" : "hover:bg-amber-50/70 dark:hover:bg-amber-950/30"}`}
                                                         >
                                                             {/* Custom checkbox */}
-                                                            <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${isSelected ? "bg-amber-600 border-amber-600" : "border-amber-400 bg-white"}`}>
+                                                            <div className={`mt-0.5 w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all ${isSelected ? "bg-amber-600 border-amber-600" : "border-amber-400 bg-white dark:bg-gray-700"}`}>
                                                                 {isSelected && (
                                                                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -1152,7 +1152,7 @@ export default function TeachersPage() {
                                                             {/* Account info */}
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                                    <p className="text-xs font-bold text-slate-800">{dup.firstName} {dup.lastName}</p>
+                                                                    <p className="text-xs font-bold text-slate-800 dark:text-gray-200">{dup.firstName} {dup.lastName}</p>
                                                                     {isSelected && (
                                                                         <span className="text-[9px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">Will be disabled</span>
                                                                     )}
@@ -1160,12 +1160,12 @@ export default function TeachersPage() {
                                                                         <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Keep separate</span>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-[10px] text-slate-500 mt-0.5">{dup.email}</p>
+                                                                <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">{dup.email}</p>
                                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                                     <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                                     </svg>
-                                                                    <p className="text-[10px] text-slate-600">{dup.school?.name ?? dup.schoolId}</p>
+                                                                    <p className="text-[10px] text-slate-600 dark:text-gray-400">{dup.school?.name ?? dup.schoolId}</p>
                                                                     {dup.school?.branchCode && (
                                                                         <span className="text-[9px] font-bold bg-amber-200 text-amber-800 px-1 py-0.5 rounded">{dup.school.branchCode}</span>
                                                                     )}
@@ -1178,7 +1178,7 @@ export default function TeachersPage() {
 
                                             {/* Action footer */}
                                             {!adoptConfirmOpen ? (
-                                                <div className="p-3 border-t border-amber-200">
+                                                <div className="p-3 border-t border-amber-200 dark:border-amber-800/50">
                                                     <button
                                                         onClick={() => setAdoptConfirmOpen(true)}
                                                         disabled={selectedDuplicateIds.length === 0}
@@ -1188,10 +1188,10 @@ export default function TeachersPage() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div className="p-3 border-t border-amber-200 space-y-2">
-                                                    <p className="text-xs font-semibold text-red-700">⚠ This will permanently deactivate {selectedDuplicateIds.length} account{selectedDuplicateIds.length !== 1 ? "s" : ""}. Those users will no longer be able to log in with their old credentials.</p>
+                                                <div className="p-3 border-t border-amber-200 dark:border-amber-800/50 space-y-2">
+                                                    <p className="text-xs font-semibold text-red-700 dark:text-red-400">⚠ This will permanently deactivate {selectedDuplicateIds.length} account{selectedDuplicateIds.length !== 1 ? "s" : ""}. Those users will no longer be able to log in with their old credentials.</p>
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => setAdoptConfirmOpen(false)} className="flex-1 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">
+                                                        <button onClick={() => setAdoptConfirmOpen(false)} className="flex-1 py-1.5 text-xs font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-600 transition-all">
                                                             Cancel
                                                         </button>
                                                         <button
@@ -1210,7 +1210,7 @@ export default function TeachersPage() {
 
                                     {/* Available Branches */}
                                     <div>
-                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Branches With Matching Login Email</p>
+                                        <p className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest mb-3">Branches With Matching Login Email</p>
                                         <div className="space-y-2">
                                             {branchModalData.availableBranches.map((branch) => {
                                                 const isChecked = branchModalData.assignedBranchIds.includes(branch.id);
@@ -1218,16 +1218,16 @@ export default function TeachersPage() {
                                                     <button
                                                         key={branch.id}
                                                         onClick={() => toggleBranchId(branch.id)}
-                                                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${isChecked ? "border-violet-500 bg-violet-50" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                                                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${isChecked ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30" : "border-slate-200 dark:border-gray-600 hover:border-slate-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700"}`}
                                                     >
-                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isChecked ? "bg-violet-600" : "border-2 border-slate-300 bg-white"}`}>
+                                                        <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isChecked ? "bg-violet-600" : "border-2 border-slate-300 dark:border-gray-500 bg-white dark:bg-gray-600"}`}>
                                                             {isChecked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-slate-800 truncate">{branch.name}</p>
-                                                            <p className="text-xs text-slate-500 truncate">{branch.loginEmail || (branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code")}</p>
+                                                            <p className="text-sm font-semibold text-slate-800 dark:text-gray-200 truncate">{branch.name}</p>
+                                                            <p className="text-xs text-slate-500 dark:text-gray-400 truncate">{branch.loginEmail || (branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code")}</p>
                                                             {branch.loginEmail && (
-                                                                <p className="text-[10px] text-slate-400">{branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code"}</p>
+                                                                <p className="text-[10px] text-slate-400 dark:text-gray-500">{branch.branchCode ? `Code: ${branch.branchCode}` : "No branch code"}</p>
                                                             )}
                                                         </div>
                                                         {branch.isHeadBranch && (
@@ -1244,8 +1244,8 @@ export default function TeachersPage() {
 
                         {/* Footer */}
                         {branchModalData && (
-                            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100 rounded-b-3xl">
-                                <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+                            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100 dark:border-gray-700 rounded-b-3xl">
+                                <button onClick={() => { setBranchModalTeacher(null); setBranchModalData(null); }} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-xl transition-all">
                                     Cancel
                                 </button>
                                 <button
@@ -1267,19 +1267,19 @@ export default function TeachersPage() {
                 <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4">
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => { setShowAddModal(false); setEditingTeacher(null); }} />
 
-                    <Card className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[95vh] overflow-hidden flex flex-col border-none animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+                    <Card className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full max-h-[95vh] overflow-hidden flex flex-col border-none animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-700/50">
                             <div>
-                                <h3 className="text-xl font-bold text-slate-900">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100">
                                     {editingTeacher ? "Edit Staff Member" : "Add New Staff Member"}
                                 </h3>
-                                <p className="text-sm text-slate-500 font-medium">
+                                <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">
                                     {editingTeacher ? "Update staff information and permissions" : "Register a new staff member account"}
                                 </p>
                             </div>
                             <button
                                 onClick={() => { setShowAddModal(false); setEditingTeacher(null); }}
-                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                                className="p-2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-full transition-all"
                             >
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1290,7 +1290,7 @@ export default function TeachersPage() {
                         <form onSubmit={handleAddTeacher} className="flex-1 overflow-y-auto p-6 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
+                                    <label className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider ml-1">
                                         First Name <span className="text-red-500">*</span>
                                     </label>
                                     <Input
@@ -1302,7 +1302,7 @@ export default function TeachersPage() {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
+                                    <label className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider ml-1">
                                         Last Name <span className="text-red-500">*</span>
                                     </label>
                                     <Input
@@ -1355,7 +1355,7 @@ export default function TeachersPage() {
                                     }}
                                     disabled={branchMetadataLoading}
                                     required
-                                    className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-11 w-full items-center justify-between rounded-md border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-slate-900 dark:text-gray-200 ring-offset-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <option value="">Select branch</option>
                                     {metadata.branches.map((branch) => (
@@ -1364,7 +1364,7 @@ export default function TeachersPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="text-[11px] text-slate-500 ml-1">
+                                <p className="text-[11px] text-slate-500 dark:text-gray-400 ml-1">
                                     {branchMetadataLoading ? "Loading this branch's roles, classes, and subjects..." : "Roles, classes, and subjects below will be assigned in this branch."}
                                 </p>
                             </div>
@@ -1373,9 +1373,9 @@ export default function TeachersPage() {
                                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
                                     Staff Role Selection <span className="text-red-500">*</span>
                                 </label>
-                                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                                <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 rounded-2xl">
                                     {Object.entries(roleLabels).map(([value, { label }]) => (
-                                        <label key={value} className="flex items-center gap-3 cursor-pointer group hover:bg-white p-2 rounded-xl transition-all border border-transparent hover:border-slate-100 hover:shadow-sm">
+                                        <label key={value} className="flex items-center gap-3 cursor-pointer group hover:bg-white dark:hover:bg-gray-700 p-2 rounded-xl transition-all border border-transparent hover:border-slate-100 dark:hover:border-gray-600 hover:shadow-sm">
                                             <input
                                                 type="checkbox"
                                                 className="w-4 h-4 text-primary-600 rounded-md border-slate-300 focus:ring-primary-500 transition-all cursor-pointer"
@@ -1395,7 +1395,7 @@ export default function TeachersPage() {
                                                     }));
                                                 }}
                                             />
-                                            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{label}</span>
+                                            <span className="text-sm font-semibold text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-gray-100 transition-colors">{label}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -1404,10 +1404,10 @@ export default function TeachersPage() {
                             {formData.roles.includes("CLASS_TEACHER") && (
                                 <div className="space-y-4 pt-2">
                                     <div className="flex items-center justify-between px-1">
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Assign Class(es)</label>
-                                        <span className="text-[10px] font-medium text-slate-400">Select classes to assign as teacher</span>
+                                        <label className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider">Assign Class(es)</label>
+                                        <span className="text-[10px] font-medium text-slate-400 dark:text-gray-500">Select classes to assign as teacher</span>
                                     </div>
-                                    <div className="max-h-40 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                                    <div className="max-h-40 overflow-y-auto p-3 bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 rounded-2xl space-y-2">
                                         {metadata.classes
                                             .filter(cls => {
                                                 // Show class arms that: have no teacher, are already assigned to this teacher
@@ -1418,7 +1418,7 @@ export default function TeachersPage() {
                                                     (editingTeacher && cls.classTeacherId === editingTeacher.id);
                                             })
                                             .map((cls) => (
-                                                <label key={cls.id} className="flex items-center gap-3 cursor-pointer group hover:bg-white p-2 rounded-xl transition-all border border-transparent hover:border-slate-100">
+                                                <label key={cls.id} className="flex items-center gap-3 cursor-pointer group hover:bg-white dark:hover:bg-gray-600 p-2 rounded-xl transition-all border border-transparent hover:border-slate-100 dark:hover:border-gray-500">
                                                     <input
                                                         type="checkbox"
                                                         className="w-4 h-4 text-primary-600 rounded-md border-slate-300 focus:ring-primary-500 transition-all cursor-pointer"
@@ -1430,7 +1430,7 @@ export default function TeachersPage() {
                                                             setFormData({ ...formData, classArmIds });
                                                         }}
                                                     />
-                                                    <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">{cls.name}</span>
+                                                    <span className="text-sm font-semibold text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-gray-100 transition-colors">{cls.name}</span>
                                                 </label>
                                             ))}
                                         {metadata.classes.filter(cls =>
@@ -1439,7 +1439,7 @@ export default function TeachersPage() {
                                             (editingTeacher && cls.classTeacherId === editingTeacher.id)
                                         ).length === 0 && (
                                             <div className="py-8 text-center">
-                                                <p className="text-sm text-slate-400 font-medium italic">No available classes to assign</p>
+                                                <p className="text-sm text-slate-400 dark:text-gray-500 font-medium italic">No available classes to assign</p>
                                             </div>
                                         )}
                                     </div>
@@ -1449,19 +1449,19 @@ export default function TeachersPage() {
                             {formData.roles.includes("SUBJECT_TEACHER") && (
                                 <div className="space-y-4 pt-2">
                                     <div className="flex items-center justify-between px-1">
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Assign Subject-Class Pairs</label>
-                                        <span className="text-[10px] font-medium text-slate-400">Select one subject at a time</span>
+                                        <label className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider">Assign Subject-Class Pairs</label>
+                                        <span className="text-[10px] font-medium text-slate-400 dark:text-gray-500">Select one subject at a time</span>
                                     </div>
 
                                     {/* Current Selection */}
-                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                                    <div className="p-4 bg-slate-50 dark:bg-gray-700/50 border border-slate-200 dark:border-gray-600 rounded-2xl space-y-4">
                                         {/* Subject Selector */}
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Select Subject</label>
+                                            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest pl-1">Select Subject</label>
                                             <select
                                                 value={currentSubject}
                                                 onChange={(e) => handleSubjectChange(e.target.value)}
-                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-900 dark:text-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                                             >
                                                 <option value="">-- Choose a subject --</option>
                                                 {metadata.subjects.map((subj) => (
@@ -1473,21 +1473,21 @@ export default function TeachersPage() {
                                         {/* Class Arms for Current Subject */}
                                         {currentSubject && (
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Select Classes for {metadata.subjects.find(s => s.id === currentSubject)?.name}</label>
-                                                <div className="max-h-32 overflow-y-auto bg-white border border-slate-200 rounded-xl p-2 space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest pl-1">Select Classes for {metadata.subjects.find(s => s.id === currentSubject)?.name}</label>
+                                                <div className="max-h-32 overflow-y-auto bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl p-2 space-y-1">
                                                     {availableClassArms.map((cls) => (
-                                                        <label key={cls.id} className="flex items-center gap-2.5 p-1.5 cursor-pointer group hover:bg-slate-50 rounded-lg transition-all">
+                                                        <label key={cls.id} className="flex items-center gap-2.5 p-1.5 cursor-pointer group hover:bg-slate-50 dark:hover:bg-gray-600 rounded-lg transition-all">
                                                             <input
                                                                 type="checkbox"
                                                                 className="w-3.5 h-3.5 text-primary-600 rounded border-slate-300 transition-all cursor-pointer"
                                                                 checked={currentClassArms.includes(cls.id)}
                                                                 onChange={() => toggleCurrentClassArm(cls.id)}
                                                             />
-                                                            <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">{cls.name}</span>
+                                                            <span className="text-xs font-semibold text-slate-600 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-gray-100 transition-colors">{cls.name}</span>
                                                         </label>
                                                     ))}
                                                     {availableClassArms.length === 0 && (
-                                                        <p className="text-[10px] text-slate-400 font-medium italic p-4 text-center">
+                                                        <p className="text-[10px] text-slate-400 dark:text-gray-500 font-medium italic p-4 text-center">
                                                             No classes offer this subject
                                                         </p>
                                                     )}
@@ -1510,15 +1510,15 @@ export default function TeachersPage() {
                                     {/* Saved Subject-Class Pairs */}
                                     {savedSubjectPairs.length > 0 && (
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Assigned Subjects ({subjectsWithPairs.length})</label>
+                                            <label className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest pl-1">Assigned Subjects ({subjectsWithPairs.length})</label>
                                             <div className="space-y-2">
                                                 {subjectsWithPairs.map(subjectId => {
                                                     const subject = metadata.subjects.find(s => s.id === subjectId);
                                                     const pairs = savedSubjectPairs.filter(p => p.subjectId === subjectId);
                                                     return (
-                                                        <div key={subjectId} className="p-3 bg-white border border-slate-200 rounded-xl">
+                                                        <div key={subjectId} className="p-3 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl">
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <h4 className="text-sm font-bold text-slate-700">{subject?.name}</h4>
+                                                                <h4 className="text-sm font-bold text-slate-700 dark:text-gray-300">{subject?.name}</h4>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => removeSubjectPairs(subjectId)}
@@ -1533,7 +1533,7 @@ export default function TeachersPage() {
                                                                     return (
                                                                         <span
                                                                             key={`${pair.subjectId}-${pair.classArmId}`}
-                                                                            className="inline-flex items-center gap-1.5 px-2 py-1 bg-primary-50 border border-primary-200 text-primary-700 rounded-lg text-xs font-semibold"
+                                                                            className="inline-flex items-center gap-1.5 px-2 py-1 bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800/50 text-primary-700 dark:text-primary-300 rounded-lg text-xs font-semibold"
                                                                         >
                                                                             {cls?.name}
                                                                             <button
@@ -1555,7 +1555,7 @@ export default function TeachersPage() {
                                             </div>
                                             <div className="flex items-center gap-2 px-1">
                                                 <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
-                                                <p className="text-[10px] font-bold text-slate-500">
+                                                <p className="text-[10px] font-bold text-slate-500 dark:text-gray-400">
                                                     {savedSubjectPairs.length} TOTAL ASSIGNMENTS
                                                 </p>
                                             </div>
@@ -1564,11 +1564,11 @@ export default function TeachersPage() {
 
                                     {/* Conflicts Warning */}
                                     {assignmentConflicts.length > 0 && (
-                                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                                        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl flex items-start gap-3">
                                             <svg className="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            <p className="text-xs font-medium text-red-700">
+                                            <p className="text-xs font-medium text-red-700 dark:text-red-400">
                                                 Conflicts detected: Some combinations are already assigned to other teachers.
                                             </p>
                                         </div>
@@ -1577,7 +1577,7 @@ export default function TeachersPage() {
                             )}
                         </form>
 
-                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
+                        <div className="p-6 border-t border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-700/50 flex items-center justify-end gap-3">
                             <Button
                                 type="button"
                                 variant="secondary"
@@ -1614,20 +1614,20 @@ export default function TeachersPage() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overflow-x-hidden p-4">
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={cancelSubjectSwitch} />
 
-                    <Card className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-none animate-in zoom-in-95 duration-200">
+                    <Card className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border-none animate-in zoom-in-95 duration-200">
                         <div className="p-6 text-center">
                             {/* Warning Icon */}
-                            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                            <div className="mx-auto w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
                                 <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
 
                             {/* Warning Message */}
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">Unsaved Changes</h3>
-                            <p className="text-slate-600 mb-6">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100 mb-2">Unsaved Changes</h3>
+                            <p className="text-slate-600 dark:text-gray-400 mb-6">
                                 You have selected {currentClassArms.length} class{currentClassArms.length !== 1 ? 'es' : ''} for{' '}
-                                <span className="font-semibold text-slate-900">
+                                <span className="font-semibold text-slate-900 dark:text-gray-100">
                                     {metadata.subjects.find(s => s.id === currentSubject)?.name}
                                 </span>
                                 . These selections will be lost if you switch subjects without saving.
@@ -1670,9 +1670,9 @@ export default function TeachersPage() {
                     <div className="flex min-h-screen items-center justify-center p-4">
                         <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => !importing && setShowImportModal(false)} />
 
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">Import Staff from CSV</h3>
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Staff from CSV</h3>
                                 <button
                                     onClick={() => {
                                         if (!importing) {
@@ -1683,7 +1683,7 @@ export default function TeachersPage() {
                                             setCreateLoginAccounts(true);
                                         }
                                     }}
-                                    className="text-gray-400 hover:text-gray-500"
+                                    className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
                                     disabled={importing}
                                 >
                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1694,7 +1694,7 @@ export default function TeachersPage() {
 
                             <div className="p-6 space-y-4">
                                 {/* Instructions */}
-                                <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+                                <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-4">
                                     <div className="flex">
                                         <div className="shrink-0">
                                             <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -1702,15 +1702,15 @@ export default function TeachersPage() {
                                             </svg>
                                         </div>
                                         <div className="ml-3">
-                                            <p className="text-sm text-blue-700">
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
                                                 Download the staff template, fill registration data, then upload.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50 rounded-lg p-3">
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={importDryRun}
@@ -1720,7 +1720,7 @@ export default function TeachersPage() {
                                         />
                                         Dry run (validate only)
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={createLoginAccounts}
@@ -1734,7 +1734,7 @@ export default function TeachersPage() {
 
                                 {/* File Upload */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Select CSV File
                                     </label>
                                     <input
@@ -1744,7 +1744,7 @@ export default function TeachersPage() {
                                             setImportFile(e.target.files?.[0] || null);
                                             setImportResults(null);
                                         }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/50"
                                         disabled={importing}
                                     />
                                 </div>
@@ -1769,8 +1769,8 @@ export default function TeachersPage() {
                                                     </svg>
                                                     <span className="font-medium">{importResults.failed} staff account(s) failed</span>
                                                 </div>
-                                                <div className="bg-red-50 rounded-md p-3 max-h-40 overflow-y-auto">
-                                                    <ul className="text-sm text-red-700 space-y-1">
+                                                <div className="bg-red-50 dark:bg-red-950/30 rounded-md p-3 max-h-40 overflow-y-auto">
+                                                    <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
                                                         {importResults.errors.map((error: string, idx: number) => (
                                                             <li key={idx}>• {error}</li>
                                                         ))}
@@ -1782,7 +1782,7 @@ export default function TeachersPage() {
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                     <button
                                         onClick={() => {
                                             setShowImportModal(false);
@@ -1791,7 +1791,7 @@ export default function TeachersPage() {
                                             setImportDryRun(false);
                                             setCreateLoginAccounts(true);
                                         }}
-                                        className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                                        className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                         disabled={importing}
                                     >
                                         {importResults ? "Close" : "Cancel"}
@@ -1823,18 +1823,18 @@ export default function TeachersPage() {
                         }}
                     />
 
-                    <Card className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border-none animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900">Reset Password</h3>
-                            <p className="text-sm text-slate-500 mt-2">
-                                Reset password for <span className="font-semibold text-slate-700">{passwordResetTarget.firstName} {passwordResetTarget.lastName}</span>?
+                    <Card className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border-none animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-gray-100">Reset Password</h3>
+                            <p className="text-sm text-slate-500 dark:text-gray-400 mt-2">
+                                Reset password for <span className="font-semibold text-slate-700 dark:text-gray-300">{passwordResetTarget.firstName} {passwordResetTarget.lastName}</span>?
                             </p>
-                            <p className="text-sm text-slate-500 mt-1">
-                                The new temporary password will be <span className="font-semibold text-slate-700">1234</span>.
+                            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+                                The new temporary password will be <span className="font-semibold text-slate-700 dark:text-gray-300">1234</span>.
                             </p>
                         </div>
 
-                        <div className="p-4 bg-slate-50/60 border-t border-slate-100 flex items-center justify-end gap-3">
+                        <div className="p-4 bg-slate-50/60 dark:bg-gray-700/50 border-t border-slate-100 dark:border-gray-700 flex items-center justify-end gap-3">
                             <Button
                                 variant="secondary"
                                 onClick={() => setPasswordResetTarget(null)}

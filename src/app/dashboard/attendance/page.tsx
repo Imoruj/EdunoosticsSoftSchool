@@ -640,18 +640,18 @@ export default function AttendancePage() {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
-                    <p className="mt-1 text-gray-500">Mark and manage student attendance</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Attendance</h1>
+                    <p className="mt-1 text-gray-500 dark:text-gray-400">Mark and manage student attendance</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Session toggle */}
-                    <div className="flex items-center gap-1 rounded-lg bg-amber-50 p-1 ring-1 ring-amber-200">
+                    <div className="flex items-center gap-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 p-1 ring-1 ring-amber-200 dark:ring-amber-800/50">
                         <button
                             onClick={() => setSelectedPeriod("MORNING")}
                             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                                 selectedPeriod === "MORNING"
                                     ? "bg-amber-500 text-white shadow-sm"
-                                    : "text-amber-700 hover:text-amber-900"
+                                    : "text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200"
                             }`}
                         >
                             ☀ Morning
@@ -661,7 +661,7 @@ export default function AttendancePage() {
                             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                                 selectedPeriod === "AFTERNOON"
                                     ? "bg-blue-500 text-white shadow-sm"
-                                    : "text-blue-700 hover:text-blue-900"
+                                    : "text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
                             }`}
                         >
                             🌤 Afternoon
@@ -669,13 +669,13 @@ export default function AttendancePage() {
                     </div>
 
                     {/* View toggle */}
-                    <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1">
+                    <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-700 p-1">
                         <button
                             onClick={() => setViewMode("daily")}
                             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                                 viewMode === "daily"
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
+                                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm"
+                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                             }`}
                         >
                             Daily
@@ -684,8 +684,8 @@ export default function AttendancePage() {
                             onClick={() => setViewMode("weekly")}
                             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
                                 viewMode === "weekly"
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
+                                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm"
+                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                             }`}
                         >
                             Weekly
@@ -718,7 +718,7 @@ export default function AttendancePage() {
             <div className="card p-6">
                 <div className="grid gap-4 md:grid-cols-3">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700">Select Class *</label>
+                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Select Class *</label>
                         <select
                             value={selectedClassArmId}
                             onChange={(e) => setSelectedClassArmId(e.target.value)}
@@ -736,7 +736,7 @@ export default function AttendancePage() {
                     {viewMode === "daily" ? (
                         <>
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">Select Date *</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Select Date *</label>
                                 <input
                                     type="date"
                                     value={selectedDate}
@@ -764,7 +764,7 @@ export default function AttendancePage() {
                     ) : (
                         <>
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">Week Starting (Monday)</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Week Starting (Monday)</label>
                                 <input
                                     type="date"
                                     value={weekStartDate}
@@ -773,7 +773,7 @@ export default function AttendancePage() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">Attendance Week</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Attendance Week</label>
                                 <select
                                     value={selectedUnmarkedWeekValue}
                                     onChange={(e) => setWeekStartDate(e.target.value)}
@@ -796,7 +796,7 @@ export default function AttendancePage() {
                                     ))}
                                 </select>
                                 {termRangeLabel && (
-                                    <p className="mt-2 text-xs text-gray-500">
+                                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                         Current term: {termRangeLabel}
                                     </p>
                                 )}
@@ -806,8 +806,8 @@ export default function AttendancePage() {
                 </div>
 
                 {viewMode === "weekly" && selectedClassArmId && (
-                    <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-4">
-                        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-gray-100 dark:border-gray-700 pt-4">
+                        <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                             {isLoadingMarkedWeeks ? "Loading..." : "Marked:"}
                         </span>
                         {!isLoadingMarkedWeeks && (
@@ -822,8 +822,8 @@ export default function AttendancePage() {
                                             onClick={() => setWeekStartDate(week.weekStartDate)}
                                             className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all ${
                                                 isSelected
-                                                    ? "border-primary-400 bg-primary-50 text-primary-700 shadow-sm"
-                                                    : "border-gray-200 text-gray-600 hover:border-primary-300 hover:bg-gray-50"
+                                                    ? "border-primary-400 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm"
+                                                    : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                                             }`}
                                         >
                                             {week.shortLabel}
@@ -831,7 +831,7 @@ export default function AttendancePage() {
                                     );
                                 })
                             ) : (
-                                <span className="text-xs italic text-gray-400">No weeks marked yet this term.</span>
+                                <span className="text-xs italic text-gray-400 dark:text-gray-500">No weeks marked yet this term.</span>
                             )
                         )}
                     </div>
@@ -846,10 +846,10 @@ export default function AttendancePage() {
                         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                             {(["present", "absent", "late", "excused"] as const).map((key) => {
                                 const colors = {
-                                    present: "bg-green-100 text-green-600",
-                                    absent: "bg-red-100 text-red-600",
-                                    late: "bg-amber-100 text-amber-600",
-                                    excused: "bg-blue-100 text-blue-600",
+                                    present: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+                                    absent: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
+                                    late: "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
+                                    excused: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
                                 };
 
                                 return (
@@ -858,7 +858,7 @@ export default function AttendancePage() {
                                             <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colors[key]}`}>
                                                 <span className="font-bold">{dailyStats[key]}</span>
                                             </div>
-                                            <p className="text-sm capitalize text-gray-500">{key}</p>
+                                            <p className="text-sm capitalize text-gray-500 dark:text-gray-400">{key}</p>
                                         </div>
                                     </div>
                                 );
@@ -868,9 +868,9 @@ export default function AttendancePage() {
 
                     {showTable ? (
                         <div className="card overflow-hidden">
-                            <div className="border-b border-gray-200 bg-gray-50 p-4">
+                            <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4">
                                 <div className="flex items-center gap-3">
-                                    <h3 className="font-semibold text-gray-900">
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                                         {selectedClassName} —{" "}
                                         {parseDateStr(selectedDate).toLocaleDateString("en-NG", {
                                             weekday: "long",
@@ -881,37 +881,37 @@ export default function AttendancePage() {
                                     </h3>
                                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                         selectedPeriod === "MORNING"
-                                            ? "bg-amber-100 text-amber-700"
-                                            : "bg-blue-100 text-blue-700"
+                                            ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                                            : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                                     }`}>
                                         {selectedPeriod === "MORNING" ? "☀ Morning Session" : "🌤 Afternoon Session"}
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-500">{students.length} students</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{students.length} students</p>
                             </div>
                             <div className="overflow-x-auto">
                                 {isLoading ? (
-                                    <div className="p-12 text-center text-gray-500">Loading students...</div>
+                                    <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading students...</div>
                                 ) : students.length === 0 ? (
-                                    <div className="p-12 text-center text-gray-500">No students found in this class.</div>
+                                    <div className="p-12 text-center text-gray-500 dark:text-gray-400">No students found in this class.</div>
                                 ) : (
                                     <table className="w-full">
-                                        <thead className="border-b border-gray-200 bg-gray-50">
+                                        <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th className="w-16 px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">S/N</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Student</th>
-                                                <th className="px-6 py-3 text-center text-xs font-medium uppercase text-gray-500">Status</th>
+                                                <th className="w-16 px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">S/N</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Student</th>
+                                                <th className="px-6 py-3 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Status</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                                             {students.map((student, index) => (
-                                                <tr key={student.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
+                                                <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{index + 1}</td>
                                                     <td className="px-6 py-4">
-                                                        <p className="text-sm font-medium text-gray-900">
+                                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {student.lastName} {student.firstName}
                                                         </p>
-                                                        <p className="font-mono text-xs text-gray-500">{student.admissionNumber}</p>
+                                                        <p className="font-mono text-xs text-gray-500 dark:text-gray-400">{student.admissionNumber}</p>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center justify-center gap-2">
@@ -922,7 +922,7 @@ export default function AttendancePage() {
                                                                     className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                                                                         student.status === status
                                                                             ? `${STATUS_COLORS[status].bg} ${STATUS_COLORS[status].text} ring-2 ring-current ring-offset-1`
-                                                                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                                                            : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
                                                                     }`}
                                                                 >
                                                                     {status.charAt(0) + status.slice(1).toLowerCase()}
@@ -937,15 +937,15 @@ export default function AttendancePage() {
                                 )}
                             </div>
                             {!isLoading && students.length > 0 && (
-                                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4">
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">
+                                        <span className="text-gray-500 dark:text-gray-400">
                                             Attendance Rate:{" "}
                                             <span className="font-bold text-green-600">
                                                 {((dailyStats.present / students.length) * 100).toFixed(1)}%
                                             </span>
                                         </span>
-                                        <span className="text-gray-500">
+                                        <span className="text-gray-500 dark:text-gray-400">
                                             Total: <span className="font-medium">{students.length}</span> students
                                         </span>
                                     </div>
@@ -963,13 +963,13 @@ export default function AttendancePage() {
                     {!selectedClassArmId ? (
                         <EmptyState />
                     ) : isLoadingWeek ? (
-                        <div className="card p-12 text-center text-gray-500">Loading week attendance...</div>
+                        <div className="card p-12 text-center text-gray-500 dark:text-gray-400">Loading week attendance...</div>
                     ) : (
                         <div className="card overflow-hidden">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-4">
                                 <div>
                                     <div className="flex items-center gap-3">
-                                        <h3 className="font-semibold text-gray-900">
+                                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                                             {selectedClassName} —{" "}
                                             {selectedWeekOption?.label ?? `Week of ${parseDateStr(weekStartDate).toLocaleDateString("en-NG", {
                                                 month: "long",
@@ -979,15 +979,15 @@ export default function AttendancePage() {
                                         </h3>
                                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                             selectedPeriod === "MORNING"
-                                                ? "bg-amber-100 text-amber-700"
-                                                : "bg-blue-100 text-blue-700"
+                                                ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                                         }`}>
                                             {selectedPeriod === "MORNING" ? "☀ Morning" : "🌤 Afternoon"}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-gray-500">{weekStudentList.length} students</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{weekStudentList.length} students</p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                                     {(["PRESENT", "ABSENT", "LATE", "EXCUSED"] as AttendanceStatus[]).map((status) => (
                                         <span key={status} className="flex items-center gap-1">
                                             <span className={`inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold ${STATUS_COLORS[status].bg} ${STATUS_COLORS[status].text}`}>
@@ -1001,29 +1001,29 @@ export default function AttendancePage() {
                                         Holiday
                                     </span>
                                     <span className="flex items-center gap-1">
-                                        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-gray-100 text-[10px] font-bold text-gray-400">—</span>
+                                        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-gray-100 dark:bg-gray-700 text-[10px] font-bold text-gray-400 dark:text-gray-500">—</span>
                                         Out of term
                                     </span>
                                 </div>
                             </div>
 
                             {!hasInTermWeekDays ? (
-                                <div className="p-12 text-center text-gray-500">
+                                <div className="p-12 text-center text-gray-500 dark:text-gray-400">
                                     No school days fall within the current term for this week.
                                 </div>
                             ) : weekStudentList.length === 0 ? (
-                                <div className="p-12 text-center text-gray-500">No students found in this class.</div>
+                                <div className="p-12 text-center text-gray-500 dark:text-gray-400">No students found in this class.</div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-[700px]">
-                                        <thead className="border-b border-gray-200 bg-gray-50">
+                                        <thead className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th className="w-10 px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">S/N</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Student</th>
+                                                <th className="w-10 px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">S/N</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Student</th>
                                                 {weekDays.map((day) => (
                                                     <th
                                                         key={day.dateStr}
-                                                        className="min-w-[80px] px-2 py-3 text-center text-xs font-medium uppercase text-gray-500"
+                                                        className="min-w-[80px] px-2 py-3 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400"
                                                     >
                                                         <div className={day.isHoliday ? "text-purple-600" : day.isOutsideTerm ? "text-gray-400" : ""}>
                                                             {day.label}
@@ -1063,15 +1063,15 @@ export default function AttendancePage() {
                                                 ))}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200 bg-white">
+                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                                             {weekStudentList.map((student, index) => (
-                                                <tr key={student.id} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{index + 1}</td>
+                                                <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{index + 1}</td>
                                                     <td className="px-4 py-3">
-                                                        <p className="whitespace-nowrap text-sm font-medium text-gray-900">
+                                                        <p className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {student.lastName} {student.firstName}
                                                         </p>
-                                                        <p className="font-mono text-xs text-gray-500">{student.admissionNumber}</p>
+                                                        <p className="font-mono text-xs text-gray-500 dark:text-gray-400">{student.admissionNumber}</p>
                                                     </td>
                                                     {weekDays.map((day) => {
                                                         if (day.isHoliday) {
@@ -1090,7 +1090,7 @@ export default function AttendancePage() {
                                                         if (day.isOutsideTerm) {
                                                             return (
                                                                 <td key={day.dateStr} className="px-2 py-3 text-center">
-                                                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-400">
+                                                                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500">
                                                                         —
                                                                     </span>
                                                                 </td>
@@ -1122,7 +1122,7 @@ export default function AttendancePage() {
                             )}
 
                             {weekStudentList.length > 0 && hasActiveWeekDays && (
-                                <div className="border-t border-gray-200 bg-gray-50 p-3 text-xs text-gray-500">
+                                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-3 text-xs text-gray-500 dark:text-gray-400">
                                     Click any cell to cycle status: Present → Absent → Late → Excused → Present
                                 </div>
                             )}
@@ -1138,7 +1138,7 @@ function EmptyState() {
     return (
         <div className="card p-12 text-center">
             <div className="flex flex-col items-center">
-                <svg className="mb-4 h-16 w-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -1146,8 +1146,8 @@ function EmptyState() {
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                 </svg>
-                <h3 className="mb-2 text-lg font-medium text-gray-900">Select a Class</h3>
-                <p className="max-w-md text-gray-500">
+                <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">Select a Class</h3>
+                <p className="max-w-md text-gray-500 dark:text-gray-400">
                     Choose a class from the options above to start marking attendance.
                 </p>
             </div>

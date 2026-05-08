@@ -72,7 +72,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
     }, [isSuperAdmin, pathname, permissions, permissionsLoading, router]);
 
     return (
-        <div className="min-h-screen bg-gray-50 text-slate-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-slate-900 dark:text-gray-100 transition-colors duration-200">
             <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
             <div className="min-w-0 lg:pl-64">
                 <Header
@@ -80,7 +80,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
                     findPageTitle={findPageTitle}
                     topBarRef={topBarRef}
                 />
-                <main className="min-w-0 px-4 pb-8 pt-20 lg:px-8 lg:pb-10 lg:pt-24">{children}</main>
+                <main className="min-w-0 px-4 pb-8 pt-20 lg:px-8 xl:px-16 2xl:px-24 lg:pb-10 lg:pt-24">{children}</main>
             </div>
         </div>
     );

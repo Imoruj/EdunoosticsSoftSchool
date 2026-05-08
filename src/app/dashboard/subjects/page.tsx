@@ -125,7 +125,7 @@ const categoryColors: Record<string, { bg: string; text: string }> = {
 const subjectKindStyles: Record<SubjectKind, { label: string; className: string }> = {
     STANDARD: {
         label: "Standard",
-        className: "bg-slate-100 text-slate-700 border border-slate-200",
+        className: "bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700",
     },
     COMPOSITE_PARENT: {
         label: "Composite Parent",
@@ -369,7 +369,7 @@ function getOfferingCardMeta(offering: SubjectOffering) {
     return {
         headline: getOfferingTeacherSummary(offering),
         detail: getOfferingAssignmentNote(offering),
-        statusClass: hasTeacher ? "bg-slate-50 text-slate-700" : "bg-amber-50 text-amber-700",
+        statusClass: hasTeacher ? "bg-slate-50 dark:bg-gray-900 text-slate-700 dark:text-gray-300" : "bg-amber-50 text-amber-700",
         badge: hasTeacher ? "Assigned" : "Pending",
     };
 }
@@ -388,7 +388,7 @@ function getOfferingEnrollmentLabel(offering: SubjectOffering) {
 
 function getOfferingEnrollmentBadgeClass(offering: SubjectOffering) {
     if (typeof offering.enrollmentCount !== "number") {
-        return "bg-slate-100 text-slate-600";
+        return "bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-400";
     }
 
     return offering.enrollmentCount > 0
@@ -1166,8 +1166,8 @@ export default function SubjectsPage() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Subjects</h1>
-                    <p className="text-gray-500 mt-1">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Subjects</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">
                         Manage subjects, class-arm assignments, and composite subject structures.
                     </p>
                 </div>
@@ -1219,7 +1219,7 @@ export default function SubjectsPage() {
             </div>
 
             {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4">
+                <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 p-4">
                     <div className="flex">
                         <div className="shrink-0">
                             <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -1231,7 +1231,7 @@ export default function SubjectsPage() {
                             </svg>
                         </div>
                         <div className="ml-3">
-                            <p className="text-sm text-red-700">{error}</p>
+                            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
                         </div>
                     </div>
                 </div>
@@ -1251,8 +1251,8 @@ export default function SubjectsPage() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">{visibleSubjects.length}</p>
-                            <p className="text-sm text-gray-500">Total Subjects</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{visibleSubjects.length}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Total Subjects</p>
                         </div>
                     </div>
                 </div>
@@ -1270,10 +1270,10 @@ export default function SubjectsPage() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {subjects.filter((subject) => subject.subjectKind === "COMPOSITE_PARENT").length}
                             </p>
-                            <p className="text-sm text-gray-500">Composite Parents</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Composite Parents</p>
                         </div>
                     </div>
                 </div>
@@ -1291,10 +1291,10 @@ export default function SubjectsPage() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {visibleSubjects.filter((subject) => subject.subjectKind === "STANDARD").length}
                             </p>
-                            <p className="text-sm text-gray-500">Standard Subjects</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Standard Subjects</p>
                         </div>
                     </div>
                 </div>
@@ -1307,10 +1307,10 @@ export default function SubjectsPage() {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {visibleSubjects.filter((subject) => subject.isActive).length}
                             </p>
-                            <p className="text-sm text-gray-500">Active Subjects</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Active Subjects</p>
                         </div>
                     </div>
                 </div>
@@ -1356,10 +1356,10 @@ export default function SubjectsPage() {
             </div>
 
             <div className="card p-6">
-                <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 md:flex-row md:items-end md:justify-between">
+                <div className="flex flex-col gap-3 border-b border-gray-100 dark:border-gray-700 pb-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Pending Student Enrollment</h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pending Student Enrollment</h3>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             Subject offerings with no active student enrollment for {enrollmentPeriodLabel}.
                         </p>
                     </div>
@@ -1375,13 +1375,13 @@ export default function SubjectsPage() {
                 </div>
 
                 {unenrolledOfferings.length > 0 ? (
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100">
-                        <div className="grid grid-cols-1 gap-3 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <div className="grid grid-cols-1 gap-3 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
                             <p>Subject</p>
                             <p>Class Arm</p>
                             <p>Teacher</p>
                         </div>
-                        <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                        <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                             {unenrolledOfferings.map(({ subject, offering }) => (
                                 <div
                                     key={`${subject.id}:${offering.classArmId}`}
@@ -1391,18 +1391,18 @@ export default function SubjectsPage() {
                                         <button
                                             type="button"
                                             onClick={() => setViewSubject(subject)}
-                                            className="text-left font-medium text-gray-900 transition-colors hover:text-primary-700"
+                                            className="text-left font-medium text-gray-900 dark:text-gray-100 transition-colors hover:text-primary-700"
                                         >
                                             {subject.name}
                                         </button>
-                                        <p className="mt-1 text-sm text-gray-500">
+                                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                             {subject.code || "No code"} • {subjectKindStyles[subject.subjectKind].label}
                                         </p>
                                     </div>
 
                                     <div className="min-w-0">
-                                        <p className="font-medium text-gray-900">{formatOfferingLabel(offering)}</p>
-                                        <p className="mt-1 text-sm text-gray-500">{formatLevel(offering.level)}</p>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">{formatOfferingLabel(offering)}</p>
+                                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{formatLevel(offering.level)}</p>
                                         {getOfferingEnrollmentLabel(offering) && (
                                             <span
                                                 className={`mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getOfferingEnrollmentBadgeClass(offering)}`}
@@ -1413,12 +1413,12 @@ export default function SubjectsPage() {
                                     </div>
 
                                     <div className="min-w-0">
-                                        <p className="font-medium text-gray-900">{getOfferingTeacherSummary(offering)}</p>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">{getOfferingTeacherSummary(offering)}</p>
                                         {offering.teacher?.email && (
-                                            <p className="mt-1 truncate text-sm text-gray-500">{offering.teacher.email}</p>
+                                            <p className="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">{offering.teacher.email}</p>
                                         )}
                                         {getOfferingAssignmentNote(offering) && (
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                 {getOfferingAssignmentNote(offering)}
                                             </p>
                                         )}
@@ -1442,7 +1442,7 @@ export default function SubjectsPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             ) : filteredSubjects.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
                     <p>No subjects matched your filters.</p>
                 </div>
             ) : (
@@ -1466,8 +1466,8 @@ export default function SubjectsPage() {
                                             </div>
                                             <div className="space-y-1.5">
                                                 <div className="space-y-1">
-                                                    <h3 className="font-semibold text-gray-900">{subject.name}</h3>
-                                                    <p className="text-sm text-gray-500 leading-5">{describeSubject(subject)}</p>
+                                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{subject.name}</h3>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-5">{describeSubject(subject)}</p>
                                                 </div>
 
                                                 <div className="flex flex-wrap items-center gap-2">
@@ -1506,36 +1506,36 @@ export default function SubjectsPage() {
                                         </button>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 sm:grid-cols-4">
+                                    <div className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 sm:grid-cols-4">
                                         <div>
-                                            <p className="text-xs uppercase tracking-wide text-gray-500">Class Arms</p>
-                                            <p className="mt-1 text-lg font-semibold text-gray-900">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Class Arms</p>
+                                            <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                                 {assignmentSummary.totalOfferings}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-xs uppercase tracking-wide text-gray-500">Assigned Arms</p>
+                                            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Assigned Arms</p>
                                             <p className="mt-1 text-lg font-semibold text-emerald-700">
                                                 {assignmentSummary.assignedOfferings}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-xs uppercase tracking-wide text-gray-500">Teachers</p>
-                                            <p className="mt-1 text-lg font-semibold text-gray-900">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Teachers</p>
+                                            <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                                                 {assignmentSummary.teachersCount}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-xs uppercase tracking-wide text-gray-500">Pending</p>
+                                            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Pending</p>
                                             <p className="mt-1 text-lg font-semibold text-amber-700">
                                                 {assignmentSummary.unassignedOfferings}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="rounded-xl border border-gray-100 bg-white px-3 py-3 text-sm">
+                                    <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-3 text-sm">
                                         <div className="flex items-center justify-between gap-3">
-                                            <p className="font-medium text-gray-800">At a glance</p>
+                                            <p className="font-medium text-gray-800 dark:text-gray-200">At a glance</p>
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                                     assignmentSummary.unassignedOfferings > 0
@@ -1557,14 +1557,14 @@ export default function SubjectsPage() {
                                                     return (
                                                         <div
                                                             key={offering.classArmId}
-                                                            className="rounded-lg border border-gray-100 px-3 py-2.5"
+                                                            className="rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2.5"
                                                         >
                                                             <div className="flex items-start justify-between gap-3">
                                                                 <div>
-                                                                    <p className="font-medium text-gray-700">
+                                                                    <p className="font-medium text-gray-700 dark:text-gray-300">
                                                                         {formatOfferingLabel(offering)}
                                                                     </p>
-                                                                    <p className="text-xs text-gray-500">
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                         {formatLevel(offering.level)}
                                                                     </p>
                                                                     {getOfferingEnrollmentLabel(offering) && (
@@ -1584,11 +1584,11 @@ export default function SubjectsPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="mt-2 flex items-start justify-between gap-3">
-                                                                <p className="text-sm text-gray-700">
+                                                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                                                     {offeringMeta.headline}
                                                                 </p>
                                                                 {offeringMeta.detail && (
-                                                                    <p className="max-w-[55%] text-right text-xs text-gray-500">
+                                                                    <p className="max-w-[55%] text-right text-xs text-gray-500 dark:text-gray-400">
                                                                         {offeringMeta.detail}
                                                                     </p>
                                                                 )}
@@ -1604,13 +1604,13 @@ export default function SubjectsPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <p className="mt-3 text-sm text-gray-500 italic">
+                                            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400 italic">
                                                 No class arms are offering this subject yet.
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                                         <span
                                             className={`px-2 py-0.5 rounded-full text-xs font-medium ${subject.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
                                         >
@@ -1628,7 +1628,7 @@ export default function SubjectsPage() {
                                             )}
                                             <button
                                                 onClick={() => setViewSubject(subject)}
-                                                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                                                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                             >
                                                 View Assignments
                                             </button>
@@ -1654,7 +1654,7 @@ export default function SubjectsPage() {
 
     const deleteConfirmationModal = subjectToDelete ? (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
                 <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
                     <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
@@ -1665,10 +1665,10 @@ export default function SubjectsPage() {
                         />
                     </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete Subject?</h3>
-                <p className="text-gray-500 text-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center mb-2">Delete Subject?</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
                     Are you sure you want to delete{" "}
-                    <span className="font-semibold text-gray-700">{subjectToDelete.name}</span>? This action
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">{subjectToDelete.name}</span>? This action
                     cannot be undone.
                 </p>
                 <div className="flex gap-3">
@@ -1696,13 +1696,13 @@ export default function SubjectsPage() {
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => setViewSubject(null)} />
 
-                <div className="relative w-full max-w-4xl rounded-2xl bg-white shadow-xl">
+                <div className="relative w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-800 shadow-xl">
                     <div className="flex max-h-[88vh] flex-col overflow-hidden">
-                        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                        <div className="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-gray-700 px-6 py-5">
                             <div className="space-y-3">
                                 <div className="space-y-2">
-                                    <h3 className="text-2xl font-semibold text-gray-900">{viewSubject.name}</h3>
-                                    <p className="text-sm text-gray-500">
+                                    <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{viewSubject.name}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
                                         Review every class arm offering this subject and the teacher assigned to it.
                                     </p>
                                 </div>
@@ -1741,11 +1741,11 @@ export default function SubjectsPage() {
                                 return (
                                     <>
                                         <div className="grid gap-3 md:grid-cols-4">
-                                            <div className="rounded-2xl border border-gray-100 bg-slate-50 px-4 py-4">
-                                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/50 px-4 py-4">
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                                     Class Arms Offering
                                                 </p>
-                                                <p className="mt-2 text-2xl font-semibold text-gray-900">
+                                                <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
                                                     {assignmentSummary.totalOfferings}
                                                 </p>
                                             </div>
@@ -1776,19 +1776,19 @@ export default function SubjectsPage() {
                                         </div>
 
                                         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-                                            <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                                            <div className="space-y-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-5">
                                                 <div>
-                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                         Code
                                                     </label>
-                                                    <p className="mt-1 font-medium text-gray-900">{viewSubject.code || "N/A"}</p>
+                                                    <p className="mt-1 font-medium text-gray-900 dark:text-gray-100">{viewSubject.code || "N/A"}</p>
                                                 </div>
 
                                                 <div>
-                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                         Visibility
                                                     </label>
-                                                    <p className="mt-1 text-sm text-gray-700">
+                                                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
                                                         {viewSubject.isReportVisible === false
                                                             ? "Hidden from student-facing reports and broadsheets"
                                                             : "Visible to students and reports"}
@@ -1797,32 +1797,32 @@ export default function SubjectsPage() {
 
                                                 {viewSubject.parentSubjectName && (
                                                     <div>
-                                                        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                        <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                             Linked Parent Subject
                                                         </label>
-                                                        <p className="mt-1 font-medium text-gray-900">
+                                                        <p className="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                             {viewSubject.parentSubjectName}
                                                         </p>
                                                     </div>
                                                 )}
 
                                                 <div>
-                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                                         Classes Covered
                                                     </label>
-                                                    <p className="mt-1 font-medium text-gray-900">
+                                                    <p className="mt-1 font-medium text-gray-900 dark:text-gray-100">
                                                         {assignmentSummary.classesCount}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="rounded-2xl border border-gray-100 bg-white p-5">
-                                                <div className="flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                                            <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+                                                <div className="flex flex-col gap-2 border-b border-gray-100 dark:border-gray-700 pb-4 sm:flex-row sm:items-end sm:justify-between">
                                                     <div>
-                                                        <h4 className="text-base font-semibold text-gray-900">
+                                                        <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                                                             Class-arm assignments
                                                         </h4>
-                                                        <p className="text-sm text-gray-500">
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">
                                                             Each row shows the class arm offering this subject and the teacher currently responsible.
                                                         </p>
                                                     </div>
@@ -1844,13 +1844,13 @@ export default function SubjectsPage() {
                                                         {offerings.map((offering) => (
                                                             <div
                                                                 key={offering.classArmId}
-                                                                className="flex flex-col gap-3 rounded-xl border border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                                                                className="flex flex-col gap-3 rounded-xl border border-gray-100 dark:border-gray-700 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                                                             >
                                                                 <div>
-                                                                    <p className="font-medium text-gray-900">
+                                                                    <p className="font-medium text-gray-900 dark:text-gray-100">
                                                                         {formatOfferingLabel(offering)}
                                                                     </p>
-                                                                    <p className="text-sm text-gray-500">
+                                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
                                                                         {formatLevel(offering.level)}
                                                                     </p>
                                                                     {getOfferingEnrollmentLabel(offering) && (
@@ -1861,8 +1861,8 @@ export default function SubjectsPage() {
                                                                         </span>
                                                                     )}
                                                                     {offering.componentAssignments && offering.componentAssignments.length > 0 && (
-                                                                        <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                                                        <div className="mt-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 px-3 py-2">
+                                                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-gray-400">
                                                                                 Component coverage
                                                                             </p>
                                                                             <div className="mt-2 flex flex-wrap gap-2">
@@ -1893,16 +1893,16 @@ export default function SubjectsPage() {
 
                                                                 {offering.teacher ? (
                                                                     <div className="sm:text-right">
-                                                                        <p className="font-medium text-gray-900">
+                                                                        <p className="font-medium text-gray-900 dark:text-gray-100">
                                                                             {getOfferingTeacherSummary(offering)}
                                                                         </p>
                                                                         {offering.teacher?.email && (
-                                                                            <p className="text-sm text-gray-500">
+                                                                            <p className="text-sm text-gray-500 dark:text-gray-400">
                                                                                 {offering.teacher.email}
                                                                             </p>
                                                                         )}
                                                                         {getOfferingAssignmentNote(offering) && (
-                                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                                                 {getOfferingAssignmentNote(offering)}
                                                                             </p>
                                                                         )}
@@ -1914,11 +1914,11 @@ export default function SubjectsPage() {
                                                                     </div>
                                                                 ) : (offering.effectiveTeachers || []).length > 0 ? (
                                                                     <div className="sm:text-right">
-                                                                        <p className="font-medium text-gray-900">
+                                                                        <p className="font-medium text-gray-900 dark:text-gray-100">
                                                                             {getOfferingTeacherSummary(offering)}
                                                                         </p>
                                                                         {getOfferingAssignmentNote(offering) && (
-                                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                                                 {getOfferingAssignmentNote(offering)}
                                                                             </p>
                                                                         )}
@@ -1934,11 +1934,11 @@ export default function SubjectsPage() {
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className="mt-4 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center">
-                                                        <p className="text-sm font-medium text-gray-700">
+                                                    <div className="mt-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-4 py-8 text-center">
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                             No class arms are offering this subject yet.
                                                         </p>
-                                                        <p className="mt-1 text-sm text-gray-500">
+                                                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                                             Assign the subject to one or more class arms to start teacher allocation.
                                                         </p>
                                                     </div>
@@ -1950,7 +1950,7 @@ export default function SubjectsPage() {
                             })()}
                         </div>
 
-                        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                        <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 px-6 py-4">
                             {viewSubject.subjectKind !== "COMPOSITE_COMPONENT" && (
                                 <button
                                     onClick={() => {
@@ -1983,12 +1983,12 @@ export default function SubjectsPage() {
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={resetSubjectModal} />
 
-                <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {selectedSubject ? "Edit Subject" : "Add New Subject"}
                         </h3>
-                        <button onClick={resetSubjectModal} className="text-gray-400 hover:text-gray-500">
+                        <button onClick={resetSubjectModal} className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -1998,7 +1998,7 @@ export default function SubjectsPage() {
 
                     <form onSubmit={handleAddSubject} className="p-6 space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Subject Name *</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject Name *</label>
                             <input
                                 name="name"
                                 type="text"
@@ -2010,7 +2010,7 @@ export default function SubjectsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Subject Code</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject Code</label>
                             <input
                                 name="code"
                                 type="text"
@@ -2022,7 +2022,7 @@ export default function SubjectsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category *</label>
                             <select
                                 name="category"
                                 className="input w-full"
@@ -2040,7 +2040,7 @@ export default function SubjectsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Assign to Class Arms
                             </label>
 
@@ -2050,7 +2050,7 @@ export default function SubjectsPage() {
                                         key={level.value}
                                         type="button"
                                         onClick={() => setClassLevelFilter(level.value)}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${classLevelFilter === level.value ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${classLevelFilter === level.value ? "bg-primary-600 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"}`}
                                     >
                                         {level.label}
                                     </button>
@@ -2059,7 +2059,7 @@ export default function SubjectsPage() {
 
                             {filteredClassArms.length > 0 && (
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
                                         {selectedClassIds.length} class arm{selectedClassIds.length !== 1 ? "s" : ""} selected
                                     </span>
                                     <button
@@ -2072,12 +2072,12 @@ export default function SubjectsPage() {
                                 </div>
                             )}
 
-                            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2">
+                            <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50 space-y-2">
                                 {filteredClassArms.length > 0 ? (
                                     filteredClassArms.map((cls) => (
                                         <label
                                             key={cls.id}
-                                            className="flex items-center gap-2 cursor-pointer hover:bg-white px-2 py-1 rounded transition-colors"
+                                            className="flex items-center gap-2 cursor-pointer hover:bg-white dark:hover:bg-gray-600 px-2 py-1 rounded transition-colors"
                                         >
                                             <input
                                                 type="checkbox"
@@ -2085,21 +2085,21 @@ export default function SubjectsPage() {
                                                 onChange={() => toggleClassSelection(cls.id)}
                                                 className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
                                             />
-                                            <span className="text-sm text-gray-700">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">
                                                 {cls.name}
-                                                <span className="text-xs text-gray-500 ml-1">({formatLevel(cls.level)})</span>
+                                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({formatLevel(cls.level)})</span>
                                             </span>
                                         </label>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-gray-400 italic text-center py-4">
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 italic text-center py-4">
                                         No class arms available in this category
                                     </p>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button type="button" onClick={resetSubjectModal} className="btn-secondary" disabled={submitting}>
                                 Cancel
                             </button>
@@ -2118,11 +2118,11 @@ export default function SubjectsPage() {
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={closeCompositeModal} />
 
-                <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-                    <div className="flex items-start justify-between gap-4 p-6 border-b border-gray-200">
+                <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl">
+                    <div className="flex items-start justify-between gap-4 p-6 border-b border-gray-200 dark:border-gray-700">
                         <div className="space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-xl font-semibold text-gray-900">
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                                     Configure Components for {compositeSubject.name}
                                 </h3>
                                 <span
@@ -2131,7 +2131,7 @@ export default function SubjectsPage() {
                                     {subjectKindStyles[compositeSubject.subjectKind].label}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-500 max-w-3xl">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
                                 The main subject remains the only student-facing subject. Teachers enter scores on the
                                 component subjects below, and the system sums those scores back into{" "}
                                 {compositeSubject.name} for each configured assessment type.
@@ -2147,14 +2147,14 @@ export default function SubjectsPage() {
                     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
                         <div className="space-y-6">
                         {compositeError && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300">
                                 {compositeError}
                             </div>
                         )}
 
                         <div className="grid lg:grid-cols-2 gap-4">
-                            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700/50">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Session</label>
                                 <select
                                     value={compositeSessionId}
                                     onChange={(e) => setCompositeSessionId(e.target.value)}
@@ -2169,13 +2169,13 @@ export default function SubjectsPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                     Composite subject settings are saved per session so past sessions keep their own structure.
                                 </p>
                             </div>
 
-                            <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Class</label>
+                            <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700/50">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
                                 <select
                                     value={compositeClassId}
                                     onChange={(e) => setCompositeClassId(e.target.value)}
@@ -2193,7 +2193,7 @@ export default function SubjectsPage() {
                                         );
                                     })}
                                 </select>
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                     The selected class should already have this parent subject assigned to at least one class arm.
                                 </p>
                             </div>
@@ -2247,10 +2247,10 @@ export default function SubjectsPage() {
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-gray-900">
+                                                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                             {assessmentType.shortName || assessmentType.name}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                                             {scoreFieldLabels[assessmentType.field]}
                                                         </p>
                                                     </div>
@@ -2262,11 +2262,11 @@ export default function SubjectsPage() {
                                                 </div>
                                                 <div className="mt-3 text-sm">
                                                     <div className="flex justify-between">
-                                                        <span className="text-gray-500">Main max</span>
-                                                        <span className="font-semibold text-gray-900">{formatCompositeMax(parentMax)}</span>
+                                                        <span className="text-gray-500 dark:text-gray-400">Main max</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCompositeMax(parentMax)}</span>
                                                     </div>
                                                     <div className="flex justify-between mt-1">
-                                                        <span className="text-gray-500">Component sum</span>
+                                                        <span className="text-gray-500 dark:text-gray-400">Component sum</span>
                                                         <span className={`font-semibold ${matches ? "text-green-700" : "text-red-700"}`}>
                                                             {formatCompositeMax(componentTotal)}
                                                         </span>
@@ -2282,8 +2282,8 @@ export default function SubjectsPage() {
                         <div className="space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
-                                    <h4 className="text-base font-semibold text-gray-900">Component Subjects</h4>
-                                    <p className="text-sm text-gray-500">
+                                    <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100">Component Subjects</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
                                         Existing subjects can be reused, or you can create new component subjects inline during setup.
                                     </p>
                                 </div>
@@ -2298,17 +2298,17 @@ export default function SubjectsPage() {
                             </div>
 
                             {compositeRows.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                                <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
                                     No component subjects added yet.
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {compositeRows.map((row, index) => (
-                                        <div key={row.id} className="rounded-2xl border border-gray-200 p-4 space-y-4">
+                                        <div key={row.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <h5 className="text-sm font-semibold text-gray-900">Component {index + 1}</h5>
-                                                    <p className="text-xs text-gray-500">
+                                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Component {index + 1}</h5>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
                                                         Set the teacher-entered subject and how much it contributes to each assessment type.
                                                     </p>
                                                 </div>
@@ -2324,7 +2324,7 @@ export default function SubjectsPage() {
 
                                             <div className="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
                                                 <div className="space-y-2">
-                                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                         Component Type
                                                     </label>
                                                     <select
@@ -2346,7 +2346,7 @@ export default function SubjectsPage() {
 
                                                 {row.mode === "existing" ? (
                                                     <div className="space-y-2">
-                                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                             Subject
                                                         </label>
                                                         <select
@@ -2369,7 +2369,7 @@ export default function SubjectsPage() {
                                                 ) : (
                                                     <div className="grid md:grid-cols-3 gap-4">
                                                         <div className="space-y-2">
-                                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                                 New Subject Name
                                                             </label>
                                                             <input
@@ -2383,7 +2383,7 @@ export default function SubjectsPage() {
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                                 Code
                                                             </label>
                                                             <input
@@ -2398,7 +2398,7 @@ export default function SubjectsPage() {
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                                 Category
                                                             </label>
                                                             <select
@@ -2425,7 +2425,7 @@ export default function SubjectsPage() {
                                                     const fieldKey = scoreFieldRowKey[assessmentType.field];
                                                     return (
                                                         <div key={`${row.id}-${assessmentType.field}`} className="space-y-2">
-                                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                                                 {assessmentType.shortName || assessmentType.name}
                                                             </label>
                                                             <input
@@ -2438,7 +2438,7 @@ export default function SubjectsPage() {
                                                                 placeholder={`Max ${formatCompositeMax(Number(assessmentType.maxScore || 0))}`}
                                                                 disabled={compositeSubmitting || compositeDeleting}
                                                             />
-                                                            <p className="text-xs text-gray-500">
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                 Parent max: {formatCompositeMax(Number(assessmentType.maxScore || 0))}
                                                             </p>
                                                         </div>
@@ -2454,9 +2454,9 @@ export default function SubjectsPage() {
                         </div>
                     </div>
 
-                    <div className="border-t border-gray-200 bg-white px-6 py-4">
+                    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {compositeConfigId
                                     ? "Saving here updates the active composite setup for the selected session and class."
                                     : "Save to turn this subject into a composite parent for the selected session and class."}
@@ -2496,9 +2496,9 @@ export default function SubjectsPage() {
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => !importing && setShowImportModal(false)} />
 
-                <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Import Subjects from CSV</h3>
+                <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Subjects from CSV</h3>
                         <button
                             onClick={() => {
                                 if (!importing) {
@@ -2517,7 +2517,7 @@ export default function SubjectsPage() {
                     </div>
 
                     <div className="p-6 space-y-4">
-                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+                        <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-4">
                             <div className="flex">
                                 <div className="shrink-0">
                                     <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -2529,7 +2529,7 @@ export default function SubjectsPage() {
                                     </svg>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-blue-700">
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">
                                         Download the CSV template first, fill it with your subjects data, then upload it here.
                                     </p>
                                 </div>
@@ -2537,7 +2537,7 @@ export default function SubjectsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select CSV File</label>
                             <input
                                 type="file"
                                 accept=".csv"
@@ -2545,7 +2545,7 @@ export default function SubjectsPage() {
                                     setImportFile(e.target.files?.[0] || null);
                                     setImportResults(null);
                                 }}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                                className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                                 disabled={importing}
                             />
                         </div>
@@ -2569,8 +2569,8 @@ export default function SubjectsPage() {
                                             </svg>
                                             <span className="font-medium">{importResults.failed} subjects failed</span>
                                         </div>
-                                        <div className="bg-red-50 rounded-md p-3 max-h-40 overflow-y-auto">
-                                            <ul className="text-sm text-red-700 space-y-1">
+                                        <div className="bg-red-50 dark:bg-red-950/30 rounded-md p-3 max-h-40 overflow-y-auto">
+                                            <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
                                                 {importResults.errors.map((importError, idx) => (
                                                     <li key={idx}>- {importError}</li>
                                                 ))}
@@ -2581,7 +2581,7 @@ export default function SubjectsPage() {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button
                                 onClick={() => {
                                     setShowImportModal(false);

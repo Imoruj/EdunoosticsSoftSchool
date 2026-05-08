@@ -177,7 +177,7 @@ export default function SettingsPage() {
             {/* Fixed Header Container */}
             <div
                 ref={fixedHeaderRef}
-                className="fixed top-[var(--dashboard-topbar-height)] left-0 right-0 lg:left-64 z-20 bg-white border-b border-gray-200 shadow-sm px-4 lg:px-8 py-3"
+                className="fixed top-[var(--dashboard-topbar-height)] left-0 right-0 lg:left-64 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm px-4 lg:px-8 py-3"
             >
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-wrap gap-1.5">
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                                 <Link
                                     key={tab.id}
                                     href={tab.href}
-                                    className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                                 >
                                     {tab.label}
                                 </Link>
@@ -210,7 +210,7 @@ export default function SettingsPage() {
                                     }}
                                     className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
                                         ? "bg-primary-600 text-white shadow-sm"
-                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                                         }`}
                                 >
                                     {tab.label}
@@ -403,21 +403,21 @@ function SchoolProfileSettings() {
     return (
         <form onSubmit={handleSubmit} className="card p-6 space-y-6">
             {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                     {error}
                 </div>
             )}
             {success && (
-                <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
                     {success}
                 </div>
             )}
 
             <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">School Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">School Information</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">School Name *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School Name *</label>
                         <input
                             type="text"
                             name="name"
@@ -427,7 +427,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">School Motto</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">School Motto</label>
                         <input
                             type="text"
                             name="motto"
@@ -436,7 +436,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                         <input
                             type="email"
                             name="email"
@@ -445,7 +445,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
                         <input
                             type="tel"
                             name="phone"
@@ -454,7 +454,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
                         <input
                             type="text"
                             name="address"
@@ -463,7 +463,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
                         <input
                             type="text"
                             name="city"
@@ -472,7 +472,7 @@ function SchoolProfileSettings() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
                         <select name="state" className="input w-full" defaultValue={school?.state || ""}>
                             <option value="">Select state</option>
                             <option value="Lagos">Lagos</option>
@@ -488,7 +488,7 @@ function SchoolProfileSettings() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Website</label>
                         <input
                             type="url"
                             name="website"
@@ -500,21 +500,21 @@ function SchoolProfileSettings() {
                 </div>
             </div>
 
-            <div className="pt-6 border-t border-gray-200">
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-start justify-between gap-6 mb-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Student Login Settings</h3>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Student Login Settings</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             Control whether students sign in with admission number, email address, or both.
                         </p>
                     </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-4">
                         <div className="pr-4">
-                            <p className="text-sm font-semibold text-gray-900">Admission number login</p>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Admission number login</p>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Students can sign in with their admission number.
                             </p>
                         </div>
@@ -526,14 +526,14 @@ function SchoolProfileSettings() {
                                 onChange={(e) => setAllowStudentAdmissionNumberLogin(e.target.checked)}
                                 className="peer sr-only"
                             />
-                            <span className="h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+                            <span className="h-6 w-11 rounded-full bg-gray-200 dark:bg-gray-600 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
                         </span>
                     </label>
 
-                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                    <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-4">
                         <div className="pr-4">
-                            <p className="text-sm font-semibold text-gray-900">Email login</p>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Email login</p>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Students can sign in with the generated school email address.
                             </p>
                         </div>
@@ -545,30 +545,30 @@ function SchoolProfileSettings() {
                                 onChange={(e) => setAllowStudentEmailLogin(e.target.checked)}
                                 className="peer sr-only"
                             />
-                            <span className="h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+                            <span className="h-6 w-11 rounded-full bg-gray-200 dark:bg-gray-600 transition peer-checked:bg-primary-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
                         </span>
                     </label>
                 </div>
 
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                     At least one student login method must remain enabled.
                 </p>
             </div>
 
-            <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">School Logo</h3>
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">School Logo</h3>
                 <div className="flex items-start gap-6">
-                    <div className="w-32 h-32 bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden shrink-0">
+                    <div className="w-32 h-32 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden shrink-0">
                         {logoPreview ? (
                             <img src={logoPreview} alt="Logo Preview" className="w-full h-full object-contain" />
                         ) : school?.logoUrl ? (
                             <img src={school.logoUrl} alt="School Logo" className="w-full h-full object-contain" />
                         ) : (
                             <div className="text-center">
-                                <svg className="w-10 h-10 text-gray-300 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-10 h-10 text-gray-300 dark:text-gray-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <p className="text-xs text-gray-400 mt-1">No logo</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">No logo</p>
                             </div>
                         )}
                     </div>
@@ -587,25 +587,25 @@ function SchoolProfileSettings() {
                         >
                             {logoPreview || school?.logoUrl ? "Change Logo" : "Upload Logo"}
                         </button>
-                        <p className="text-sm text-gray-500">PNG, JPG up to 500KB</p>
-                        <p className="text-xs text-gray-400">Recommended: 256×256px square image</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">PNG, JPG up to 500KB</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Recommended: 256×256px square image</p>
                     </div>
                 </div>
             </div>
 
 
 
-            <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Head of School Signature</h3>
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Head of School Signature</h3>
                 <div className="flex items-start gap-6">
-                    <div className="w-64 h-32 bg-gray-50 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden shrink-0">
+                    <div className="w-64 h-32 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 overflow-hidden shrink-0">
                         {signaturePreview ? (
                             <img src={signaturePreview} alt="Signature Preview" className="w-full h-full object-contain" />
                         ) : school?.principalSignatureUrl ? (
                             <img src={school.principalSignatureUrl} alt="Signature" className="w-full h-full object-contain" />
                         ) : (
                             <div className="text-center">
-                                <p className="text-xs text-gray-400 mt-1">No signature</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">No signature</p>
                             </div>
                         )}
                     </div>
@@ -624,12 +624,12 @@ function SchoolProfileSettings() {
                         >
                             {signaturePreview || school?.principalSignatureUrl ? "Change Signature" : "Upload Signature"}
                         </button>
-                        <p className="text-sm text-gray-500">PNG, JPG up to 500KB</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">PNG, JPG up to 500KB</p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex justify-end pt-6 border-t border-gray-200">
+            <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
                 <button type="submit" className="btn-primary" disabled={saving}>
                     {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -827,21 +827,21 @@ function AcademicSettings() {
     return (
         <div className="card p-6 space-y-6">
             {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                     {error}
                 </div>
             )}
             {success && (
-                <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
                     {success}
                 </div>
             )}
 
             <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Session</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Current Session</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Academic Session *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Academic Session *</label>
                         <div className="flex gap-2">
                             <select
                                 className="input w-full"
@@ -875,7 +875,7 @@ function AcademicSettings() {
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Current Term *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Term *</label>
                         <select
                             className="input w-full"
                             value={currentTerm}
@@ -889,20 +889,20 @@ function AcademicSettings() {
                 </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Term Dates</h3>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Term Dates</h3>
                 <div className="space-y-4">
                     {TERM_KEYS.map((termKey) => {
                         const term = termDates[termKey];
                         const autoWeeks = calculateTermWeeks(term.start, term.end);
 
                         return (
-                            <div key={termKey} className="grid md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                            <div key={termKey} className="grid md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{TERM_LABELS[termKey]}</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{TERM_LABELS[termKey]}</label>
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
                                     <input
                                         type="date"
                                         className="input w-full"
@@ -911,7 +911,7 @@ function AcademicSettings() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-gray-500 mb-1">End Date</label>
+                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date</label>
                                     <input
                                         type="date"
                                         className="input w-full"
@@ -920,7 +920,7 @@ function AcademicSettings() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-gray-500 mb-1">Number of Weeks</label>
+                                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Number of Weeks</label>
                                     <input
                                         type="number"
                                         min="1"
@@ -946,7 +946,7 @@ function AcademicSettings() {
                                                 <span className="text-green-600">Auto-filled from selected dates</span>
                                             )
                                         ) : (
-                                            <span className="text-gray-400">Set valid start and end dates to auto-calculate.</span>
+                                            <span className="text-gray-400 dark:text-gray-500">Set valid start and end dates to auto-calculate.</span>
                                         )}
                                     </div>
                                 </div>
@@ -956,16 +956,16 @@ function AcademicSettings() {
                 </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">School Days</h3>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">School Days</h3>
                 <div className="flex gap-2">
                     {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, index) => (
                         <label
                             key={day}
-                            className="flex items-center justify-center w-12 h-12 rounded-lg border cursor-pointer hover:bg-gray-50"
+                            className="flex items-center justify-center w-12 h-12 rounded-lg border dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
                             <input type="checkbox" className="sr-only peer" defaultChecked={index < 5} />
-                            <span className="text-sm font-medium text-gray-500 peer-checked:text-primary-600">
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 peer-checked:text-primary-600 dark:peer-checked:text-primary-400">
                                 {day}
                             </span>
                         </label>
@@ -973,7 +973,7 @@ function AcademicSettings() {
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-200">
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                     onClick={handleSave}
                     disabled={saving}
@@ -1123,26 +1123,26 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
     const presetOptions = getPresetOptionsForCategory(category);
     const getPresetButtonClass = (preset: GradingPreset) => {
         if (preset === "WAEC") return "border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100";
-        return "border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100";
+        return "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600";
     };
 
     return (
         <div className="space-y-4">
             {error && (
-                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
                     <span>{error}</span>
                     <button onClick={() => setError("")} className="text-red-500">&times;</button>
                 </div>
             )}
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
                 Configure the grading scale used for <strong>{categoryLabel}</strong> students. Leave empty to fall back to school-wide rules.
             </p>
 
-            <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Preset Rules</span>
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preset Rules</span>
                 {presetOptions.length === 0 && (
-                    <span className="text-xs text-gray-500">No presets available for this category.</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">No presets available for this category.</span>
                 )}
                 {presetOptions.map((option) => (
                     <button
@@ -1152,13 +1152,13 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
                         disabled={saving || !isPresetAllowedForCategory(option.preset, category)}
                         className={`px-3 py-1.5 text-xs font-medium rounded-md border ${isPresetAllowedForCategory(option.preset, category)
                             ? getPresetButtonClass(option.preset)
-                            : "border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed"
+                            : "border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-600 cursor-not-allowed"
                             }`}
                     >
                         {`Load ${option.label}`}
                     </button>
                 ))}
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                     Loading a preset replaces all rules in this category and saves immediately.
                 </span>
             </div>
@@ -1166,19 +1166,19 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
             {/* Existing Grading Rules Table */}
             <div className="overflow-x-auto">
                 <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Min Score</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Max Score</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Remark</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Grade</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Min Score</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Max Score</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Remark</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {gradingRules.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-6 text-center text-gray-400 text-sm">
+                                <td colSpan={5} className="px-4 py-6 text-center text-gray-400 dark:text-gray-500 text-sm">
                                     No rules yet. Add rules below or leave empty to use school-wide rules.
                                 </td>
                             </tr>
@@ -1201,7 +1201,7 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
                                                 })}
                                                 className="text-green-600 hover:text-green-800 text-sm"
                                             >Save</button>
-                                            <button onClick={() => setEditingGrade(null)} className="text-gray-600 text-sm">Cancel</button>
+                                            <button onClick={() => setEditingGrade(null)} className="text-gray-600 dark:text-gray-400 text-sm">Cancel</button>
                                         </td>
                                     </>
                                 ) : (
@@ -1211,9 +1211,9 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
                                                 {rule.grade}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2 text-gray-700">{rule.minScore}</td>
-                                        <td className="px-4 py-2 text-gray-700">{rule.maxScore}</td>
-                                        <td className="px-4 py-2 text-gray-700">{rule.remark}</td>
+                                        <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{rule.minScore}</td>
+                                        <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{rule.maxScore}</td>
+                                        <td className="px-4 py-2 text-gray-700 dark:text-gray-300">{rule.remark}</td>
                                         <td className="px-4 py-2 space-x-2">
                                             <button onClick={() => setEditingGrade(rule.id)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
                                             <button onClick={() => deleteGradingRule(rule.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button>
@@ -1227,7 +1227,7 @@ function GradingCategoryPanel({ category, categoryLabel }: { category: GradingCa
             </div>
 
             {/* Add New Grading Rule */}
-            <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                 <input type="text" placeholder="Grade (e.g., A1)" className="input w-24" value={newGrade.grade} onChange={(e) => setNewGrade({ ...newGrade, grade: e.target.value })} />
                 <input type="number" step="0.1" placeholder="Min" className="input w-20" value={newGrade.minScore} onChange={(e) => setNewGrade({ ...newGrade, minScore: e.target.value })} />
                 <input type="number" step="0.1" placeholder="Max" className="input w-20" value={newGrade.maxScore} onChange={(e) => setNewGrade({ ...newGrade, maxScore: e.target.value })} />
@@ -1495,7 +1495,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                     Manage overrides for as many classes as needed. Each class keeps its own score-component setup.
                 </p>
                 {classes.length > 1 && (
@@ -1508,7 +1508,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                         </button>
                         <button
                             onClick={() => setExpandedClassIds([])}
-                            className="text-gray-500 hover:text-gray-700"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                         >
                             Collapse all
                         </button>
@@ -1516,14 +1516,14 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                 )}
             </div>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
                 Add as many CA components as needed. Only 1 exam component is allowed per class.
             </p>
 
             {loadingClasses ? (
-                <p className="text-sm text-gray-400">Loading classes...</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Loading classes...</p>
             ) : classes.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     No classes are available yet.
                 </div>
             ) : (
@@ -1535,22 +1535,22 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                         const summary = getAssessmentTypeSummary(hasOverrides ? state.overrides : defaultTypes);
 
                         return (
-                            <div key={classItem.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                            <div key={classItem.id} className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                                 <button
                                     type="button"
                                     onClick={() => toggleClassCard(classItem.id)}
-                                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-gray-50"
+                                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
                                     <div>
-                                        <div className="text-base font-semibold text-gray-900">{classItem.name}</div>
-                                        <div className="text-sm text-gray-500">
+                                        <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{classItem.name}</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">
                                             {hasOverrides
                                                 ? `${state.overrides.length} class-specific component${state.overrides.length === 1 ? "" : "s"} configured`
                                                 : "Using school defaults"}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <div className="text-right text-sm text-gray-500">
+                                        <div className="text-right text-sm text-gray-500 dark:text-gray-400">
                                             <div>
                                                 Counted total:{" "}
                                                 <span className={`font-bold ${summary.countedMaxScore === 100 ? "text-green-600" : "text-orange-500"}`}>
@@ -1559,7 +1559,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                                 /100 pts
                                             </div>
                                             {summary.excludedMaxScore > 0 && (
-                                                <div className="text-xs text-gray-500">Recorded only: {summary.excludedMaxScore} pts</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400">Recorded only: {summary.excludedMaxScore} pts</div>
                                             )}
                                         </div>
                                         <span className="text-sm font-medium text-blue-600">{isExpanded ? "Hide" : "Manage"}</span>
@@ -1567,7 +1567,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                 </button>
 
                                 {isExpanded && (
-                                    <div className="border-t border-gray-200 px-4 py-4">
+                                    <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4">
                                         {state.error && (
                                             <div className="mb-3 flex items-center justify-between rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
                                                 <span>{state.error}</span>
@@ -1581,13 +1581,13 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                         )}
 
                                         {!hasOverrides ? (
-                                            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                                            <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                                 Using school defaults:&nbsp;
                                                 {defaultTypes.length > 0
                                                     ? defaultTypes.map((item) => `${item.name} (${item.maxScore} pts)`).join(" · ")
                                                     : "none configured"}
                                                 {defaultTypes.length > 0 && (
-                                                    <div className="mt-2 text-xs text-gray-500">
+                                                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                                         Counted total:{" "}
                                                         <span className={`font-semibold ${defaultSummary.countedMaxScore === 100 ? "text-green-600" : "text-orange-500"}`}>
                                                             {defaultSummary.countedMaxScore}
@@ -1602,7 +1602,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                         ) : (
                                             <div className="mb-3 space-y-2">
                                                 <div className="mb-1 flex items-center justify-between">
-                                                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Class overrides</span>
+                                                    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Class overrides</span>
                                                     <button
                                                         onClick={() => resetToDefaults(classItem.id)}
                                                         className="text-sm text-red-500 hover:text-red-700 underline"
@@ -1611,12 +1611,12 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                                     </button>
                                                 </div>
                                                 {state.overrides.map((item) => (
-                                                    <div key={item.id} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                                                    <div key={item.id} className="flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-700 p-3">
                                                         {state.editingId === item.id ? (
                                                             <>
                                                                 <input type="text" className="input flex-1" defaultValue={item.name} id={`co-name-${classItem.id}-${item.id}`} />
                                                                 <input type="number" className="input w-24" defaultValue={item.maxScore} id={`co-score-${classItem.id}-${item.id}`} />
-                                                                <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                                                                <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                                     <input type="checkbox" defaultChecked={item.includeInTotal !== false} id={`co-include-${classItem.id}-${item.id}`} />
                                                                     Count in total
                                                                 </label>
@@ -1647,7 +1647,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                                                         <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
                                                                     )}
                                                                 </div>
-                                                                <span className="w-24 text-center text-gray-600">{item.maxScore} pts</span>
+                                                                <span className="w-24 text-center text-gray-600 dark:text-gray-300">{item.maxScore} pts</span>
                                                                 <button
                                                                     onClick={() => updateClassState(classItem.id, (current) => ({ ...current, editingId: item.id }))}
                                                                     className="text-sm text-blue-600 hover:text-blue-800"
@@ -1667,7 +1667,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                             </div>
                                         )}
 
-                                        <div className="mt-2 flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 p-3">
+                                        <div className="mt-2 flex items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-3">
                                             <input
                                                 type="text"
                                                 placeholder="e.g., CA1, Exam, Project"
@@ -1692,7 +1692,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                                     }))
                                                 }
                                             />
-                                            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                                            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                                 <input
                                                     type="checkbox"
                                                     checked={state.newItem.includeInTotal}
@@ -1713,7 +1713,7 @@ function ClassAssessmentOverrides({ defaultTypes }: { defaultTypes: AssessmentTy
                                                 + Add
                                             </button>
                                         </div>
-                                        <p className="mt-2 text-xs text-gray-500">
+                                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                             Components that are not counted still appear during score entry, but they do not affect end-of-term totals or grades.
                                         </p>
                                     </div>
@@ -1817,9 +1817,9 @@ function SubComponentsEditor({
     };
 
     return (
-        <div className="mt-2 ml-4 pl-3 border-l-2 border-primary-200 space-y-2">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="font-medium text-gray-700">Sub-components</span>
+        <div className="mt-2 ml-4 pl-3 border-l-2 border-primary-200 dark:border-primary-800/50 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-medium text-gray-700 dark:text-gray-300">Sub-components</span>
                 <span>— sum must not exceed {assessmentType.maxScore} pts</span>
                 <span className={`font-semibold ml-auto ${usedScore > assessmentType.maxScore ? "text-red-600" : usedScore === assessmentType.maxScore ? "text-green-600" : "text-amber-600"}`}>
                     {usedScore}/{assessmentType.maxScore} pts used
@@ -1827,25 +1827,25 @@ function SubComponentsEditor({
             </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
             {components.map(comp => (
-                <div key={comp.id} className="flex items-center gap-2 bg-white rounded px-2 py-1.5 border border-gray-200 text-sm">
+                <div key={comp.id} className="flex items-center gap-2 bg-white dark:bg-gray-700 rounded px-2 py-1.5 border border-gray-200 dark:border-gray-600 text-sm">
                     {editingId === comp.id ? (
                         <>
                             <input id={`comp-name-${comp.id}`} type="text" className="input flex-1 py-0.5 text-sm h-7" defaultValue={comp.name} />
                             <input id={`comp-score-${comp.id}`} type="number" className="input w-20 py-0.5 text-sm h-7" defaultValue={comp.maxScore} step="0.5" />
                             <button onClick={() => updateComponent(comp.id)} disabled={saving} className="text-green-700 hover:text-green-900 font-medium text-xs">Save</button>
-                            <button onClick={() => setEditingId(null)} className="text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs">Cancel</button>
                         </>
                     ) : (
                         <>
-                            <span className="flex-1 font-medium text-gray-800">{comp.name}</span>
-                            <span className="text-gray-500 w-14 text-center">{comp.maxScore} pts</span>
+                            <span className="flex-1 font-medium text-gray-800 dark:text-gray-200">{comp.name}</span>
+                            <span className="text-gray-500 dark:text-gray-400 w-14 text-center">{comp.maxScore} pts</span>
                             <button onClick={() => setEditingId(comp.id)} className="text-blue-600 hover:text-blue-800 text-xs">Edit</button>
                             <button onClick={() => deleteComponent(comp.id)} disabled={saving} className="text-red-600 hover:text-red-800 text-xs">Delete</button>
                         </>
                     )}
                 </div>
             ))}
-            <div className="flex items-center gap-2 border border-dashed border-gray-300 rounded px-2 py-1.5">
+            <div className="flex items-center gap-2 border border-dashed border-gray-300 dark:border-gray-600 rounded px-2 py-1.5">
                 <input
                     type="text"
                     placeholder="e.g., Homework, Test, Project"
@@ -1996,7 +1996,7 @@ function GradingSettings() {
     return (
         <div className="space-y-6">
             {error && (
-                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
                     <span>{error}</span>
                     <button onClick={() => setError("")} className="text-red-500">&times;</button>
                 </div>
@@ -2009,29 +2009,29 @@ function GradingSettings() {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 mb-1">
                             Global Assessment Type Settings
                         </p>
-                        <h3 className="text-lg font-semibold text-gray-900">Score Components</h3>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Score Components</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             These are the school-wide default assessment components used unless a class-specific override is configured below.
                         </p>
                     </div>
-                    <div className="text-sm text-gray-500 text-right">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 text-right">
                         <div>
                             Counted total: <span className={`font-bold ${assessmentSummary.countedMaxScore === 100 ? 'text-green-600' : 'text-orange-500'}`}>{assessmentSummary.countedMaxScore}</span>/100 points
                         </div>
                         {assessmentSummary.excludedMaxScore > 0 && (
-                            <div className="text-xs text-gray-500">Recorded only: {assessmentSummary.excludedMaxScore} pts</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Recorded only: {assessmentSummary.excludedMaxScore} pts</div>
                         )}
                     </div>
                 </div>
                 <div className="space-y-2 mb-4">
                     {assessmentTypes.map((assessment) => (
-                        <div key={assessment.id} className="bg-gray-50 rounded-lg">
+                        <div key={assessment.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <div className="flex items-center gap-3 p-3">
                                 {editingAssessment === assessment.id ? (
                                     <>
                                         <input type="text" className="input flex-1" defaultValue={assessment.name} id={`edit-name-${assessment.id}`} />
                                         <input type="number" className="input w-24" defaultValue={assessment.maxScore} id={`edit-score-${assessment.id}`} />
-                                        <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                                        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                                             <input type="checkbox" defaultChecked={assessment.includeInTotal !== false} id={`edit-include-${assessment.id}`} />
                                             Count in total
                                         </label>
@@ -2054,10 +2054,10 @@ function GradingSettings() {
                                                 <div className="text-xs text-amber-700">Recorded only, excluded from end-of-term total</div>
                                             )}
                                         </div>
-                                        <span className="text-gray-600 w-24 text-center">{assessment.maxScore} pts</span>
+                                        <span className="text-gray-600 dark:text-gray-300 w-24 text-center">{assessment.maxScore} pts</span>
                                         <button
                                             onClick={() => toggleComponentsExpanded(assessment.id)}
-                                            className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap ${expandedComponents.has(assessment.id) ? "bg-primary-50 border-primary-300 text-primary-700" : "border-gray-300 text-gray-600 hover:border-primary-300 hover:text-primary-600"}`}
+                                            className={`text-xs px-2 py-1 rounded border transition-colors whitespace-nowrap ${expandedComponents.has(assessment.id) ? "bg-primary-50 dark:bg-primary-900/30 border-primary-300 text-primary-700 dark:text-primary-300" : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-300 hover:text-primary-600"}`}
                                         >
                                             {assessment.components && assessment.components.length > 0
                                                 ? `Sub-components (${assessment.components.length})`
@@ -2079,10 +2079,10 @@ function GradingSettings() {
                         </div>
                     ))}
                 </div>
-                <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 rounded-lg">
+                <div className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                     <input type="text" placeholder="e.g., CA1, Exam, Project" className="input flex-1" value={newAssessment.name} onChange={(e) => setNewAssessment({ ...newAssessment, name: e.target.value })} />
                     <input type="number" placeholder="Max Score" className="input w-28" value={newAssessment.maxScore} onChange={(e) => setNewAssessment({ ...newAssessment, maxScore: e.target.value })} />
-                    <label className="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         <input
                             type="checkbox"
                             checked={newAssessment.includeInTotal}
@@ -2092,15 +2092,15 @@ function GradingSettings() {
                     </label>
                     <button onClick={addAssessmentType} disabled={saving} className="btn-primary text-sm px-4">+ Add</button>
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     Components that are not counted can still be entered on score sheets, but they do not contribute to the end-of-term total or grade.
                 </p>
             </div>
 
             {/* Class-specific Score Components */}
             <div className="card p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Class-specific Score Components</h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Class-specific Score Components</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     Override the default score components for a specific class. Classes without overrides use the school defaults above.
                 </p>
                 <ClassAssessmentOverrides defaultTypes={assessmentTypes} />
@@ -2108,11 +2108,11 @@ function GradingSettings() {
 
             {/* Grading Scale Section — 3 Category Tabs */}
             <div className="card p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Grading Scale</h3>
-                <p className="text-sm text-gray-500 mb-4">Set separate grading scales per school category. If a category has no rules, school-wide rules (if any) will be used as a fallback.</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Grading Scale</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Set separate grading scales per school category. If a category has no rules, school-wide rules (if any) will be used as a fallback.</p>
 
                 {/* Category Sub-tabs */}
-                <div className="border-b border-gray-200 mb-6">
+                <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
                     <nav className="-mb-px flex space-x-6">
                         {gradingTabs.map((tab) => (
                             <button
@@ -2120,7 +2120,7 @@ function GradingSettings() {
                                 onClick={() => setGradingTab(tab.id)}
                                 className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${gradingTab === tab.id
                                     ? "border-primary-500 text-primary-600"
-                                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
                                     }`}
                             >
                                 {tab.label}
@@ -2147,10 +2147,10 @@ function NotificationSettings() {
     return (
         <div className="card p-6 space-y-6">
             <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">SMS Settings</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">SMS Settings</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">SMS Provider</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SMS Provider</label>
                         <select className="input w-full" defaultValue="termii">
                             <option value="termii">Termii</option>
                             <option value="africastalking">Africa&apos;s Talking</option>
@@ -2158,18 +2158,18 @@ function NotificationSettings() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sender ID</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sender ID</label>
                         <input type="text" className="input w-full" defaultValue="Edunostics" maxLength={11} />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
                         <input type="password" className="input w-full" placeholder="Enter your SMS API key" />
                     </div>
                 </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Triggers</h3>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Notification Triggers</h3>
                 <div className="space-y-4">
                     {[
                         { id: "report_published", label: "Report Card Published", desc: "Notify parents when report cards are published" },
@@ -2177,21 +2177,21 @@ function NotificationSettings() {
                         { id: "attendance", label: "Attendance Alerts", desc: "Alert parents when student is absent" },
                         { id: "exam_schedule", label: "Exam Schedules", desc: "Notify about upcoming examinations" },
                     ].map((item) => (
-                        <div key={item.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                        <div key={item.id} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <div>
-                                <p className="font-medium text-gray-900">{item.label}</p>
-                                <p className="text-sm text-gray-500">{item.desc}</p>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" defaultChecked />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                             </label>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-200">
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button className="btn-primary">Save Changes</button>
             </div>
         </div>

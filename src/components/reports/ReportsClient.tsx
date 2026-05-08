@@ -598,8 +598,8 @@ export default function ReportsClient({
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">My Reports</h1>
-                        <p className="text-slate-500">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100">My Reports</h1>
+                        <p className="text-slate-500 dark:text-gray-400">
                             All published report cards are available here. View and print inside the portal.
                         </p>
                     </div>
@@ -607,7 +607,7 @@ export default function ReportsClient({
                 <Card>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
-                            <thead className="bg-slate-50 text-slate-600">
+                            <thead className="bg-slate-50 dark:bg-gray-900 text-slate-600 dark:text-gray-400">
                                 <tr>
                                     {isParent && <th className="px-4 py-3 text-left">Student</th>}
                                     <th className="px-4 py-3 text-left">Session</th>
@@ -620,25 +620,25 @@ export default function ReportsClient({
                             <tbody>
                                 {loadingPublishedReports ? (
                                     <tr>
-                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
+                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500 dark:text-gray-400">
                                             Loading reports...
                                         </td>
                                     </tr>
                                 ) : publishedReports.length === 0 ? (
                                     <tr>
-                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500">
+                                        <td colSpan={isParent ? 6 : 5} className="px-4 py-6 text-center text-slate-500 dark:text-gray-400">
                                             No published reports available.
                                         </td>
                                     </tr>
                                 ) : (
                                     publishedReports.map((report) => (
-                                        <tr key={report.id} className="border-t border-slate-100">
+                                        <tr key={report.id} className="border-t border-slate-100 dark:border-gray-700">
                                             {isParent && <td className="px-4 py-3">{report.studentName || "Ward"}</td>}
                                             <td className="px-4 py-3">{report.sessionName}</td>
                                             <td className="px-4 py-3">{report.termName}</td>
                                             <td className="px-4 py-3">{report.className}</td>
                                             <td className="px-4 py-3">
-                                                <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                <span className="inline-flex rounded-full bg-blue-100 dark:bg-blue-950/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                                                     View & Print Ready
                                                 </span>
                                             </td>
@@ -647,7 +647,7 @@ export default function ReportsClient({
                                                     <button
                                                         onClick={() => handleOpenPublishedReport(report)}
                                                         disabled={loadingPublishedPreviewId === report.id}
-                                                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        className="rounded-md border border-slate-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         {loadingPublishedPreviewId === report.id ? "Opening..." : "View / Print"}
                                                     </button>
@@ -674,8 +674,8 @@ export default function ReportsClient({
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Report Cards</h1>
-                    <p className="text-slate-500 mt-1">Manage and generate student reports</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-gray-100">Report Cards</h1>
+                    <p className="text-slate-500 dark:text-gray-400 mt-1">Manage and generate student reports</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -684,7 +684,7 @@ export default function ReportsClient({
                         <button
                             onClick={handlePreviewSelected}
                             disabled={loadingPreview}
-                            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+                            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 dark:border-gray-600 px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-slate-900 dark:hover:text-gray-100 disabled:opacity-50"
                         >
                             {loadingPreview ? "Loading..." : `View Selected (${selectedStudentIds.length})`}
                         </button>
@@ -722,39 +722,39 @@ export default function ReportsClient({
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="space-y-2">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-sm font-semibold text-slate-900">Class Workflow</span>
-                                        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                        <span className="text-sm font-semibold text-slate-900 dark:text-gray-100">Class Workflow</span>
+                                        <span className="inline-flex rounded-full border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-900 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-gray-400">
                                             {classWorkflow.status?.replaceAll("_", " ")}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="text-sm text-slate-500 dark:text-gray-400">
                                         Track subject review and broadcasting before publishing the class result.
                                     </p>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3 lg:min-w-[320px]">
                                     {workflowStats.map((item) => (
-                                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                                            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                        <div key={item.label} className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/80 dark:bg-gray-900 px-4 py-3">
+                                            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                 {item.label}
                                             </p>
-                                            <p className="mt-2 text-2xl font-semibold text-slate-900">{item.value}</p>
+                                            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-gray-100">{item.value}</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                            <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/60 dark:bg-gray-900 p-4">
                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <p className="text-sm font-semibold text-slate-900">
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
                                             Subjects awaiting completion ({pendingSubjects.length})
                                         </p>
-                                        <p className="text-xs text-slate-500 mt-1">
+                                        <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                                             Click any subject to inspect assigned teacher, review status, and workflow history.
                                         </p>
                                     </div>
-                                    <p className="text-xs font-medium text-slate-500">
+                                    <p className="text-xs font-medium text-slate-500 dark:text-gray-400">
                                         Broadcasted {scoreSummary?.broadcastedSubjects ?? 0} of {scoreSummary?.expectedSubjects ?? 0}
                                     </p>
                                 </div>
@@ -769,12 +769,12 @@ export default function ReportsClient({
                                                     key={item.subjectId}
                                                     type="button"
                                                     onClick={() => setSelectedWorkflowSubjectId(item.subjectId)}
-                                                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                                    className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 text-left shadow-sm transition hover:border-slate-300 dark:hover:border-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                                 >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div>
-                                                            <p className="text-sm font-semibold text-slate-900">{item.subjectName}</p>
-                                                            <p className="mt-1 text-xs text-slate-500">{getSubjectPreviewMeta(item)}</p>
+                                                            <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">{item.subjectName}</p>
+                                                            <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">{getSubjectPreviewMeta(item)}</p>
                                                         </div>
                                                         <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${tone.pill}`}>
                                                             {formatWorkflowStatusLabel(item.status)}
@@ -782,7 +782,7 @@ export default function ReportsClient({
                                                     </div>
 
                                                     <div className="mt-3 flex items-center justify-between gap-3">
-                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-gray-400">
                                                             <span className={`h-2 w-2 rounded-full ${tone.dot}`}></span>
                                                             <span>{item.nextAction}</span>
                                                         </div>
@@ -800,21 +800,21 @@ export default function ReportsClient({
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
                             <div className="mb-4">
-                                <p className="text-sm font-semibold text-slate-900">Workflow actions</p>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">Workflow actions</p>
+                                <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                                     Actions unlock as review and subject broadcasting progress.
                                 </p>
                             </div>
 
                             <div className="space-y-3">
                                 {isAdmin && (
-                                    <div className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 px-4 py-3">
+                                    <div className="rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-600 bg-amber-50/60 dark:bg-amber-950/30 px-4 py-3">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-amber-900">Admin Testing Mode</p>
-                                                <p className="mt-0.5 text-xs text-amber-700">
+                                                <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">Admin Testing Mode</p>
+                                                <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
                                                     Bypass workflow gates to test comments, publishing, and student visibility.
                                                 </p>
                                             </div>
@@ -847,7 +847,7 @@ export default function ReportsClient({
                                                 !scoreSummary?.allBroadcasted
                                             ))
                                         }
-                                        className="flex w-full flex-col rounded-xl bg-blue-600 px-4 py-3 text-left text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        className="flex w-full flex-col rounded-xl bg-blue-600 px-4 py-3 text-left text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-gray-600"
                                     >
                                         <span className="text-sm font-semibold">
                                             {workflowBusyAction === "broadcast_result" ? "Broadcasting..." : "Broadcast Result"}
@@ -865,7 +865,7 @@ export default function ReportsClient({
                                             workflowBusyAction !== null ||
                                             (!adminTestMode && !["RESULT_BROADCASTED", "COMMENTS_GENERATED", "READY_FOR_ADMIN_REVIEW"].includes(classWorkflow.status))
                                         }
-                                        className="flex w-full flex-col rounded-xl bg-emerald-600 px-4 py-3 text-left text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        className="flex w-full flex-col rounded-xl bg-emerald-600 px-4 py-3 text-left text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-gray-600"
                                     >
                                         <span className="text-sm font-semibold">
                                             {workflowBusyAction === "generate_comments" ? "Generating..." : "Generate Comments"}
@@ -880,7 +880,7 @@ export default function ReportsClient({
                                     <button
                                         onClick={() => runWorkflowAction("publish_class")}
                                         disabled={workflowBusyAction !== null}
-                                        className="flex w-full flex-col rounded-xl bg-indigo-600 px-4 py-3 text-left text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        className="flex w-full flex-col rounded-xl bg-indigo-600 px-4 py-3 text-left text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-gray-600"
                                     >
                                         <span className="text-sm font-semibold">
                                             {workflowBusyAction === "publish_class" ? "Publishing..." : "Publish Class"}
@@ -895,7 +895,7 @@ export default function ReportsClient({
                                     <button
                                         onClick={() => runWorkflowAction("unpublish_class")}
                                         disabled={workflowBusyAction !== null}
-                                        className="flex w-full flex-col rounded-xl bg-rose-600 px-4 py-3 text-left text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                        className="flex w-full flex-col rounded-xl bg-rose-600 px-4 py-3 text-left text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-gray-600"
                                     >
                                         <span className="text-sm font-semibold">
                                             {workflowBusyAction === "unpublish_class" ? "Unpublishing..." : "Unpublish Class"}
@@ -912,15 +912,15 @@ export default function ReportsClient({
             )}
 
             {loading ? (
-                <div className="flex justify-center flex-col items-center py-12 bg-white rounded-lg shadow-sm border border-slate-200">
+                <div className="flex justify-center flex-col items-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700">
                     <div className="mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
-                    <p className="text-slate-500 font-medium">Loading classroom data...</p>
+                    <p className="text-slate-500 dark:text-gray-400 font-medium">Loading classroom data...</p>
                 </div>
             ) : students.length > 0 ? (
                 <>
                     {selectedStudentIds.length > 0 && isAdmin && (
-                        <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm">
-                            <span className="font-medium text-blue-700">{selectedStudentIds.length} selected</span>
+                        <div className="flex items-center gap-3 rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/30 px-4 py-2.5 text-sm">
+                            <span className="font-medium text-blue-700 dark:text-blue-300">{selectedStudentIds.length} selected</span>
                             <button
                                 onClick={() => runWorkflowAction("publish_class")}
                                 disabled={workflowBusyAction !== null}
@@ -940,7 +940,7 @@ export default function ReportsClient({
                                     href={`/api/reports/broadsheet/export?termId=${selectedTermId}&classArmId=${selectedClassArmId}&format=excel`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-md border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                    className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
                                     Export Excel
                                 </a>
@@ -968,30 +968,30 @@ export default function ReportsClient({
                     />
                 </>
             ) : selectedClassArmId ? (
-                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
-                    <p className="text-slate-500 font-medium">No students found in this class.</p>
+                <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">
+                    <p className="text-slate-500 dark:text-gray-400 font-medium">No students found in this class.</p>
                 </div>
             ) : (
-                <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-                    <p className="text-slate-500 font-medium">Select a Class and Term to view reports.</p>
+                <div className="text-center py-12 bg-slate-50 dark:bg-gray-900 rounded-lg border border-dashed border-slate-300 dark:border-gray-600">
+                    <p className="text-slate-500 dark:text-gray-400 font-medium">Select a Class and Term to view reports.</p>
                 </div>
             )}
 
             {selectedWorkflowSubject && (
                 <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/40 p-4">
                     <div className="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
-                        <div className="flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-                            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-6 py-5">
+                        <div className="flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-3xl bg-white dark:bg-gray-800 shadow-2xl">
+                            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-5">
                             <div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="text-lg font-semibold text-slate-900">
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100">
                                         {selectedWorkflowSubject.subjectName}
                                     </h3>
                                     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${getWorkflowStatusTone(selectedWorkflowSubject.status).pill}`}>
                                         {formatWorkflowStatusLabel(selectedWorkflowSubject.status)}
                                     </span>
                                 </div>
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">
                                     {selectedWorkflowSubject.nextAction}
                                 </p>
                             </div>
@@ -999,7 +999,7 @@ export default function ReportsClient({
                             <button
                                 type="button"
                                 onClick={() => setSelectedWorkflowSubjectId(null)}
-                                className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                                className="rounded-full border border-slate-200 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-gray-300 transition hover:bg-slate-50 dark:hover:bg-gray-700"
                             >
                                 Close
                             </button>
@@ -1008,10 +1008,10 @@ export default function ReportsClient({
                         <div className="grid gap-5 overflow-y-auto px-6 py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
                             <div className="space-y-5">
                                 {selectedWorkflowSubject.componentStatuses?.length ? (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                    <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
                                         <div className="mb-3">
-                                            <p className="text-sm font-semibold text-slate-900">Component subjects</p>
-                                            <p className="mt-1 text-xs text-slate-500">
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">Component subjects</p>
+                                            <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                                                 This parent subject is tracked through its component subject workflows.
                                             </p>
                                         </div>
@@ -1020,14 +1020,14 @@ export default function ReportsClient({
                                             {selectedWorkflowSubject.componentStatuses.map((component) => (
                                                 <div
                                                     key={component.subjectId}
-                                                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                                                    className="rounded-2xl border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3"
                                                 >
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div>
-                                                            <p className="text-sm font-semibold text-slate-900">
+                                                            <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">
                                                                 {component.subjectName}
                                                             </p>
-                                                            <p className="mt-1 text-xs text-slate-500">
+                                                            <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                                                                 {component.teacher?.name || "No teacher assigned"}
                                                             </p>
                                                         </div>
@@ -1038,33 +1038,33 @@ export default function ReportsClient({
 
                                                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                                         <div>
-                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                                 Teacher contact
                                                             </p>
-                                                            <p className="mt-1 text-sm text-slate-700">
+                                                            <p className="mt-1 text-sm text-slate-700 dark:text-gray-300">
                                                                 {component.teacher?.email || "No email on file"}
                                                             </p>
-                                                            <p className="text-sm text-slate-700">
+                                                            <p className="text-sm text-slate-700 dark:text-gray-300">
                                                                 {component.teacher?.phone || "No phone on file"}
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                                 Latest activity
                                                             </p>
-                                                            <p className="mt-1 text-sm text-slate-700">
+                                                            <p className="mt-1 text-sm text-slate-700 dark:text-gray-300">
                                                                 {component.broadcastedAt
                                                                     ? `Broadcasted ${formatWorkflowDate(component.broadcastedAt)}`
                                                                     : component.reviewedAt
                                                                         ? `Reviewed ${formatWorkflowDate(component.reviewedAt)}`
                                                                         : "No workflow activity yet"}
                                                             </p>
-                                                            <p className="text-sm text-slate-500">{component.nextAction}</p>
+                                                            <p className="text-sm text-slate-500 dark:text-gray-400">{component.nextAction}</p>
                                                         </div>
                                                     </div>
 
                                                     {component.rejectionReason && (
-                                                        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                                                        <div className="mt-3 rounded-xl border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-950/30 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">
                                                             {component.rejectionReason}
                                                         </div>
                                                     )}
@@ -1074,27 +1074,27 @@ export default function ReportsClient({
                                     </div>
                                 ) : (
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                 Subject teacher
                                             </p>
-                                            <p className="mt-2 text-base font-semibold text-slate-900">
+                                            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-gray-100">
                                                 {selectedWorkflowSubject.teacher?.name || "No teacher assigned"}
                                             </p>
-                                            <div className="mt-3 space-y-1 text-sm text-slate-600">
+                                            <div className="mt-3 space-y-1 text-sm text-slate-600 dark:text-gray-400">
                                                 <p>{selectedWorkflowSubject.teacher?.email || "No email on file"}</p>
                                                 <p>{selectedWorkflowSubject.teacher?.phone || "No phone on file"}</p>
                                             </div>
                                         </div>
 
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                 Class reviewer
                                             </p>
-                                            <p className="mt-2 text-base font-semibold text-slate-900">
+                                            <p className="mt-2 text-base font-semibold text-slate-900 dark:text-gray-100">
                                                 {scoreSummary?.classReviewer?.name || "No class teacher assigned"}
                                             </p>
-                                            <div className="mt-3 space-y-1 text-sm text-slate-600">
+                                            <div className="mt-3 space-y-1 text-sm text-slate-600 dark:text-gray-400">
                                                 <p>{scoreSummary?.classReviewer?.email || "No email on file"}</p>
                                                 <p>{scoreSummary?.classReviewer?.phone || "No phone on file"}</p>
                                             </div>
@@ -1102,39 +1102,39 @@ export default function ReportsClient({
                                     </div>
                                 )}
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                    <p className="text-sm font-semibold text-slate-900">Workflow activity</p>
+                                <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                                    <p className="text-sm font-semibold text-slate-900 dark:text-gray-100">Workflow activity</p>
                                     <div className="mt-4 grid gap-4 md:grid-cols-2">
-                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <div className="rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                 Reviewed by
                                             </p>
-                                            <p className="mt-2 text-sm font-medium text-slate-900">
+                                            <p className="mt-2 text-sm font-medium text-slate-900 dark:text-gray-100">
                                                 {selectedWorkflowSubject.reviewedBy?.name || "Not reviewed yet"}
                                             </p>
-                                            <p className="mt-1 text-sm text-slate-500">
+                                            <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
                                                 {formatWorkflowDate(selectedWorkflowSubject.reviewedAt)}
                                             </p>
                                         </div>
-                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <div className="rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                                 Broadcasted by
                                             </p>
-                                            <p className="mt-2 text-sm font-medium text-slate-900">
+                                            <p className="mt-2 text-sm font-medium text-slate-900 dark:text-gray-100">
                                                 {selectedWorkflowSubject.broadcastedBy?.name || "Not broadcasted yet"}
                                             </p>
-                                            <p className="mt-1 text-sm text-slate-500">
+                                            <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
                                                 {formatWorkflowDate(selectedWorkflowSubject.broadcastedAt)}
                                             </p>
                                         </div>
                                     </div>
 
                                     {selectedWorkflowSubject.rejectionReason && (
-                                        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
-                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+                                        <div className="mt-4 rounded-2xl border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-3">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
                                                 Rejection note
                                             </p>
-                                            <p className="mt-2 text-sm text-rose-700">
+                                            <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
                                                 {selectedWorkflowSubject.rejectionReason}
                                             </p>
                                         </div>
@@ -1143,30 +1143,30 @@ export default function ReportsClient({
                             </div>
 
                             <div className="space-y-4">
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                         Next action
                                     </p>
-                                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-gray-100">
                                         {selectedWorkflowSubject.nextAction}
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                         Last updated
                                     </p>
-                                    <p className="mt-2 text-sm font-medium text-slate-900">
+                                    <p className="mt-2 text-sm font-medium text-slate-900 dark:text-gray-100">
                                         {formatWorkflowDate(selectedWorkflowSubject.lastUpdatedAt)}
                                     </p>
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
                                         Workflow record {selectedWorkflowSubject.hasWorkflow ? "exists" : "has not been created yet"}.
                                     </p>
                                 </div>
 
                                 {!selectedWorkflowSubject.componentStatuses?.length && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                    <div className="rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50/70 dark:bg-gray-700/50 p-4">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-gray-400">
                                             Subject workflow
                                         </p>
                                         <p className="mt-2 text-sm text-slate-700">
@@ -1185,10 +1185,10 @@ export default function ReportsClient({
 
             {rejectingStudent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-                        <div className="border-b border-slate-100 px-5 py-4">
-                            <h3 className="text-sm font-semibold text-slate-900">Reject Student Report</h3>
-                            <p className="text-xs text-slate-500 mt-1">
+                    <div className="w-full max-w-md rounded-xl bg-white dark:bg-gray-800 shadow-xl">
+                        <div className="border-b border-slate-100 dark:border-gray-700 px-5 py-4">
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-gray-100">Reject Student Report</h3>
+                            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                                 {rejectingStudent.lastName} {rejectingStudent.firstName}
                             </p>
                         </div>
@@ -1197,16 +1197,16 @@ export default function ReportsClient({
                                 value={rejectReason}
                                 onChange={(e) => setRejectReason(e.target.value)}
                                 placeholder="Enter rejection reason"
-                                className="w-full min-h-[100px] rounded-md border border-slate-200 p-3 text-sm"
+                                className="w-full min-h-[100px] rounded-md border border-slate-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-3 text-sm"
                             />
                         </div>
-                        <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+                        <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-gray-700 px-5 py-4">
                             <button
                                 onClick={() => {
                                     setRejectingStudent(null);
                                     setRejectReason("");
                                 }}
-                                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                className="rounded-md border border-slate-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
                             >
                                 Cancel
                             </button>
@@ -1221,7 +1221,7 @@ export default function ReportsClient({
                                     setRejectReason("");
                                 }}
                                 disabled={!rejectReason.trim() || workflowBusyAction !== null}
-                                className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-gray-600"
                             >
                                 Submit Rejection
                             </button>

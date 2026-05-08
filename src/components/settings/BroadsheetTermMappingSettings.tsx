@@ -216,17 +216,17 @@ export default function BroadsheetTermMappingSettings() {
     return (
         <div className="card p-8 space-y-8 animate-fadeIn">
             <div>
-                <h3 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">Broadsheet Template Mapping</h3>
-                <p className="text-sm text-gray-500 font-medium">Assign broadsheet templates per session and term. Add class-specific overrides to use a different template for individual classes.</p>
+                <h3 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-2 uppercase tracking-tight">Broadsheet Template Mapping</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Assign broadsheet templates per session and term. Add class-specific overrides to use a different template for individual classes.</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Academic Session</label>
+                    <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Academic Session</label>
                     <select
                         value={selectedSessionId}
                         onChange={(e) => setSelectedSessionId(e.target.value)}
-                        className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
+                        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
                     >
                         {sessions.map((session) => (
                             <option key={session.id} value={session.id}>
@@ -245,25 +245,25 @@ export default function BroadsheetTermMappingSettings() {
                     const availableClasses = classes.filter((c) => !usedClassIds.has(c.id));
 
                     return (
-                        <div key={term.id} className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-5">
+                        <div key={term.id} className="p-6 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-5">
                             {/* Term header */}
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
                                     {term.termNumber}
                                 </div>
-                                <h4 className="font-bold text-gray-900">{term.name}</h4>
+                                <h4 className="font-bold text-gray-900 dark:text-gray-100">{term.name}</h4>
                             </div>
 
                             {/* Default Templates */}
                             <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 pl-1">Default Templates (All Classes)</p>
+                                <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 pl-1">Default Templates (All Classes)</p>
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Half Term (Mid-Term)</label>
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Half Term (Mid-Term)</label>
                                         <select
                                             value={mappings[term.id]?.halfTerm || defaultTemplateId}
                                             onChange={(e) => handleMappingChange(term.id, "halfTerm", e.target.value)}
-                                            className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
+                                            className="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
                                         >
                                             {templates.map(tmpl => (
                                                 <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
@@ -272,11 +272,11 @@ export default function BroadsheetTermMappingSettings() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">End of Term</label>
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">End of Term</label>
                                         <select
                                             value={mappings[term.id]?.endOfTerm || defaultTemplateId}
                                             onChange={(e) => handleMappingChange(term.id, "endOfTerm", e.target.value)}
-                                            className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
+                                            className="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all shadow-sm"
                                         >
                                             {templates.map(tmpl => (
                                                 <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
@@ -289,7 +289,7 @@ export default function BroadsheetTermMappingSettings() {
                             {/* Class-Specific Overrides */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Class-Specific Overrides</p>
+                                    <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Class-Specific Overrides</p>
                                     {availableClasses.length > 0 && addingOverrideForTerm !== term.id && (
                                         <button
                                             onClick={() => {
@@ -312,7 +312,7 @@ export default function BroadsheetTermMappingSettings() {
                                         <select
                                             value={pendingClassId}
                                             onChange={(e) => setPendingClassId(e.target.value)}
-                                            className="flex-1 bg-white border-2 border-gray-200 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all"
+                                            className="flex-1 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all"
                                         >
                                             {availableClasses.map((c) => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -326,7 +326,7 @@ export default function BroadsheetTermMappingSettings() {
                                         </button>
                                         <button
                                             onClick={() => { setAddingOverrideForTerm(null); setPendingClassId(""); }}
-                                            className="px-3 py-2 text-gray-400 hover:text-gray-700 text-xs font-black uppercase tracking-widest transition-all"
+                                            className="px-3 py-2 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xs font-black uppercase tracking-widest transition-all"
                                         >
                                             Cancel
                                         </button>
@@ -337,19 +337,19 @@ export default function BroadsheetTermMappingSettings() {
                                 {overrideEntries.length > 0 ? (
                                     <div className="space-y-2">
                                         {overrideEntries.map(([classId, override]) => (
-                                            <div key={classId} className="flex items-center gap-3 p-3 bg-white border-2 border-gray-100 rounded-xl">
+                                            <div key={classId} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-600 rounded-xl">
                                                 <div className="w-32 shrink-0">
-                                                    <span className="text-xs font-black text-gray-700 leading-tight block">{getClassName(classId)}</span>
+                                                    <span className="text-xs font-black text-gray-700 dark:text-gray-300 leading-tight block">{getClassName(classId)}</span>
                                                     <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Override</span>
                                                 </div>
 
                                                 <div className="flex-1 grid grid-cols-2 gap-3">
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-0.5">Half Term</label>
+                                                        <label className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-0.5">Half Term</label>
                                                         <select
                                                             value={override.halfTerm}
                                                             onChange={(e) => handleClassOverrideChange(term.id, classId, "halfTerm", e.target.value)}
-                                                            className="w-full bg-white border-2 border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all"
+                                                            className="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all"
                                                         >
                                                             {templates.map(tmpl => (
                                                                 <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
@@ -357,11 +357,11 @@ export default function BroadsheetTermMappingSettings() {
                                                         </select>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-0.5">End of Term</label>
+                                                        <label className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-0.5">End of Term</label>
                                                         <select
                                                             value={override.endOfTerm}
                                                             onChange={(e) => handleClassOverrideChange(term.id, classId, "endOfTerm", e.target.value)}
-                                                            className="w-full bg-white border-2 border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 focus:outline-none focus:border-emerald-500 transition-all"
+                                                            className="w-full bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 dark:text-gray-100 focus:outline-none focus:border-emerald-500 transition-all"
                                                         >
                                                             {templates.map(tmpl => (
                                                                 <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
@@ -373,7 +373,7 @@ export default function BroadsheetTermMappingSettings() {
                                                 <button
                                                     onClick={() => handleRemoveClassOverride(term.id, classId)}
                                                     title="Remove override"
-                                                    className="shrink-0 w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                    className="shrink-0 w-7 h-7 flex items-center justify-center text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
                                                 >
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -383,7 +383,7 @@ export default function BroadsheetTermMappingSettings() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest pl-1">
+                                    <p className="text-[10px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-widest pl-1">
                                         No overrides — all classes use the default template above.
                                     </p>
                                 )}
@@ -393,13 +393,13 @@ export default function BroadsheetTermMappingSettings() {
                 })}
 
                 {terms.length === 0 && (
-                    <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50">
-                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">No terms found for this session.</p>
+                    <div className="p-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl bg-gray-50 dark:bg-gray-700/50">
+                        <p className="text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest text-xs">No terms found for this session.</p>
                     </div>
                 )}
             </div>
 
-            <div className="flex justify-end pt-6 border-t border-gray-100">
+            <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-700">
                 <button
                     onClick={handleSave}
                     disabled={saving || terms.length === 0 || !selectedSessionId}

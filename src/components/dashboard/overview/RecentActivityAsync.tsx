@@ -66,8 +66,8 @@ function buildAttendanceActivities(rows: RecentAttendance[]): ActivityItem[] {
             desc: `Marked attendance for ${formatClassArmLabel(row.classArm.class.name, row.classArm.armName)}`,
             time: row.createdAt,
             link: `/dashboard/attendance?classArmId=${row.classArmId}`,
-            iconBg: "bg-blue-100",
-            iconColor: "text-blue-600",
+            iconBg: "bg-blue-100 dark:bg-blue-900/50",
+            iconColor: "text-blue-600 dark:text-blue-400",
             icon: studentIcon,
         }];
     });
@@ -85,8 +85,8 @@ function buildReportActivities(workflows: RecentClassReportWorkflow[], userId?: 
                 desc: `Generated report comments for ${classLabel}`,
                 time: workflow.commentsGeneratedAt,
                 link: `/dashboard/reports?classArmId=${workflow.classArmId}`,
-                iconBg: "bg-orange-100",
-                iconColor: "text-orange-600",
+                iconBg: "bg-orange-100 dark:bg-orange-900/50",
+                iconColor: "text-orange-600 dark:text-orange-400",
                 icon: reportIcon,
             });
         }
@@ -98,8 +98,8 @@ function buildReportActivities(workflows: RecentClassReportWorkflow[], userId?: 
                 desc: `Published results for ${classLabel}`,
                 time: workflow.publishedAt,
                 link: `/dashboard/reports?classArmId=${workflow.classArmId}`,
-                iconBg: "bg-orange-100",
-                iconColor: "text-orange-600",
+                iconBg: "bg-orange-100 dark:bg-orange-900/50",
+                iconColor: "text-orange-600 dark:text-orange-400",
                 icon: reportIcon,
             });
         }
@@ -111,8 +111,8 @@ function buildReportActivities(workflows: RecentClassReportWorkflow[], userId?: 
                 desc: `Unpublished results for ${classLabel}`,
                 time: workflow.unpublishedAt,
                 link: `/dashboard/reports?classArmId=${workflow.classArmId}`,
-                iconBg: "bg-orange-100",
-                iconColor: "text-orange-600",
+                iconBg: "bg-orange-100 dark:bg-orange-900/50",
+                iconColor: "text-orange-600 dark:text-orange-400",
                 icon: reportIcon,
             });
         }
@@ -124,8 +124,8 @@ function buildReportActivities(workflows: RecentClassReportWorkflow[], userId?: 
                 desc: `Broadcasted subject results for ${classLabel}`,
                 time: workflow.resultBroadcastedAt,
                 link: `/dashboard/insights?section=academics`,
-                iconBg: "bg-orange-100",
-                iconColor: "text-orange-600",
+                iconBg: "bg-orange-100 dark:bg-orange-900/50",
+                iconColor: "text-orange-600 dark:text-orange-400",
                 icon: reportIcon,
             });
         }
@@ -223,8 +223,8 @@ export async function RecentActivityAsync({ schoolId, userId, isAdmin, isTeacher
                     desc: `Updated ${score.subject.name} score for ${score.student.firstName} ${score.student.lastName}`,
                     time: score.updatedAt,
                     link: `/dashboard/scores`,
-                    iconBg: "bg-green-100",
-                    iconColor: "text-green-600",
+                    iconBg: "bg-green-100 dark:bg-green-900/50",
+                    iconColor: "text-green-600 dark:text-green-400",
                     icon: scoreIcon,
                 })),
             ];
@@ -282,8 +282,8 @@ export async function RecentActivityAsync({ schoolId, userId, isAdmin, isTeacher
                     desc: `Updated ${score.subject.name} score for ${score.student.firstName} ${score.student.lastName}`,
                     time: score.updatedAt,
                     link: `/dashboard/insights?section=academics`,
-                    iconBg: "bg-green-100",
-                    iconColor: "text-green-600",
+                    iconBg: "bg-green-100 dark:bg-green-900/50",
+                    iconColor: "text-green-600 dark:text-green-400",
                     icon: scoreIcon,
                 })),
             ];

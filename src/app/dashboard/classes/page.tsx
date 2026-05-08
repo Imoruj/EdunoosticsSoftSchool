@@ -35,10 +35,10 @@ interface Class {
 }
 
 const levelColors: Record<string, { bg: string; text: string }> = {
-    NURSERY: { bg: "bg-purple-100", text: "text-purple-800" },
-    PRIMARY: { bg: "bg-blue-100", text: "text-blue-800" },
-    JUNIOR_SECONDARY: { bg: "bg-amber-100", text: "text-amber-800" },
-    SENIOR_SECONDARY: { bg: "bg-green-100", text: "text-green-800" },
+    NURSERY: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-800 dark:text-purple-300" },
+    PRIMARY: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-800 dark:text-blue-300" },
+    JUNIOR_SECONDARY: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-800 dark:text-amber-300" },
+    SENIOR_SECONDARY: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-800 dark:text-green-300" },
 };
 
 export default function ClassesPage() {
@@ -264,8 +264,8 @@ export default function ClassesPage() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Classes</h1>
-                    <p className="text-gray-500 mt-1">Manage class structure and arm assignments</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Classes</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Manage class structure and arm assignments</p>
                 </div>
                 <Button
                     onClick={() => setShowAddModal(true)}
@@ -280,28 +280,28 @@ export default function ClassesPage() {
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 font-mono text-xs">
-                    <p className="text-red-700">{error}</p>
+                <div className="bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 p-4 font-mono text-xs">
+                    <p className="text-red-700 dark:text-red-300">{error}</p>
                 </div>
             )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Classes</p>
-                    <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Classes</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{classes.length}</p>
                 </Card>
                 <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Arms</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalArms}</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Arms</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalArms}</p>
                 </Card>
                 <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Students</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Students</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalStudents}</p>
                 </Card>
                 <Card className="p-4 text-center sm:text-left shadow-sm border-gray-100 flex flex-col justify-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Avg per Arm</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalArms > 0 ? Math.round(totalStudents / totalArms) : 0}</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Avg per Arm</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalArms > 0 ? Math.round(totalStudents / totalArms) : 0}</p>
                 </Card>
             </div>
 
@@ -313,7 +313,7 @@ export default function ClassesPage() {
                         onClick={() => setSelectedLevel(level)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedLevel === level
                             ? "bg-primary-600 text-white shadow-md shadow-primary-200"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                            : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                             }`}
                     >
                         {level === "All" ? "All Levels" : level.replace("_", " ")}
@@ -327,23 +327,23 @@ export default function ClassesPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             ) : filteredClasses.length === 0 ? (
-                <Card className="text-center py-12 text-gray-500 border border-dashed border-gray-300">
+                <Card className="text-center py-12 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600">
                     <p>No classes found. Add your first class.</p>
                 </Card>
             ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredClasses.map((cls) => (
                         <Card key={cls.id} className="overflow-hidden hover:shadow-md transition-shadow group/card">
-                            <div className="p-5 border-b border-gray-100">
+                            <div className="p-5 border-b border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold text-gray-900">{cls.name}</h3>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{cls.name}</h3>
                                     <div className="flex items-center gap-2">
                                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${levelColors[cls.level]?.bg} ${levelColors[cls.level]?.text}`}>
                                             {cls.level.replace("_", " ")}
                                         </span>
                                         <button
                                             onClick={() => handleDeleteClass(cls.id)}
-                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
                                             title="Delete Class"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,35 +352,35 @@ export default function ClassesPage() {
                                         </button>
                                     </div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide font-medium">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide font-medium">
                                     {cls.arms.length} arm{cls.arms.length !== 1 ? "s" : ""} •{" "}
                                     {cls.arms.reduce((a, arm) => a + arm._count.students, 0)} students
                                 </p>
                             </div>
 
-                            <div className="p-4 space-y-3 bg-gray-50/30">
+                            <div className="p-4 space-y-3 bg-gray-50/30 dark:bg-gray-700/20">
                                 {cls.arms.map((arm) => (
                                     <div
                                         key={arm.id}
-                                        className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:border-primary-200 group/arm"
+                                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:border-primary-200 dark:hover:border-primary-700 group/arm"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-primary-100/50 rounded-xl flex items-center justify-center font-bold text-primary-700">
+                                            <div className="w-10 h-10 bg-primary-100/50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center font-bold text-primary-700 dark:text-primary-300">
                                                 {arm.armName.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900 group-hover/arm:text-primary-700 transition-colors">
+                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover/arm:text-primary-700 dark:group-hover/arm:text-primary-400 transition-colors">
                                                     {arm.armName}
                                                 </p>
-                                                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-tight">
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-tight">
                                                     {arm.classTeacher ? `${arm.classTeacher.firstName} ${arm.classTeacher.lastName}` : "No Teacher"}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-sm font-bold text-gray-900">{arm._count.students}</span>
-                                                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-tighter">students</span>
+                                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{arm._count.students}</span>
+                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-tighter">students</span>
                                             </div>
                                             <div className="flex gap-1.5 opacity-0 group-hover/arm:opacity-100 transition-opacity translate-x-2 group-hover/arm:translate-x-0">
                                                 <button
@@ -388,7 +388,7 @@ export default function ClassesPage() {
                                                         setSelectedArm(arm);
                                                         setShowEditArmModal(true);
                                                     }}
-                                                    className="p-1 px-1.5 bg-gray-50 hover:bg-primary-50 text-gray-400 hover:text-primary-600 rounded-md border border-gray-100 transition-colors"
+                                                    className="p-1 px-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 rounded-md border border-gray-100 dark:border-gray-600 transition-colors"
                                                     title="Edit Arm"
                                                 >
                                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -397,7 +397,7 @@ export default function ClassesPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteArm(arm.id)}
-                                                    className="p-1 px-1.5 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-md border border-gray-100 transition-colors"
+                                                    className="p-1 px-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 dark:text-gray-500 hover:text-red-500 rounded-md border border-gray-100 dark:border-gray-600 transition-colors"
                                                     title="Delete Arm"
                                                 >
                                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -409,13 +409,13 @@ export default function ClassesPage() {
                                     </div>
                                 ))}
                                 {cls.arms.length === 0 && (
-                                    <div className="text-center py-4 border-2 border-dashed border-gray-100 rounded-xl">
-                                        <p className="text-xs text-gray-400 font-medium italic">No arms assigned</p>
+                                    <div className="text-center py-4 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-xl">
+                                        <p className="text-xs text-gray-400 dark:text-gray-600 font-medium italic">No arms assigned</p>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="px-5 py-3 bg-white border-t border-gray-100">
+                            <div className="px-5 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
                                     <Link
                                         href={`/dashboard/classes/${cls.id}`}
@@ -425,7 +425,7 @@ export default function ClassesPage() {
                                     </Link>
                                     <button
                                         onClick={() => setSelectedClassForArm(cls)}
-                                        className="text-xs text-gray-400 hover:text-gray-900 font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+                                        className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors"
                                     >
                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
@@ -453,15 +453,15 @@ function AddClassModal({ onClose, onSubmit, submitting }: { onClose: () => void;
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
                 <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
-                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
-                        <h3 className="text-xl font-bold text-slate-900">Add New Class</h3>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100">Add New Class</h3>
+                        <button onClick={onClose} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white dark:bg-gray-800">
                         <Input
                             name="name"
                             label="Class Name *"
@@ -469,8 +469,8 @@ function AddClassModal({ onClose, onSubmit, submitting }: { onClose: () => void;
                             required
                         />
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">Level *</label>
-                            <select name="level" className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300" required>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">Level *</label>
+                            <select name="level" className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200" required>
                                 <option value="">Select level</option>
                                 <option value="NURSERY">Nursery</option>
                                 <option value="PRIMARY">Primary</option>
@@ -483,7 +483,7 @@ function AddClassModal({ onClose, onSubmit, submitting }: { onClose: () => void;
                             label="Arms (comma separated)"
                             placeholder="A, B, C or Science, Arts"
                         />
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium bg-slate-50 p-2 rounded border border-slate-100">
+                        <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1 font-medium bg-slate-50 dark:bg-gray-700/50 p-2 rounded border border-slate-100 dark:border-gray-600">
                             Leave empty to add arms later. Use commas to separate multiple arms.
                         </p>
                         <div className="flex items-center justify-end gap-3 pt-4">
@@ -503,15 +503,15 @@ function AddArmModal({ cls, onClose, onSubmit, submitting }: { cls: Class; onClo
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
                 <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
-                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
-                        <h3 className="text-xl font-bold text-slate-900">Add Arm to {cls.name}</h3>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100">Add Arm to {cls.name}</h3>
+                        <button onClick={onClose} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white dark:bg-gray-800">
                         <Input
                             name="arms"
                             label="Arm Names (comma separated) *"
@@ -519,7 +519,7 @@ function AddArmModal({ cls, onClose, onSubmit, submitting }: { cls: Class; onClo
                             required
                             autoFocus
                         />
-                        <p className="text-[10px] text-slate-400 mt-1 font-medium bg-slate-50 p-2 rounded border border-slate-100">
+                        <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1 font-medium bg-slate-50 dark:bg-gray-700/50 p-2 rounded border border-slate-100 dark:border-gray-600">
                             Enter names for the new arms you want to add to this class.
                         </p>
                         <div className="flex items-center justify-end gap-3 pt-4">
@@ -539,15 +539,15 @@ function EditArmModal({ arm, teachers, onClose, onSubmit, onDelete, submitting }
             <div className="flex min-h-screen items-center justify-center p-4">
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
                 <Card className="relative w-full max-w-md shadow-2xl overflow-hidden border-slate-200">
-                    <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white">
-                        <h3 className="text-xl font-bold text-slate-900">Edit Arm: {arm.armName}</h3>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-gray-100">Edit Arm: {arm.armName}</h3>
+                        <button onClick={onClose} className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
-                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white">
+                    <form onSubmit={onSubmit} className="p-6 space-y-6 bg-white dark:bg-gray-800">
                         <Input
                             name="armName"
                             label="Arm Name *"
@@ -555,8 +555,8 @@ function EditArmModal({ arm, teachers, onClose, onSubmit, onDelete, submitting }
                             required
                         />
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-slate-700">Class Teacher</label>
-                            <select name="classTeacherId" defaultValue={arm.classTeacherId || ""} className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">Class Teacher</label>
+                            <select name="classTeacherId" defaultValue={arm.classTeacherId || ""} className="w-full rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border border-slate-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
                                 <option value="">No Teacher Assigned</option>
                                 {teachers.map(teacher => (
                                     <option key={teacher.id} value={teacher.id}>
@@ -565,7 +565,7 @@ function EditArmModal({ arm, teachers, onClose, onSubmit, onDelete, submitting }
                                 ))}
                             </select>
                         </div>
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-50 dark:border-gray-700">
                             <button type="button" onClick={onDelete} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest transition-colors flex items-center gap-1 group">
                                 <svg className="w-3.5 h-3.5 group-hover:animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

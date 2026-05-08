@@ -156,8 +156,8 @@ export default function RolePermissionsSettingsClient() {
                         Back to Settings
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Role Access Management</h1>
-                        <p className="mt-1 text-sm text-gray-500 max-w-3xl">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Role Access Management</h1>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-3xl">
                             Turn app modules on or off for each user role. School-wide feature controls still apply,
                             so a globally disabled feature stays hidden even if a role has it enabled here.
                         </p>
@@ -184,14 +184,14 @@ export default function RolePermissionsSettingsClient() {
             </div>
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-300">
                     {error}
                 </div>
             )}
 
             <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Roles</p>
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Roles</p>
                     <div className="mt-4 space-y-2">
                         {MANAGED_ROLE_PERMISSION_ROLES.map((role) => {
                             const isActive = role === selectedRole;
@@ -203,16 +203,16 @@ export default function RolePermissionsSettingsClient() {
                                     onClick={() => setSelectedRole(role)}
                                     className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
                                         isActive
-                                            ? "border-primary-200 bg-primary-50"
-                                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                                            ? "border-primary-200 dark:border-primary-800/50 bg-primary-50 dark:bg-primary-900/30"
+                                            : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="text-sm font-semibold text-gray-900">{ROLE_PERMISSION_LABELS[role]}</p>
-                                            <p className="mt-1 text-xs text-gray-500">{ROLE_PERMISSION_DESCRIPTIONS[role]}</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{ROLE_PERMISSION_LABELS[role]}</p>
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{ROLE_PERMISSION_DESCRIPTIONS[role]}</p>
                                         </div>
-                                        <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                                        <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
                                             {enabledCount}
                                         </span>
                                     </div>
@@ -223,33 +223,33 @@ export default function RolePermissionsSettingsClient() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                     Editing Role
                                 </p>
-                                <h2 className="mt-1 text-xl font-bold text-gray-900">
+                                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
                                     {ROLE_PERMISSION_LABELS[selectedRole]}
                                 </h2>
-                                <p className="mt-2 text-sm text-gray-500">
+                                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                                     Dashboard and profile access stay available by default. The toggles below control
                                     additional modules this role can open from the dashboard.
                                 </p>
                             </div>
-                            <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                                Enabled modules: <span className="font-semibold text-gray-900">{permissions[selectedRole]?.length || 0}</span>
+                            <div className="rounded-2xl bg-gray-50 dark:bg-gray-700 px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                Enabled modules: <span className="font-semibold text-gray-900 dark:text-gray-100">{permissions[selectedRole]?.length || 0}</span>
                             </div>
                         </div>
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white py-20 shadow-sm">
+                        <div className="flex items-center justify-center rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-20 shadow-sm">
                             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
                         </div>
                     ) : groupedDefinitions.length === 0 ? (
-                        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
-                            <p className="text-sm text-gray-500">No configurable modules are defined for this role yet.</p>
+                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-10 text-center shadow-sm">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No configurable modules are defined for this role yet.</p>
                         </div>
                     ) : (
                         groupedDefinitions.map(({ group, items }) => {
@@ -257,11 +257,11 @@ export default function RolePermissionsSettingsClient() {
                             const allEnabled = groupKeys.every((key) => enabledSet.has(key));
 
                             return (
-                                <div key={group} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 bg-gray-50 px-6 py-4">
+                                <div key={group} className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 px-6 py-4">
                                         <div>
-                                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-700">{group}</h3>
-                                            <p className="mt-1 text-xs text-gray-500">{items.length} module{items.length === 1 ? "" : "s"}</p>
+                                            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">{group}</h3>
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{items.length} module{items.length === 1 ? "" : "s"}</p>
                                         </div>
                                         <button
                                             onClick={() => toggleGroup(groupKeys, !allEnabled)}
@@ -271,22 +271,22 @@ export default function RolePermissionsSettingsClient() {
                                         </button>
                                     </div>
 
-                                    <div className="divide-y divide-gray-100">
+                                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                         {items.map((item) => {
                                             const permissionKey = item.key as PermissionKey;
                                             const isEnabled = enabledSet.has(permissionKey);
                                             return (
                                                 <div key={item.key} className="flex items-center justify-between gap-4 px-6 py-4">
                                                     <div>
-                                                        <p className={`text-sm font-medium ${isEnabled ? "text-gray-800" : "text-gray-400"}`}>
+                                                        <p className={`text-sm font-medium ${isEnabled ? "text-gray-800 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}>
                                                             {item.label}
                                                         </p>
-                                                        <p className="mt-1 text-xs text-gray-500">{item.description}</p>
+                                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{item.description}</p>
                                                     </div>
                                                     <button
                                                         onClick={() => togglePermission(permissionKey)}
                                                         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
-                                                            isEnabled ? "bg-primary-600" : "bg-gray-200"
+                                                            isEnabled ? "bg-primary-600" : "bg-gray-200 dark:bg-gray-600"
                                                         }`}
                                                         role="switch"
                                                         aria-checked={isEnabled}

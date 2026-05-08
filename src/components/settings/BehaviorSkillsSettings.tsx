@@ -43,7 +43,7 @@ function ClassSelector({ classes, selectedIds, onChange }: ClassSelectorProps) {
 
     return (
         <div className="mt-2">
-            <p className="text-xs text-gray-500 mb-1">Applies to:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Applies to:</p>
             <div className="flex flex-wrap gap-1.5">
                 <button
                     type="button"
@@ -51,7 +51,7 @@ function ClassSelector({ classes, selectedIds, onChange }: ClassSelectorProps) {
                     className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
                         allSelected
                             ? 'bg-green-100 border-green-400 text-green-700'
-                            : 'bg-gray-100 border-gray-300 text-gray-500 hover:border-green-300'
+                            : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-green-300'
                     }`}
                 >
                     All Classes
@@ -64,7 +64,7 @@ function ClassSelector({ classes, selectedIds, onChange }: ClassSelectorProps) {
                         className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors ${
                             selectedIds.includes(cls.id)
                                 ? 'bg-blue-100 border-blue-400 text-blue-700'
-                                : 'bg-gray-100 border-gray-300 text-gray-500 hover:border-blue-300'
+                                : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-300'
                         }`}
                     >
                         {cls.name}
@@ -198,22 +198,22 @@ export default function BehaviorSkillsSettings() {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-1">Behavior & Skills Configuration</h2>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Assign traits and skills to specific classes, or leave unassigned to apply to all classes.
             </p>
 
             {/* Tabs */}
-            <div className="flex border-b mb-6">
+            <div className="flex border-b dark:border-gray-700 mb-6">
                 <button
-                    className={`px-4 py-2 font-medium ${activeTab === 'traits' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-4 py-2 font-medium ${activeTab === 'traits' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     onClick={() => setActiveTab('traits')}
                 >
                     Affective Traits
                 </button>
                 <button
-                    className={`px-4 py-2 font-medium ${activeTab === 'skills' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-4 py-2 font-medium ${activeTab === 'skills' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     onClick={() => setActiveTab('skills')}
                 >
                     Psychomotor Skills
@@ -222,14 +222,14 @@ export default function BehaviorSkillsSettings() {
 
             <div className="space-y-6">
                 {/* Add New Form */}
-                <form onSubmit={handleAdd} className="border rounded-lg p-4 bg-gray-50 space-y-3">
+                <form onSubmit={handleAdd} className="border dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 space-y-3">
                     <div className="flex gap-2">
                         <input
                             type="text"
                             value={newItemName}
                             onChange={(e) => setNewItemName(e.target.value)}
                             placeholder={`New ${activeTab === 'traits' ? 'trait' : 'skill'} name...`}
-                            className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="flex-1 border dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
                         />
                         <button
                             type="submit"
@@ -249,12 +249,12 @@ export default function BehaviorSkillsSettings() {
                 </form>
 
                 {/* List */}
-                <div className="border rounded divide-y">
+                <div className="border dark:border-gray-700 rounded divide-y dark:divide-gray-700">
                     {currentList.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">No items found. Add one above.</div>
+                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">No items found. Add one above.</div>
                     ) : (
                         currentList.map((item) => (
-                            <div key={item.id} className="p-3 hover:bg-gray-50">
+                            <div key={item.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                                 {editingItem?.id === item.id ? (
                                     <form onSubmit={handleUpdate} className="space-y-3">
                                         <div className="flex gap-2 items-center">
@@ -262,11 +262,11 @@ export default function BehaviorSkillsSettings() {
                                                 type="text"
                                                 value={editingItem.name}
                                                 onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                                                className="flex-1 border rounded px-2 py-1"
+                                                className="flex-1 border dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                                                 autoFocus
                                             />
                                             <button type="submit" className="text-green-600 hover:text-green-800 text-sm font-medium whitespace-nowrap">Save</button>
-                                            <button type="button" onClick={() => setEditingItem(null)} className="text-gray-500 hover:text-gray-700 text-sm whitespace-nowrap">Cancel</button>
+                                            <button type="button" onClick={() => setEditingItem(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm whitespace-nowrap">Cancel</button>
                                         </div>
                                         {classes.length > 0 && (
                                             <ClassSelector
@@ -279,10 +279,10 @@ export default function BehaviorSkillsSettings() {
                                 ) : (
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
                                             <div className="mt-0.5 flex flex-wrap gap-1">
                                                 {item.classIds.length === 0 ? (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                                                         All Classes
                                                     </span>
                                                 ) : (

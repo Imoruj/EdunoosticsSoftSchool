@@ -135,14 +135,14 @@ export default function CommentDialog({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
             <Card className="w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div className="p-6 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">Report Comments</h2>
-                        <p className="text-sm text-slate-500">{studentName}</p>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-gray-100">Report Comments</h2>
+                        <p className="text-sm text-slate-500 dark:text-gray-400">{studentName}</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-slate-600 transition-colors"
+                        className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -154,25 +154,25 @@ export default function CommentDialog({
                     {loading ? (
                         <div className="py-12 flex flex-col items-center justify-center space-y-3">
                             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
-                            <p className="text-sm text-slate-500">Loading comments...</p>
+                            <p className="text-sm text-slate-500 dark:text-gray-400">Loading comments...</p>
                         </div>
                     ) : (
                         <>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-gray-300 uppercase tracking-wider">
                                         Class Teacher's Comment
                                     </label>
                                     <button
                                         onClick={() => handleRegenerate("classTeacher")}
                                         disabled={regenerating !== null || saving}
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-slate-400"
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-slate-400 dark:disabled:text-gray-600"
                                     >
                                         {regenerating === "classTeacher" ? "Regenerating..." : "Regenerate"}
                                     </button>
                                 </div>
                                 <textarea
-                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 p-3 text-slate-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-3 text-slate-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/30"
                                     placeholder="Enter teacher's comment..."
                                     value={teacherComment}
                                     onChange={(e) => setTeacherComment(e.target.value)}
@@ -181,19 +181,19 @@ export default function CommentDialog({
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-gray-300 uppercase tracking-wider">
                                         Principal's Comment
                                     </label>
                                     <button
                                         onClick={() => handleRegenerate("principal")}
                                         disabled={regenerating !== null || saving}
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:text-slate-400"
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-slate-400 dark:disabled:text-gray-600"
                                     >
                                         {regenerating === "principal" ? "Regenerating..." : "Regenerate"}
                                     </button>
                                 </div>
                                 <textarea
-                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 p-3 text-slate-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                    className="w-full min-h-[100px] resize-none rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-3 text-slate-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/30"
                                     placeholder="Enter principal's comment..."
                                     value={principalComment}
                                     onChange={(e) => setPrincipalComment(e.target.value)}
@@ -203,7 +203,7 @@ export default function CommentDialog({
                     )}
                 </div>
 
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <div className="p-6 bg-slate-50 dark:bg-gray-700/50 border-t border-slate-100 dark:border-gray-700 flex justify-end gap-3">
                     <Button
                         variant="secondary"
                         onClick={onClose}

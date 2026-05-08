@@ -1114,8 +1114,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Students</h1>
-                    <p className="text-gray-500 mt-1">Manage student records and information</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Students</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Manage student records and information</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     {isAdmin && (
@@ -1202,59 +1202,59 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="card p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                            <p className="text-sm text-gray-500">Total Students</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Total Students</p>
                         </div>
                     </div>
                 </div>
                 <div className="card p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-pink-600 dark:text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {stats.female}
                             </p>
-                            <p className="text-sm text-gray-500">Female</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Female</p>
                         </div>
                     </div>
                 </div>
                 <div className="card p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {stats.male}
                             </p>
-                            <p className="text-sm text-gray-500">Male</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Male</p>
                         </div>
                     </div>
                 </div>
                 <div className="card p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {stats.active}
                             </p>
-                            <p className="text-sm text-gray-500">Active</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
                         </div>
                     </div>
                 </div>
@@ -1262,10 +1262,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
             {isAdmin && (
                 <Card className="overflow-hidden">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900">Pending Student Requests</h2>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Pending Student Requests</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 Review edit and delete requests submitted by class teachers.
                             </p>
                         </div>
@@ -1282,19 +1282,19 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Student
                                     </TableHead>
-                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Request
                                     </TableHead>
-                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Submitted By
                                     </TableHead>
-                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <TableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Requested At
                                     </TableHead>
-                                    <TableHead className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <TableHead className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                         Actions
                                     </TableHead>
                                 </TableRow>
@@ -1302,13 +1302,13 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                             <TableBody>
                                 {loadingStudentChangeRequests ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                             Loading approval requests...
                                         </TableCell>
                                     </TableRow>
                                 ) : studentChangeRequests.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                             No pending student requests.
                                         </TableCell>
                                     </TableRow>
@@ -1317,26 +1317,26 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         <TableRow key={request.id}>
                                             <TableCell className="px-6 py-4 whitespace-nowrap">
                                                 <div>
-                                                    <div className="text-sm font-medium text-gray-900">{request.studentName}</div>
-                                                    <div className="text-xs text-gray-500 font-mono">{request.admissionNumber}</div>
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.studentName}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">{request.admissionNumber}</div>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="px-6 py-4">
                                                 <div className="space-y-1">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                         request.action === "DELETE"
-                                                            ? "bg-red-100 text-red-700"
-                                                            : "bg-amber-100 text-amber-700"
+                                                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                                                            : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                                                     }`}>
                                                         {request.action === "DELETE" ? "Delete" : "Edit"}
                                                     </span>
-                                                    <p className="text-sm text-gray-600">{request.summary || "Pending review"}</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">{request.summary || "Pending review"}</p>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                                 {request.requester.lastName} {request.requester.firstName}
                                             </TableCell>
-                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                                 {new Date(request.createdAt).toLocaleString("en-GB", {
                                                     day: "2-digit",
                                                     month: "short",
@@ -1350,14 +1350,14 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                     <button
                                                         onClick={() => handleStudentChangeRequestReview(request.id, "approve")}
                                                         disabled={reviewingStudentChangeRequestId === request.id}
-                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 disabled:opacity-50"
                                                     >
                                                         Approve
                                                     </button>
                                                     <button
                                                         onClick={() => handleStudentChangeRequestReview(request.id, "reject")}
                                                         disabled={reviewingStudentChangeRequestId === request.id}
-                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                                                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-50"
                                                     >
                                                         Reject
                                                     </button>
@@ -1471,18 +1471,18 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         <div className="flex justify-center">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                                         </div>
-                                        <p className="mt-2 text-sm text-gray-500">Loading students...</p>
+                                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading students...</p>
                                     </TableCell>
                                 </TableRow>
                             ) : students.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center">
-                                            <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                             </svg>
-                                            <p className="text-gray-500">No students found</p>
-                                            <p className="text-gray-400 text-sm mt-1">
+                                            <p className="text-gray-500 dark:text-gray-400">No students found</p>
+                                            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
                                                 Try adjusting your search or filter criteria
                                             </p>
                                         </div>
@@ -1490,7 +1490,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </TableRow>
                             ) : (
                                 students.map((student) => (
-                                    <TableRow key={student.id} className="hover:bg-gray-50">
+                                    <TableRow key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <TableCell className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="relative group">
@@ -1528,14 +1528,14 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                     )}
                                                 </div>
                                                 <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                         {student.firstName} {student.lastName}
                                                     </div>
                                                 </div>
                                             </div>
                                         </TableCell>
                                         <TableCell className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-900 font-mono">
+                                            <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
                                                 {student.admissionNumber}
                                             </span>
                                         </TableCell>
@@ -1552,7 +1552,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                 {student.gender === "FEMALE" ? "Female" : "Male"}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {student.parentPhone}
                                         </TableCell>
                                         <TableCell className="px-6 py-4 whitespace-nowrap">
@@ -1645,7 +1645,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                 </div>
 
                 {/* Pagination */}
-                <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
                     <div className="flex-1 flex justify-between sm:hidden">
                         <button
                             onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
@@ -1664,7 +1664,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     </div>
                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
                                 Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{" "}
                                 <span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{" "}
                                 <span className="font-medium">{pagination.total}</span> results
@@ -1675,7 +1675,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 <button
                                     onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                                     disabled={pagination.page === 1}
-                                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                                 >
                                     <span className="sr-only">Previous</span>
                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1696,7 +1696,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
                                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${pagination.page === pageNum
                                                 ? "z-10 bg-primary-50 border-primary-500 text-primary-600"
-                                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                                                 }`}
                                         >
                                             {pageNum}
@@ -1706,7 +1706,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 <button
                                     onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.totalPages, prev.page + 1) }))}
                                     disabled={pagination.page >= pagination.totalPages}
-                                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                                 >
                                     <span className="sr-only">Next</span>
                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1726,10 +1726,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                         <div className="flex min-h-screen items-center justify-center p-4">
                             <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => { setShowAddModal(false); setSelectedStudent(null); }} />
 
-                            <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-900">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                             {selectedStudent
                                                 ? (isAdmin ? "Edit Student" : "Request Student Update")
                                                 : "Add New Student"}
@@ -1742,7 +1742,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     </div>
                                     <button
                                         onClick={() => { setShowAddModal(false); setSelectedStudent(null); }}
-                                        className="text-gray-400 hover:text-gray-500"
+                                        className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                                     >
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1752,35 +1752,35 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                 <form key={selectedStudent?.id || "new"} onSubmit={handleAddStudent} className="p-6 space-y-6">
                                     {selectedStudent && !isAdmin && (
-                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        <div className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
                                             The student record will stay unchanged until an admin approves this request.
                                         </div>
                                     )}
 
                                     {/* Basic Info */}
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-900 mb-4">Basic Information</h4>
+                                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Basic Information</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     First Name *
                                                 </label>
                                                 <input name="firstName" defaultValue={selectedStudent?.firstName} type="text" className="input w-full" required />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Last Name *
                                                 </label>
                                                 <input name="lastName" defaultValue={selectedStudent?.lastName} type="text" className="input w-full" required />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Other Names
                                                 </label>
                                                 <input name="otherNames" defaultValue={selectedStudent?.otherNames || ""} type="text" className="input w-full" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Gender *
                                                 </label>
                                                 <select name="gender" defaultValue={selectedStudent?.gender} className="input w-full" required>
@@ -1790,7 +1790,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Date of Birth *
                                                 </label>
                                                 <input
@@ -1802,14 +1802,14 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Admission Number *
                                                 </label>
                                                 <div className="flex gap-2">
                                                     <input
                                                         name="admissionNumber"
                                                         type="text"
-                                                        className="input w-full bg-gray-50"
+                                                        className="input w-full bg-gray-50 dark:bg-gray-700"
                                                         value={nextAdmissionNumber}
                                                         readOnly={autoGenerateEnabled || !!selectedStudent}
                                                         onChange={(e) => setNextAdmissionNumber(e.target.value)}
@@ -1819,7 +1819,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                         type="button"
                                                         onClick={fetchNextAdmissionNumber}
                                                         disabled={loadingAdmissionNumber || !autoGenerateEnabled}
-                                                        className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg border border-gray-200"
+                                                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg border border-gray-200 dark:border-gray-600"
                                                         title="Refresh Admission Number"
                                                     >
                                                         <svg className={`w-5 h-5 ${loadingAdmissionNumber ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1836,7 +1836,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                                 onChange={(e) => setAutoGenerateEnabled(e.target.checked)}
                                                                 className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                                             />
-                                                            <span className="text-xs text-gray-500">Auto-generate</span>
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">Auto-generate</span>
                                                         </label>
                                                     )}
                                                     {autoGenerateEnabled && nextAdmissionNumber && !selectedStudent && (
@@ -1854,10 +1854,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                     {/* Academic Info */}
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-900 mb-4">Academic Information</h4>
+                                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Academic Information</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Class *
                                                 </label>
                                                 <select
@@ -1879,34 +1879,34 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                     {/* Parent Info */}
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-900 mb-4">Parent/Guardian Information</h4>
+                                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Parent/Guardian Information</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Parent Name *
                                                 </label>
                                                 <input name="parentName" defaultValue={selectedStudent?.parentName || ""} type="text" className="input w-full" required />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Phone Number *
                                                 </label>
                                                 <input name="parentPhone" defaultValue={selectedStudent?.parentPhone || ""} type="tel" className="input w-full" required />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Email Address
                                                 </label>
                                                 <input name="parentEmail" defaultValue={selectedStudent?.parentEmail || ""} type="email" className="input w-full" />
                                             </div>
                                             <div className="md:col-span-2">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     Home Address
                                                 </label>
                                                 <textarea name="address" defaultValue={selectedStudent?.address || ""} rows={3} className="input w-full"></textarea>
                                             </div>
                                             <div className="md:col-span-2">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                                     State of Origin
                                                 </label>
                                                 <input name="stateOfOrigin" defaultValue={selectedStudent?.stateOfOrigin || ""} type="text" className="input w-full" />
@@ -1915,7 +1915,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     </div>
 
                                     {/* Form Actions */}
-                                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                         <button
                                             type="button"
                                             onClick={() => { setShowAddModal(false); setSelectedStudent(null); }}
@@ -1943,16 +1943,16 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             {
                 showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mx-auto mb-4">
                                 <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center mb-2">
                                 {isAdmin ? "Delete Student?" : "Request Student Deletion?"}
                             </h3>
-                            <p className="text-gray-500 text-center mb-6">
+                            <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
                                 {isAdmin
                                     ? "This action cannot be undone. All data associated with this student including scores, attendance, and report cards will be permanently deleted."
                                     : "This sends a deletion request to the admin user. The student record will remain unchanged until approval."}
@@ -1979,8 +1979,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             {/* Review Change Request Modal */}
             {reviewConfirm && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-                        <div className={`flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4 ${reviewConfirm.action === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4 ${reviewConfirm.action === 'approve' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                             {reviewConfirm.action === 'approve' ? (
                                 <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1991,25 +1991,25 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </svg>
                             )}
                         </div>
-                        <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center mb-2">
                             {reviewConfirm.action === 'approve' ? 'Approve Request?' : 'Reject Request?'}
                         </h3>
-                        <p className="text-gray-500 text-center mb-4 text-sm">
+                        <p className="text-gray-500 dark:text-gray-400 text-center mb-4 text-sm">
                             {reviewConfirm.action === 'approve'
                                 ? 'The student record will be updated with the requested changes.'
                                 : 'The request will be declined and the student record will remain unchanged.'}
                         </p>
                         {reviewConfirm.action === 'reject' && (
                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Rejection reason <span className="text-gray-400 font-normal">(optional)</span>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Rejection reason <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
                                 </label>
                                 <textarea
                                     value={reviewNote}
                                     onChange={(e) => setReviewNote(e.target.value)}
                                     placeholder="Enter a reason for rejection…"
                                     rows={3}
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+                                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-800 resize-none"
                                 />
                             </div>
                         )}
@@ -2037,9 +2037,9 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                     <div className="flex min-h-screen items-center justify-center p-4">
                         <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => !importing && setShowImportModal(false)} />
 
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">Import Students from CSV</h3>
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Students from CSV</h3>
                                 <button
                                     onClick={() => {
                                         if (!importing) {
@@ -2050,7 +2050,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             setCreateLoginAccounts(true);
                                         }
                                     }}
-                                    className="text-gray-400 hover:text-gray-500"
+                                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                                     disabled={importing}
                                 >
                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2061,7 +2061,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                             <div className="p-6 space-y-4">
                                 {/* Instructions */}
-                                <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+                                <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-4">
                                     <div className="flex">
                                         <div className="shrink-0">
                                             <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -2069,15 +2069,15 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             </svg>
                                         </div>
                                         <div className="ml-3">
-                                            <p className="text-sm text-blue-700">
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
                                                 Download the student template, fill registration data (including optional Admission Date and Status), then upload.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50 rounded-lg p-3">
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={importDryRun}
@@ -2087,7 +2087,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         />
                                         Dry run (validate only)
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={createLoginAccounts}
@@ -2101,7 +2101,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                 {/* File Upload */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Select CSV File
                                     </label>
                                     <input
@@ -2111,7 +2111,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             setImportFile(e.target.files?.[0] || null);
                                             setImportResults(null);
                                         }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/50"
                                         disabled={importing}
                                     />
                                 </div>
@@ -2136,8 +2136,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                     </svg>
                                                     <span className="font-medium">{importResults.failed} students failed</span>
                                                 </div>
-                                                <div className="bg-red-50 rounded-md p-3 max-h-40 overflow-y-auto">
-                                                    <ul className="text-sm text-red-700 space-y-1">
+                                                <div className="bg-red-50 dark:bg-red-950/30 rounded-md p-3 max-h-40 overflow-y-auto">
+                                                    <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
                                                         {importResults.errors.map((error, idx) => (
                                                             <li key={idx}>• {error}</li>
                                                         ))}
@@ -2149,7 +2149,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                     <button
                                         onClick={() => {
                                             setShowImportModal(false);
@@ -2191,9 +2191,9 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                             }}
                         />
 
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-3xl w-full">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">Import Legacy Records (Historical Years)</h3>
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Legacy Records (Historical Years)</h3>
                                 <button
                                     onClick={() => {
                                         if (!legacyImporting) {
@@ -2205,7 +2205,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             setLegacyAtomic(true);
                                         }
                                     }}
-                                    className="text-gray-400 hover:text-gray-500"
+                                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                                     disabled={legacyImporting}
                                 >
                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2215,8 +2215,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                             </div>
 
                             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
-                                    <p className="text-sm text-amber-800">
+                                <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 p-4 rounded">
+                                    <p className="text-sm text-amber-800 dark:text-amber-300">
                                         Use this for pre-app historical data. Select the correct session, term, class, and subject before upload.
                                     </p>
                                 </div>
@@ -2233,7 +2233,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Session *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session *</label>
                                         <select
                                             className="input w-full"
                                             value={selectedLegacySessionId}
@@ -2249,7 +2249,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Term *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Term *</label>
                                         <select
                                             className="input w-full"
                                             value={selectedLegacyTermId}
@@ -2265,7 +2265,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Class *</label>
                                         <select
                                             className="input w-full"
                                             value={selectedLegacyClassArmId}
@@ -2281,7 +2281,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject *</label>
                                         <select
                                             className="input w-full"
                                             value={selectedLegacySubjectId}
@@ -2299,7 +2299,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Legacy CSV File *</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Legacy CSV File *</label>
                                     <input
                                         type="file"
                                         accept=".csv"
@@ -2307,13 +2307,13 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                             setLegacyImportFile(e.target.files?.[0] || null);
                                             setLegacyImportResult(null);
                                         }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-900/30 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-900/50"
                                         disabled={legacyImporting}
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 rounded-lg p-3">
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={legacyImportDryRun}
@@ -2323,7 +2323,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         />
                                         Dry run
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={legacyForceOverwrite}
@@ -2333,7 +2333,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         />
                                         Force overwrite
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                         <input
                                             type="checkbox"
                                             checked={legacyAtomic}
@@ -2346,7 +2346,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 </div>
 
                                 {legacyImportResult && (
-                                    <div className="space-y-3 border border-gray-200 rounded-lg p-4">
+                                    <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                                         <div className="flex items-center gap-2 text-green-600">
                                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2357,7 +2357,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                         </div>
 
                                         {legacyImportResult.status === "conflict_admin" && (
-                                            <div className="text-amber-700 bg-amber-50 border border-amber-200 rounded p-3 text-sm space-y-2">
+                                            <div className="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded p-3 text-sm space-y-2">
                                                 <p>
                                                     {legacyImportResult.conflictCount || 0} student(s) already have existing records for the selected term/subject.
                                                     Enable <span className="font-semibold">Force overwrite</span> and re-run to replace them.
@@ -2380,8 +2380,8 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                     </svg>
                                                     <span className="font-medium">{legacyImportResult.failed} row issues</span>
                                                 </div>
-                                                <div className="bg-red-50 rounded-md p-3 max-h-52 overflow-y-auto">
-                                                    <ul className="text-sm text-red-700 space-y-1">
+                                                <div className="bg-red-50 dark:bg-red-950/30 rounded-md p-3 max-h-52 overflow-y-auto">
+                                                    <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
                                                         {legacyImportResult.errors.map((entry, idx) => (
                                                             <li key={idx}>- {entry}</li>
                                                         ))}
@@ -2392,7 +2392,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     </div>
                                 )}
 
-                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                     <button
                                         onClick={() => {
                                             if (!legacyImporting) {
@@ -2443,17 +2443,17 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                             }}
                         />
 
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
-                            <div className="p-6 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-900">Reset Password</h3>
-                                <p className="text-sm text-gray-600 mt-2">
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reset Password</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                     Reset password for <span className="font-semibold">{passwordResetTarget.firstName} {passwordResetTarget.lastName}</span>?
                                 </p>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                     A new student-specific temporary password will be generated for this account.
                                 </p>
                             </div>
-                            <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
                                 <button
                                     onClick={() => setPasswordResetTarget(null)}
                                     disabled={resettingUserId === passwordResetTarget.id}
@@ -2493,10 +2493,10 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                             }}
                         />
 
-                        <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl">
-                            <div className="border-b border-slate-200 px-6 py-5">
-                                <h3 className="text-lg font-semibold text-slate-900">Student photo</h3>
-                                <p className="mt-2 text-sm text-slate-600">
+                        <div className="relative w-full max-w-md rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
+                            <div className="border-b border-slate-200 dark:border-gray-700 px-6 py-5">
+                                <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100">Student photo</h3>
+                                <p className="mt-2 text-sm text-slate-600 dark:text-gray-400">
                                     {photoActionPromptStudent.firstName} {photoActionPromptStudent.lastName} already has a photo.
                                     Do you want to edit the current one or replace it with a new image?
                                 </p>
@@ -2519,7 +2519,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                     Replace with new photo
                                 </button>
                             </div>
-                            <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+                            <div className="flex items-center justify-end border-t border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-700/50 px-6 py-4">
                                 <button
                                     type="button"
                                     onClick={() => setPhotoActionPromptStudent(null)}
@@ -2544,14 +2544,14 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
             {/* Transfer Modal */}
             {transferStudent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-gray-700">
                             <div>
-                                <h2 className="text-base font-bold text-slate-800">Transfer Student</h2>
-                                <p className="text-xs text-slate-500 mt-0.5">{transferStudent.firstName} {transferStudent.lastName}</p>
+                                <h2 className="text-base font-bold text-slate-800 dark:text-gray-100">Transfer Student</h2>
+                                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">{transferStudent.firstName} {transferStudent.lastName}</p>
                             </div>
-                            <button onClick={() => setTransferStudent(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                            <button onClick={() => setTransferStudent(null)} className="p-1.5 rounded-lg text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
@@ -2563,20 +2563,20 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                         ) : (
                             <div className="p-6 space-y-4">
                                 {/* Info banner */}
-                                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-violet-50 border border-violet-100">
-                                    <svg className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-800/50">
+                                    <svg className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <p className="text-xs text-violet-700">All existing records (scores, reports, attendance) remain accessible from the new branch.</p>
+                                    <p className="text-xs text-violet-700 dark:text-violet-300">All existing records (scores, reports, attendance) remain accessible from the new branch.</p>
                                 </div>
 
                                 {/* Target branch */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Target Branch <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1.5">Target Branch <span className="text-red-500">*</span></label>
                                     <select
                                         value={transferTargetBranchId}
                                         onChange={(e) => { setTransferTargetBranchId(e.target.value); setTransferTargetClassArmId(""); }}
-                                        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                        className="w-full text-sm border border-slate-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white dark:bg-gray-700 dark:text-gray-200"
                                     >
                                         <option value="">Select a branch…</option>
                                         {transferBranches
@@ -2592,7 +2592,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 {/* Target class arm */}
                                 {transferTargetBranchId && (
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Class Arm in New Branch</label>
+                                        <label className="block text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1.5">Class Arm in New Branch</label>
                                         {(() => {
                                             const branch = transferBranches.find((b) => b.id === transferTargetBranchId);
                                             const allArms = (branch?.classes ?? []).flatMap((cls) =>
@@ -2602,7 +2602,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                                 <select
                                                     value={transferTargetClassArmId}
                                                     onChange={(e) => setTransferTargetClassArmId(e.target.value)}
-                                                    className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                                                    className="w-full text-sm border border-slate-200 dark:border-gray-600 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white dark:bg-gray-700 dark:text-gray-200"
                                                 >
                                                     <option value="">No class arm (assign later)</option>
                                                     {allArms.map((arm) => (
@@ -2616,13 +2616,13 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
 
                                 {/* Reason */}
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Reason <span className="text-slate-400 font-normal">(optional)</span></label>
+                                    <label className="block text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1.5">Reason <span className="text-slate-400 dark:text-gray-500 font-normal">(optional)</span></label>
                                     <textarea
                                         value={transferReason}
                                         onChange={(e) => setTransferReason(e.target.value)}
                                         rows={2}
                                         placeholder="e.g. Parent relocation, branch consolidation…"
-                                        className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                        className="w-full text-sm border border-slate-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder:text-gray-500 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400"
                                     />
                                 </div>
 
@@ -2630,7 +2630,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
                                 <div className="flex gap-3 pt-1">
                                     <button
                                         onClick={() => setTransferStudent(null)}
-                                        className="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                                        className="flex-1 py-2.5 text-sm font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-600 transition-colors"
                                     >
                                         Cancel
                                     </button>

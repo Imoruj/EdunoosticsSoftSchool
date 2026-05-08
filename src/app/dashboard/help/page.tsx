@@ -64,22 +64,22 @@ interface ManualSection {
 }
 
 const ActionTable = ({ actions }: { actions: Action[] }) => (
-    <div className="my-6 overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+    <div className="my-6 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action / Button</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Function Description</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action / Button</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Function Description</th>
                 </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {actions.map((action, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 flex items-center gap-2">
-                            {action.icon && <span className="text-gray-400">{action.icon}</span>}
+                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            {action.icon && <span className="text-gray-400 dark:text-gray-500">{action.icon}</span>}
                             {action.label}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                             {action.description}
                         </td>
                     </tr>
@@ -90,11 +90,11 @@ const ActionTable = ({ actions }: { actions: Action[] }) => (
 );
 
 const ProTip = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-6 rounded-r-lg">
+    <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-4 my-6 rounded-r-lg">
         <div className="flex items-center gap-2 text-blue-800 font-bold mb-1">
             <Info className="w-4 h-4" /> Pro Tip
         </div>
-        <div className="text-sm text-blue-700 leading-relaxed font-medium">
+        <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed font-medium">
             {children}
         </div>
     </div>
@@ -118,7 +118,7 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-8">
                     <div className="prose prose-blue max-w-none">
-                        <p className="text-lg leading-relaxed text-gray-600">
+                        <p className="text-lg leading-relaxed text-gray-600 dark:text-gray-400">
                             The dashboard gives you an bird&apos;s eye view of the entire school. It connects all modules through global search and quick-filter tools.
                         </p>
                     </div>
@@ -151,14 +151,14 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-8">
                     <div className="prose prose-blue max-w-none">
-                        <p className="text-gray-600">The Insights module transforms raw data into actionable intelligence across six primary focus areas.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-semibold text-gray-900 mt-6">
-                            <div className="p-3 bg-slate-50 rounded-xl border">Enrollment & Growth</div>
-                            <div className="p-3 bg-slate-50 rounded-xl border">Academic Performance</div>
-                            <div className="p-3 bg-slate-50 rounded-xl border">Attendance Health</div>
-                            <div className="p-3 bg-slate-50 rounded-xl border">Financial Summary</div>
-                            <div className="p-3 bg-slate-50 rounded-xl border">Operations & Staff</div>
-                            <div className="p-3 bg-slate-50 rounded-xl border">Communication Impact</div>
+                        <p className="text-gray-600 dark:text-gray-400">The Insights module transforms raw data into actionable intelligence across six primary focus areas.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-semibold text-gray-900 dark:text-gray-100 mt-6">
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Enrollment & Growth</div>
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Academic Performance</div>
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Attendance Health</div>
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Financial Summary</div>
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Operations & Staff</div>
+                            <div className="p-3 bg-slate-50 dark:bg-gray-900 rounded-xl border">Communication Impact</div>
                         </div>
                     </div>
 
@@ -182,11 +182,11 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-12">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <GraduationCap className="w-7 h-7 text-primary-600" />
                             Student Lifecycle [Admin/Teacher]
                         </h3>
-                        <p className="text-gray-600 mb-6">Manage every student from the moment they enter the school until they graduate.</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Manage every student from the moment they enter the school until they graduate.</p>
 
                         <AnnotatedVisual 
                             src="/images/help/add_student.png" 
@@ -207,8 +207,8 @@ const HelpPage = () => {
                         <AnnotatedVisual src="/images/help/students_list.png" alt="Students List" caption="Comprehensive list with status filters (Active/Inactive)." />
                     </section>
 
-                    <section className="pt-12 border-t border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <section className="pt-12 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <UserCheck className="w-7 h-7 text-green-600" />
                             Staff & Teacher Roles
                         </h3>
@@ -234,11 +234,11 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-12">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <FileEdit className="w-7 h-7 text-indigo-600" />
                             Score Entry & Approval
                         </h3>
-                        <p className="text-gray-600 mb-8 leading-relaxed">Teachers record Continuous Assessments (CA) and Exams. Admins must then review and approve these scores.</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">Teachers record Continuous Assessments (CA) and Exams. Admins must then review and approve these scores.</p>
 
                         <div className="space-y-12">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
@@ -272,8 +272,8 @@ const HelpPage = () => {
                         ]} />
                     </section>
 
-                    <section className="pt-12 border-t border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <section className="pt-12 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             <School className="w-7 h-7 text-amber-600" />
                             Class & Subject Repositories
                         </h3>
@@ -299,11 +299,11 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-12">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <BookOpen className="w-7 h-7 text-orange-600" />
                             Lesson & Scheme Builder
                         </h3>
-                        <p className="text-gray-600 mb-6">Create rich, multimedia lesson content and map it to your weekly Scheme of Work.</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">Create rich, multimedia lesson content and map it to your weekly Scheme of Work.</p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             <AnnotatedVisual 
@@ -315,8 +315,8 @@ const HelpPage = () => {
                                     { x: 70, y: 50, label: "Learning Goals", description: "What students should know by the end of the topic." }
                                 ]}
                             />
-                            <div className="prose prose-sm prose-blue bg-white border p-6 rounded-2xl shadow-sm">
-                                <h4 className="font-bold text-gray-900">Lesson Components:</h4>
+                            <div className="prose prose-sm prose-blue bg-white dark:bg-gray-700 border dark:border-gray-600 p-6 rounded-2xl shadow-sm">
+                                <h4 className="font-bold text-gray-900 dark:text-gray-100">Lesson Components:</h4>
                                 <ul className="text-xs space-y-2">
                                     <li><strong>Text Blocks:</strong> For basic instructional content.</li>
                                     <li><strong>Image/Video:</strong> Embed visuals from YouTube or your device.</li>
@@ -327,8 +327,8 @@ const HelpPage = () => {
                         </div>
                     </section>
 
-                    <section className="pt-12 border-t border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <section className="pt-12 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             <FileQuestion className="w-7 h-7 text-indigo-500" />
                             Student Experience (Quizzes & Tasks)
                         </h3>
@@ -354,11 +354,11 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-12">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <CalendarCheck className="w-7 h-7 text-green-600" />
                             Attendance Tracking
                         </h3>
-                        <p className="text-gray-600 mb-6 font-medium bg-green-50 p-3 rounded-lg inline-block border border-green-100">
+                        <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium bg-green-50 dark:bg-green-950/30 p-3 rounded-lg inline-block border border-green-100 dark:border-green-800/50">
                             The system uses "Cycle Marking". You can mark the whole class as Present and then toggled individual Absentees.
                         </p>
                         <AnnotatedVisual 
@@ -372,19 +372,19 @@ const HelpPage = () => {
                         />
                     </section>
 
-                    <section className="pt-12 border-t border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <section className="pt-12 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             <Award className="w-7 h-7 text-rose-600" />
                             Behaviour & Skills Assessment
                         </h3>
-                        <p className="text-gray-600 mb-8 italic">Used by Class Teachers. Assess Affective Traits (Neatness, Punctuality) and Psychomotor Skills (Crafts, Sports) on a 1-5 scale.</p>
-                        <div className="bg-gray-100/50 p-6 rounded-2xl border border-gray-200 text-center font-bold text-gray-900">
+                        <p className="text-gray-600 dark:text-gray-400 mb-8 italic">Used by Class Teachers. Assess Affective Traits (Neatness, Punctuality) and Psychomotor Skills (Crafts, Sports) on a 1-5 scale.</p>
+                        <div className="bg-gray-100/50 dark:bg-gray-700/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-600 text-center font-bold text-gray-900 dark:text-gray-100">
                             ACTION: Click any rating box multiple times to cycle through scores [1 → 2 → 3 → 4 → 5 → RESET]
                         </div>
                     </section>
 
-                    <section className="pt-12 border-t border-gray-200">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <section className="pt-12 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             <MessageSquare className="w-7 h-7 text-blue-600" />
                             Targeted Communication
                         </h3>
@@ -410,11 +410,11 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-12">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                             <ScrollText className="w-7 h-7 text-rose-600" />
                             The Report Card Publishing Cycle
                         </h3>
-                        <p className="text-gray-600 mb-10 leading-relaxed text-lg">
+                        <p className="text-gray-600 dark:text-gray-400 mb-10 leading-relaxed text-lg">
                             Transform approved scores into final documents. This is a three-step mandatory workflow.
                         </p>
 
@@ -430,22 +430,22 @@ const HelpPage = () => {
                         />
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
-                            <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                                <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                            <div className="p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm">
+                                <h5 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <Table className="w-5 h-5 text-primary-600" />
                                     Master Broadsheets
                                 </h5>
-                                <p className="text-sm text-gray-500 mb-4 italic">A top-down view of every score for every student in a class arm. Ideal for board meetings and session-end awards.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 italic">A top-down view of every score for every student in a class arm. Ideal for board meetings and session-end awards.</p>
                                 <ActionTable actions={[
                                     { label: "Export Class Broadsheet", icon: <Download className="w-4 h-4" />, description: "Download to Excel for custom filtering or ranking." }
                                 ]} />
                             </div>
-                            <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                                <h5 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                            <div className="p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm">
+                                <h5 className="font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     <History className="w-5 h-5 text-slate-600" />
                                     Legacy/Historical Records
                                 </h5>
-                                <p className="text-sm text-gray-500 mb-4 italic">Access documents from previous academic sessions. You can upload old PDF report cards to ensure continuous student history.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 italic">Access documents from previous academic sessions. You can upload old PDF report cards to ensure continuous student history.</p>
                             </div>
                         </div>
                     </section>
@@ -461,7 +461,7 @@ const HelpPage = () => {
             content: (
                 <div className="space-y-10">
                     <section>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <Settings className="w-7 h-7 text-gray-600" />
                             Platform Rules [Super-Admin Only]
                         </h3>
@@ -494,29 +494,29 @@ const HelpPage = () => {
     const activeSection = sections.find(s => s.id === activeTab) || sections[0];
 
     return (
-        <div className="flex min-h-screen bg-gray-50/50 no-print font-sans">
+        <div className="flex min-h-screen bg-gray-50/50 dark:bg-gray-900 no-print font-sans">
             {/* Sidebar Navigation */}
-            <div className="w-80 bg-white border-r sticky top-0 h-screen overflow-y-auto no-print hidden lg:block">
+            <div className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 sticky top-0 h-screen overflow-y-auto no-print hidden lg:block">
                 <div className="p-8">
                     <div className="flex items-center gap-4 mb-10 group relative">
                         <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200 transform transition-transform group-hover:rotate-6">
                             <HelpCircle className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-black text-gray-900 leading-tight text-xl">User Manual</h1>
+                            <h1 className="font-black text-gray-900 dark:text-gray-100 leading-tight text-xl">User Manual</h1>
                             <p className="text-xs text-primary-600 font-bold tracking-widest uppercase mt-0.5">Exhaustive Guide v2.0</p>
                         </div>
                     </div>
 
                     {/* Search Field */}
                     <div className="relative mb-8">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input 
-                            type="text" 
-                            placeholder="Find an action..." 
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Find an action..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-gray-400 font-medium"
+                            className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl text-sm dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 font-medium"
                         />
                     </div>
 
@@ -528,10 +528,10 @@ const HelpPage = () => {
                                 className={`w-full flex items-center gap-4 px-4 py-3.5 text-sm font-semibold rounded-2xl transition-all duration-200 ${
                                     activeTab === section.id 
                                     ? "bg-primary-600 text-white shadow-lg shadow-primary-200" 
-                                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
                                 }`}
                             >
-                                <span className={activeTab === section.id ? "text-white" : "text-gray-400"}>
+                                <span className={activeTab === section.id ? "text-white" : "text-gray-400 dark:text-gray-500"}>
                                     {section.icon}
                                 </span>
                                 {section.title}
@@ -539,14 +539,14 @@ const HelpPage = () => {
                         ))}
                     </div>
 
-                    <div className="mt-16 pt-8 border-t border-gray-100">
-                        <div className="bg-gray-900 rounded-2xl p-6 text-white relative overflow-hidden shadow-xl">
+                    <div className="mt-16 pt-8 border-t border-gray-100 dark:border-gray-700">
+                        <div className="bg-gray-900 dark:bg-gray-700 rounded-2xl p-6 text-white relative overflow-hidden shadow-xl">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <Printer className="w-16 h-16 text-white" />
                             </div>
                             <h5 className="font-bold mb-2 relative z-10">Action Guide Offline?</h5>
-                            <p className="text-xs text-gray-400 mb-6 relative z-10 leading-relaxed font-medium">Download the full exhaustive manual as a structured PDF for your school handbook.</p>
-                            <button 
+                            <p className="text-xs text-gray-400 dark:text-gray-300 mb-6 relative z-10 leading-relaxed font-medium">Download the full exhaustive manual as a structured PDF for your school handbook.</p>
+                            <button
                                 onClick={handlePrint}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-gray-900 rounded-xl text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
                             >
@@ -559,7 +559,7 @@ const HelpPage = () => {
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-1 p-6 lg:p-16 overflow-y-auto print:p-0 print:overflow-visible bg-white lg:bg-transparent">
+            <main className="flex-1 p-6 lg:p-16 overflow-y-auto print:p-0 print:overflow-visible bg-white dark:bg-gray-800 lg:bg-transparent lg:dark:bg-transparent">
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-16 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex items-center gap-2 text-xs font-bold text-primary-600 uppercase tracking-widest mb-4">
@@ -570,10 +570,10 @@ const HelpPage = () => {
                             <ChevronRight className="w-3 h-3 text-gray-300" />
                             <span className="text-gray-400">{activeSection.title}</span>
                         </div>
-                        <h1 className="text-5xl font-black text-gray-900 tracking-tight leading-tight">
+                        <h1 className="text-5xl font-black text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
                             {activeSection.title}
                         </h1>
-                        <p className="text-2xl text-gray-400 mt-4 font-medium leading-relaxed">
+                        <p className="text-2xl text-gray-400 dark:text-gray-500 mt-4 font-medium leading-relaxed">
                             {activeSection.description}
                         </p>
                     </div>

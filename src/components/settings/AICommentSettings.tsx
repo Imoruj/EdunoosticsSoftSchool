@@ -143,12 +143,12 @@ export default function AICommentSettings() {
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Comment Settings</h1>
-                <p className="text-gray-600">Configure how teacher and principal comments are generated for report cards.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Comment Settings</h1>
+                <p className="text-gray-600 dark:text-gray-400">Configure how teacher and principal comments are generated for report cards.</p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">AI System Configuration</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">AI System Configuration</h2>
                 <div className="space-y-4">
                     <div className="flex items-center">
                         <input
@@ -162,8 +162,8 @@ export default function AICommentSettings() {
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                         <label htmlFor="useMultiAgent" className="ml-2 block text-sm">
-                            <span className="text-gray-900 font-medium">Enable Multi-Agent AI System</span>
-                            <span className="text-gray-500 block">
+                            <span className="text-gray-900 dark:text-gray-100 font-medium">Enable Multi-Agent AI System</span>
+                            <span className="text-gray-500 dark:text-gray-400 block">
                                 Use specialized AI agents for data collection, analysis, and validation instead of single-agent generation. Provides more accurate and validated comments.
                             </span>
                         </label>
@@ -171,11 +171,11 @@ export default function AICommentSettings() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Comment Configuration</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Report Comment Configuration</h2>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max score per subject</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max score per subject</label>
                         <select
                             value={settings.commentConfig?.maxScorePerSubject || "dynamic"}
                             onChange={(e) => setSettings({
@@ -185,14 +185,14 @@ export default function AICommentSettings() {
                                     maxScorePerSubject: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="dynamic">Dynamic (from assessment type settings)</option>
                             <option value="fixed100">100 (CA + Exam combined)</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Score displayed</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Score displayed</label>
                         <select
                             value={settings.commentConfig?.scoreDisplayed || "raw"}
                             onChange={(e) => setSettings({
@@ -202,14 +202,14 @@ export default function AICommentSettings() {
                                     scoreDisplayed: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="raw">Raw score only</option>
                             <option value="rawOutOf100">Raw score out of 100</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Overall average</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Overall average</label>
                         <select
                             value={settings.commentConfig?.overallAverage || "normalized"}
                             onChange={(e) => setSettings({
@@ -219,14 +219,14 @@ export default function AICommentSettings() {
                                     overallAverage: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="normalized">Sum of scores ÷ (subjects × max_score) × 100</option>
                             <option value="direct">Sum of scores ÷ number of subjects</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Performance band</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Performance band</label>
                         <select
                             value={settings.commentConfig?.performanceBand || "normalized"}
                             onChange={(e) => setSettings({
@@ -236,14 +236,14 @@ export default function AICommentSettings() {
                                     performanceBand: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="normalized">Derived from normalised % average</option>
                             <option value="direct">Derived directly from average</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Resit subjects</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Resit subjects</label>
                         <select
                             value={settings.commentConfig?.resitSubjects || "never"}
                             onChange={(e) => setSettings({
@@ -253,14 +253,14 @@ export default function AICommentSettings() {
                                     resitSubjects: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="never">Never</option>
                             <option value="thirdTermBelow50">3rd term only, score below 50</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Focus subject policy</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Focus subject policy</label>
                         <select
                             value={settings.commentConfig?.focusSubjectPolicy || "lowestNormalized"}
                             onChange={(e) => setSettings({
@@ -270,7 +270,7 @@ export default function AICommentSettings() {
                                     focusSubjectPolicy: e.target.value as any,
                                 },
                             })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="lowestNormalized">Lowest scoring subject (normalised)</option>
                             <option value="lowestRawNotResit">Lowest scoring subject (raw, not resit)</option>
@@ -281,7 +281,7 @@ export default function AICommentSettings() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Resit eligible subjects</label>
                     <div className="grid gap-2 sm:grid-cols-2">
                         {(subjectOptions.length > 0 ? subjectOptions : settings.commentConfig?.resitEligibleSubjects || []).map((subject) => (
-                            <label key={subject} className="flex items-center space-x-2 text-sm text-gray-700">
+                            <label key={subject} className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                                 <input
                                     type="checkbox"
                                     checked={settings.commentConfig?.resitEligibleSubjects?.includes(subject) || false}
@@ -304,67 +304,67 @@ export default function AICommentSettings() {
                             </label>
                         ))}
                     </div>
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         Choose the subjects that are resit-eligible for end-of-term comments. This list is loaded from current school subjects.
                     </p>
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Teacher Comment Template</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Teacher Comment Template</h2>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Prompt Template</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompt Template</label>
                         <textarea
                             value={settings.teacherPrompt}
                             onChange={(e) => setSettings({ ...settings, teacherPrompt: e.target.value })}
                             rows={8}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Enter the prompt template for teacher comments..."
                         />
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-md">
-                        <h3 className="text-sm font-medium text-blue-900 mb-2">Available Placeholders:</h3>
-                        <div className="text-sm text-blue-800 space-y-1">
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{gender}}"}</code> - Student gender</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{term}}"}</code> - Current term</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{position}}"}</code> - Class position</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{attendance}}"}</code> - Attendance summary</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{traits}}"}</code> - Behavioral traits</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{behaviour}}"}</code> - Behavior ratings</div>
-                            <div><code className="bg-blue-100 px-1 rounded">{"{{skills}}"}</code> - Skill ratings</div>
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-md">
+                        <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Available Placeholders:</h3>
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{gender}}"}</code> - Student gender</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{term}}"}</code> - Current term</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{position}}"}</code> - Class position</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{attendance}}"}</code> - Attendance summary</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{traits}}"}</code> - Behavioral traits</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{behaviour}}"}</code> - Behavior ratings</div>
+                            <div><code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">{"{{skills}}"}</code> - Skill ratings</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Principal Comment Template</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Principal Comment Template</h2>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Prompt Template</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompt Template</label>
                         <textarea
                             value={settings.principalPrompt}
                             onChange={(e) => setSettings({ ...settings, principalPrompt: e.target.value })}
                             rows={6}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Enter the prompt template for principal comments..."
                         />
                     </div>
-                    <div className="bg-green-50 p-4 rounded-md">
-                        <h3 className="text-sm font-medium text-green-900 mb-2">Available Placeholders:</h3>
-                        <div className="text-sm text-green-800 space-y-1">
-                            <div><code className="bg-green-100 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{position}}"}</code> - Class position</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{attendance}}"}</code> - Attendance summary</div>
-                            <div><code className="bg-green-100 px-1 rounded">{"{{traits}}"}</code> - Behavioral traits</div>
+                    <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-md">
+                        <h3 className="text-sm font-medium text-green-900 dark:text-green-300 mb-2">Available Placeholders:</h3>
+                        <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{name}}"}</code> - Student full name</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{firstName}}"}</code> - Student first name</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{lastName}}"}</code> - Student last name</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{average}}"}</code> - Average score percentage</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{position}}"}</code> - Class position</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{attendance}}"}</code> - Attendance summary</div>
+                            <div><code className="bg-green-100 dark:bg-green-900/50 px-1 rounded">{"{{traits}}"}</code> - Behavioral traits</div>
                         </div>
                     </div>
                 </div>

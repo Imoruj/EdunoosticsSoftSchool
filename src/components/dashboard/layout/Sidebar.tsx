@@ -189,12 +189,12 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
             {/* Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700/60 transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
                     }`}
             >
                 {/* Logo */}
-                <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
-                    <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-gray-200 shrink-0">
+                <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200 dark:border-gray-700/60">
+                    <div className="w-11 h-11 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
                         {schoolLogo ? (
                             <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain p-0.5" />
                         ) : (
@@ -204,8 +204,8 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h1 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{schoolName}</h1>
-                        <p className="text-xs text-gray-500">Report Card System</p>
+                        <h1 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight line-clamp-2">{schoolName}</h1>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Report Card System</p>
                     </div>
                 </div>
 
@@ -221,11 +221,11 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                     href={entry.href}
                                     aria-current={isActive ? "page" : undefined}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
-                                        ? "bg-primary-50 text-primary-700"
-                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                        ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400"
+                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                         }`}
                                 >
-                                    <span className={isActive ? "text-primary-600" : "text-gray-400"}>
+                                    <span className={isActive ? "text-primary-600 dark:text-primary-400" : "text-gray-400 dark:text-gray-500"}>
                                         {entry.icon}
                                     </span>
                                     {entry.name}
@@ -247,7 +247,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                     onClick={() => toggleGroup(entry.label)}
                                     aria-expanded={isExpanded}
                                     aria-label={`${entry.label} navigation group`}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors ${groupHasActive ? "text-primary-700" : "text-gray-400 hover:text-gray-600"
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors ${groupHasActive ? "text-primary-700 dark:text-primary-400" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                                         }`}
                                 >
                                     <span className="shrink-0">{entry.icon}</span>
@@ -261,7 +261,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                 </button>
 
                                 <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
-                                    <div className="ml-2 pl-3 border-l border-gray-100 space-y-0.5 mt-0.5">
+                                    <div className="ml-2 pl-3 border-l border-gray-100 dark:border-gray-700/60 space-y-0.5 mt-0.5">
                                         {visibleItems.map((item) => {
                                             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                                             return (
@@ -270,11 +270,11 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                                                     href={item.href}
                                                     aria-current={isActive ? "page" : undefined}
                                                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                                        ? "bg-primary-50 text-primary-700"
-                                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                                        ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400"
+                                                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                                         }`}
                                                 >
-                                                    <span className={isActive ? "text-primary-600" : "text-gray-400"}>
+                                                    <span className={isActive ? "text-primary-600 dark:text-primary-400" : "text-gray-400 dark:text-gray-500"}>
                                                         {item.icon}
                                                     </span>
                                                     {item.name}
@@ -294,16 +294,16 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                 </nav>
 
                 {/* User Profile */}
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 dark:border-gray-700/60 p-4">
                     <div className="flex items-center gap-3">
                         <Avatar src={userPhoto} initials={userInitials} size="md" />
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
-                            <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{userName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{userEmail}</p>
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                             title="Logout"
                             aria-label="Logout"
                         >

@@ -62,26 +62,26 @@ function getBirthdayBadgeLabel(days: number, isToday: boolean) {
 function getPalette(gender: BirthdayStudent["gender"]) {
     if (gender === "FEMALE") {
         return {
-            shell: "border-rose-200/80 bg-gradient-to-br from-rose-50 via-white to-fuchsia-50",
+            shell: "border-rose-200/80 dark:border-rose-800/40 bg-gradient-to-br from-rose-50 via-white to-fuchsia-50 dark:from-rose-950/40 dark:via-gray-800 dark:to-fuchsia-950/40",
             frame: "from-rose-400 via-pink-400 to-fuchsia-500",
-            accent: "text-rose-700",
-            subtle: "text-rose-500",
-            badge: "bg-rose-100 text-rose-700",
-            count: "bg-white/80 text-rose-700 ring-1 ring-rose-200/70",
-            particle: "bg-rose-300/70",
-            highlight: "from-white/60 via-rose-100/0 to-transparent",
+            accent: "text-rose-700 dark:text-rose-300",
+            subtle: "text-rose-500 dark:text-rose-400",
+            badge: "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300",
+            count: "bg-white/80 dark:bg-gray-700/80 text-rose-700 dark:text-rose-300 ring-1 ring-rose-200/70 dark:ring-rose-700/50",
+            particle: "bg-rose-300/70 dark:bg-rose-700/50",
+            highlight: "from-white/60 via-rose-100/0 to-transparent dark:from-gray-700/30",
         };
     }
 
     return {
-        shell: "border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-cyan-50",
+        shell: "border-sky-200/80 dark:border-sky-800/40 bg-gradient-to-br from-sky-50 via-white to-cyan-50 dark:from-sky-950/40 dark:via-gray-800 dark:to-cyan-950/40",
         frame: "from-sky-400 via-blue-400 to-cyan-500",
-        accent: "text-sky-700",
-        subtle: "text-sky-500",
-        badge: "bg-sky-100 text-sky-700",
-        count: "bg-white/80 text-sky-700 ring-1 ring-sky-200/70",
-        particle: "bg-sky-300/70",
-        highlight: "from-white/60 via-sky-100/0 to-transparent",
+        accent: "text-sky-700 dark:text-sky-300",
+        subtle: "text-sky-500 dark:text-sky-400",
+        badge: "bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300",
+        count: "bg-white/80 dark:bg-gray-700/80 text-sky-700 dark:text-sky-300 ring-1 ring-sky-200/70 dark:ring-sky-700/50",
+        particle: "bg-sky-300/70 dark:bg-sky-700/50",
+        highlight: "from-white/60 via-sky-100/0 to-transparent dark:from-gray-700/30",
     };
 }
 
@@ -129,8 +129,8 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
     if (decoratedStudents.length === 0) return null;
 
     return (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-end md:justify-between">
+        <div className="rounded-3xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
+            <div className="mb-6 flex flex-col gap-3 border-b border-slate-100 dark:border-gray-700 pb-5 md:flex-row md:items-end md:justify-between">
                 <div className="flex items-start gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 via-rose-100 to-fuchsia-100 shadow-inner">
                         <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,14 +138,14 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                         </svg>
                     </div>
                     <div>
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">Upcoming Birthdays</h2>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-gray-100">Upcoming Birthdays</h2>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
                             Celebrations coming up within the next two days.
                         </p>
                     </div>
                 </div>
 
-                <div className="inline-flex w-fit items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-sm font-medium text-rose-700">
+                <div className="inline-flex w-fit items-center rounded-full border border-rose-200 dark:border-rose-800/50 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 text-sm font-medium text-rose-700 dark:text-rose-300">
                     {decoratedStudents.length} student{decoratedStudents.length !== 1 ? "s" : ""}
                 </div>
             </div>
@@ -176,8 +176,8 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-4">
                                     <div className={`birthday-frame shrink-0 rounded-3xl bg-gradient-to-br p-[3px] ${student.palette.frame}`}>
-                                        <div className="rounded-[1.35rem] bg-white/90 p-1.5 backdrop-blur-sm">
-                                            <div className="h-20 w-20 overflow-hidden rounded-[1.1rem] bg-slate-100">
+                                        <div className="rounded-[1.35rem] bg-white/90 dark:bg-gray-800/90 p-1.5 backdrop-blur-sm">
+                                            <div className="h-20 w-20 overflow-hidden rounded-[1.1rem] bg-slate-100 dark:bg-gray-600">
                                                 {student.photoUrl ? (
                                                     <img
                                                         src={student.photoUrl}
@@ -195,11 +195,11 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                                     </div>
 
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-lg font-semibold tracking-tight text-slate-900">
+                                        <p className="truncate text-lg font-semibold tracking-tight text-slate-900 dark:text-gray-100">
                                             {student.firstName} {student.lastName}
                                         </p>
-                                        <p className="mt-1 text-sm text-slate-500">{student.className}</p>
-                                        <div className="mt-3 inline-flex items-center rounded-full bg-white/80 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200/70">
+                                        <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">{student.className}</p>
+                                        <div className="mt-3 inline-flex items-center rounded-full bg-white/80 dark:bg-gray-700/80 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-gray-300 ring-1 ring-slate-200/70 dark:ring-gray-600/70">
                                             Birthday {student.displayDate}
                                         </div>
                                     </div>
@@ -210,9 +210,9 @@ export default function BirthdayWidget({ students }: BirthdayWidgetProps) {
                                 </div>
                             </div>
 
-                            <div className="mt-auto flex items-center justify-between gap-3 rounded-2xl bg-white/70 px-4 py-3 ring-1 ring-white/70 backdrop-blur-sm">
+                            <div className="mt-auto flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-gray-700/60 px-4 py-3 ring-1 ring-white/70 dark:ring-gray-600/50 backdrop-blur-sm">
                                 <div className="min-w-0">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-gray-500">
                                         Celebration note
                                     </p>
                                     <p className={`mt-1 text-sm font-medium ${student.palette.accent}`}>

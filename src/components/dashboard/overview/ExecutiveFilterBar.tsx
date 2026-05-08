@@ -20,11 +20,11 @@ export function ExecutiveFilterBar({
                     {section && <input type="hidden" name="section" value={section} />}
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Session</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">Session</label>
                         <select
                             name="sessionId"
                             defaultValue={filters.selectedSessionId || ""}
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="h-11 w-full rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                             {filters.sessions.map((session) => (
                                 <option key={session.id} value={session.id}>
@@ -35,11 +35,11 @@ export function ExecutiveFilterBar({
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Term</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">Term</label>
                         <select
                             name="termId"
                             defaultValue={filters.selectedTermId || ""}
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="h-11 w-full rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                             {filters.terms.map((term) => (
                                 <option key={term.id} value={term.id}>
@@ -50,11 +50,11 @@ export function ExecutiveFilterBar({
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Class Arm</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-gray-400">Class Arm</label>
                         <select
                             name="classArmId"
                             defaultValue={filters.selectedClassArmId || ""}
-                            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="h-11 w-full rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                             <option value="">All classes</option>
                             {filters.classArms.map((classArm) => (
@@ -75,7 +75,7 @@ export function ExecutiveFilterBar({
                     <div className="flex items-center gap-3">
                         <Link
                             href={`${action}${section ? `?section=${section}` : ""}`}
-                            className="text-sm font-semibold text-slate-500 hover:text-slate-700"
+                            className="text-sm font-semibold text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
                         >
                             Reset
                         </Link>

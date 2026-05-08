@@ -28,7 +28,7 @@ type DashboardSearchParams = {
 };
 
 function SkeletonCard({ h = "h-32" }: { h?: string }) {
-    return <div className={`animate-pulse bg-white border border-gray-100 shadow-sm rounded-xl w-full ${h}`} />;
+    return <div className={`animate-pulse bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-xl w-full ${h}`} />;
 }
 
 export default async function DashboardPage({
@@ -153,7 +153,7 @@ export default async function DashboardPage({
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             {dashboardWarning && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20 px-5 py-4 text-sm text-amber-900 dark:text-amber-200">
                     {dashboardWarning}
                 </div>
             )}
@@ -186,37 +186,37 @@ export default async function DashboardPage({
             {isStudent && (
                 <div className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="rounded-3xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
                             <div className="inline-flex rounded-2xl bg-blue-50 p-3 text-blue-700">
                                 <BookOpen className="h-5 w-5" />
                             </div>
-                            <p className="mt-4 text-sm font-medium text-slate-500">Assigned learning</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">Assignments, quizzes, and lessons</p>
-                            <p className="mt-2 text-sm text-slate-500">Use the sidebar to move between your classwork quickly.</p>
+                            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-gray-400">Assigned learning</p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Assignments, quizzes, and lessons</p>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">Use the sidebar to move between your classwork quickly.</p>
                         </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="rounded-3xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
                             <div className="inline-flex rounded-2xl bg-emerald-50 p-3 text-emerald-700">
                                 <Award className="h-5 w-5" />
                             </div>
-                            <p className="mt-4 text-sm font-medium text-slate-500">Results</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">Published report cards</p>
-                            <p className="mt-2 text-sm text-slate-500">View, print, and follow released academic records.</p>
+                            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-gray-400">Results</p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Published report cards</p>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">View, print, and follow released academic records.</p>
                         </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="rounded-3xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
                             <div className="inline-flex rounded-2xl bg-orange-50 p-3 text-orange-700">
                                 <FileText className="h-5 w-5" />
                             </div>
-                            <p className="mt-4 text-sm font-medium text-slate-500">Class coverage</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">Scheme of work</p>
-                            <p className="mt-2 text-sm text-slate-500">Check what your class should be covering this term.</p>
+                            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-gray-400">Class coverage</p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Scheme of work</p>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">Check what your class should be covering this term.</p>
                         </div>
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="rounded-3xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
                             <div className="inline-flex rounded-2xl bg-purple-50 p-3 text-purple-700">
                                 <TrendingUp className="h-5 w-5" />
                             </div>
-                            <p className="mt-4 text-sm font-medium text-slate-500">Performance</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">Track your progress</p>
-                            <p className="mt-2 text-sm text-slate-500">See completed work, grades, and recent performance trends.</p>
+                            <p className="mt-4 text-sm font-medium text-slate-500 dark:text-gray-400">Performance</p>
+                            <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-gray-100">Track your progress</p>
+                            <p className="mt-2 text-sm text-slate-500 dark:text-gray-400">See completed work, grades, and recent performance trends.</p>
                         </div>
                     </div>
 
@@ -234,18 +234,18 @@ export default async function DashboardPage({
                         <div className="space-y-6 xl:col-span-2">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                                 <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-gray-500">
                                         Student Workspace
                                     </p>
-                                    <h3 className="mt-2 text-xl font-semibold text-slate-900">Focus on what needs attention</h3>
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <h3 className="mt-2 text-xl font-semibold text-slate-900 dark:text-gray-100">Focus on what needs attention</h3>
+                                    <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
                                         Your active assignments and class performance are organised below.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <Link
                                         href="/dashboard/assignments"
-                                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                                        className="rounded-xl border border-slate-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-gray-200 transition hover:bg-slate-50 dark:hover:bg-gray-700"
                                     >
                                         Open Assignments
                                     </Link>
@@ -309,7 +309,7 @@ export default async function DashboardPage({
                             </Suspense>
                         )}
                     </div>
-                    <div className="space-y-6 border-l border-gray-100 xl:col-span-1 xl:pl-6">
+                    <div className="space-y-6 border-l border-gray-100 dark:border-gray-700 xl:col-span-1 xl:pl-6">
                         <Suspense fallback={<SkeletonCard h="h-96" />}>
                             <RecentActivityAsync
                                 schoolId={schoolId}

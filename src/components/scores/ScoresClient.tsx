@@ -418,17 +418,17 @@ export default function ScoresClient({
         const rule = activeGradingRules.find(r => score >= Number(r.minScore) && score <= Number(r.maxScore));
 
         if (rule) {
-            let color = "bg-gray-100 text-gray-800";
-            if (rule.grade.startsWith("A")) color = "bg-green-100 text-green-800";
-            else if (rule.grade.startsWith("B")) color = "bg-blue-100 text-blue-800";
-            else if (rule.grade.startsWith("C")) color = "bg-yellow-100 text-yellow-800";
-            else if (rule.grade.startsWith("D")) color = "bg-orange-100 text-orange-800";
-            else if (rule.grade.startsWith("E")) color = "bg-orange-50 text-orange-800";
-            else if (rule.grade.startsWith("F")) color = "bg-red-100 text-red-800";
+            let color = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+            if (rule.grade.startsWith("A")) color = "bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-300";
+            else if (rule.grade.startsWith("B")) color = "bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300";
+            else if (rule.grade.startsWith("C")) color = "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300";
+            else if (rule.grade.startsWith("D")) color = "bg-orange-100 text-orange-800 dark:bg-orange-950/30 dark:text-orange-300";
+            else if (rule.grade.startsWith("E")) color = "bg-orange-50 text-orange-800 dark:bg-orange-950/30 dark:text-orange-300";
+            else if (rule.grade.startsWith("F")) color = "bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300";
 
             return { grade: rule.grade, remark: rule.remark, color };
         }
-        return { grade: "-", remark: "-", color: "bg-gray-100 text-gray-800" };
+        return { grade: "-", remark: "-", color: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200" };
     };
 
     const handleScoreChange = (studentId: string, field: string, value: string) => {
@@ -804,14 +804,14 @@ export default function ScoresClient({
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Score Entry</h1>
-                    <p className="text-gray-500 mt-1">Record and manage assessment scores</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Score Entry</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Record and manage assessment scores</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {canManageEnrollment && (
                         <button
                             onClick={openEnrollmentModal}
-                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -822,7 +822,7 @@ export default function ScoresClient({
                     {selectionReady && students.length > 0 && canEditScores && (
                         <button
                             onClick={() => { setSelectedColumns([]); setShowTemplateModal(true); }}
-                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -833,7 +833,7 @@ export default function ScoresClient({
                     {selectionReady && students.length > 0 && canEditScores && (
                         <button
                             onClick={handleExportScores}
-                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -844,7 +844,7 @@ export default function ScoresClient({
                     {selectionReady && students.length > 0 && canEditScores && (
                         <button
                             onClick={() => { setUploadFile(null); setUploadResult(null); setShowUploadModal(true); }}
-                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -866,12 +866,12 @@ export default function ScoresClient({
 
             {/* Error / Success Messages */}
             {error && (
-                <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
+                <div className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 p-4 rounded-lg border border-red-200 dark:border-red-800/50">
                     {error}
                 </div>
             )}
             {successMessage && (
-                <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200">
+                <div className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 p-4 rounded-lg border border-green-200 dark:border-green-800/50">
                     {successMessage}
                 </div>
             )}
@@ -880,7 +880,7 @@ export default function ScoresClient({
             <div className="card p-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <div>
-                        <label htmlFor="scores-session" className="block text-sm font-medium text-gray-700 mb-2">Academic Session</label>
+                        <label htmlFor="scores-session" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Academic Session</label>
                         <select
                             id="scores-session"
                             aria-label="Select academic session"
@@ -906,7 +906,7 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="scores-term" className="block text-sm font-medium text-gray-700 mb-2">Term</label>
+                        <label htmlFor="scores-term" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Term</label>
                         <select
                             id="scores-term"
                             aria-label="Select term"
@@ -924,7 +924,7 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="scores-type" className="block text-sm font-medium text-gray-700 mb-2">Score Type</label>
+                        <label htmlFor="scores-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Score Type</label>
                         <select
                             id="scores-type"
                             aria-label="Select score type"
@@ -937,7 +937,7 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="scores-class" className="block text-sm font-medium text-gray-700 mb-2">Class Arm</label>
+                        <label htmlFor="scores-class" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class Arm</label>
                         <select
                             id="scores-class"
                             aria-label="Select class arm"
@@ -958,7 +958,7 @@ export default function ScoresClient({
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="scores-subject" className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                        <label htmlFor="scores-subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subject</label>
                         <select
                             id="scores-subject"
                             aria-label="Select subject"
@@ -985,12 +985,12 @@ export default function ScoresClient({
             </div>
 
             {selectionReady && effectiveSubjectMeta.isReadOnly && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+                <div className="rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
                     <div>
-                        <p className="text-sm font-semibold text-blue-900">
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">
                             {selectedSubjectDisplayName} is computed from component subjects
                         </p>
-                        <p className="mt-1 text-sm text-blue-800">
+                        <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">
                             This parent subject is read-only here. Teachers enter scores on the component subjects, and this total is derived automatically.
                         </p>
                     </div>
@@ -999,7 +999,7 @@ export default function ScoresClient({
                             {effectiveSubjectMeta.componentSubjects.map((component) => (
                                 <span
                                     key={component.componentSubjectId}
-                                    className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-800 border border-blue-200"
+                                    className="inline-flex items-center rounded-full bg-white dark:bg-gray-700 px-3 py-1 text-xs font-medium text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
                                 >
                                     {component.componentSubjectName}
                                 </span>
@@ -1011,14 +1011,14 @@ export default function ScoresClient({
 
             {/* Score Workflow Status */}
             {selectionReady && scoreWorkflow && (
-                <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                <div className="rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-800 p-4 space-y-3">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div>
                             <div className="flex items-center gap-2">
                                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${workflowStatusMeta.color}`}>
                                     {workflowStatusMeta.label}
                                 </span>
-                                <span className="text-sm text-slate-600">{workflowStatusMeta.help}</span>
+                                <span className="text-sm text-slate-600 dark:text-gray-400">{workflowStatusMeta.help}</span>
                             </div>
                             {scoreWorkflow.rejectionReason && (
                                 <p className="mt-2 text-sm text-red-600">
@@ -1083,20 +1083,20 @@ export default function ScoresClient({
             {/* Enrollment Info Banner */}
             {selectionReady && !loadingData && canManageEnrollment && (
                 <div className={`flex items-center justify-between p-3 rounded-lg border ${hasEnrollments
-                        ? "bg-blue-50 border-blue-200"
-                        : "bg-amber-50 border-amber-200"
+                        ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50"
+                        : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50"
                     }`}>
                     <div className="flex items-center gap-2 text-sm">
-                        <svg className={`w-4 h-4 ${hasEnrollments ? "text-blue-600" : "text-amber-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className={`w-4 h-4 ${hasEnrollments ? "text-blue-600 dark:text-blue-400" : "text-amber-600 dark:text-amber-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {hasEnrollments ? (
-                            <span className="text-blue-800">
+                            <span className="text-blue-800 dark:text-blue-300">
                                 <span className="font-semibold">{enrolledCount}</span> of{" "}
                                 <span className="font-semibold">{totalClassStudents}</span> students enrolled in this subject
                             </span>
                         ) : (
-                            <span className="text-amber-800">
+                            <span className="text-amber-800 dark:text-amber-300">
                                 Showing all <span className="font-semibold">{totalClassStudents}</span> students.
                                 Click <strong>Manage Students</strong> to enroll specific students for this subject.
                             </span>
@@ -1116,20 +1116,20 @@ export default function ScoresClient({
                 <div className="card overflow-hidden">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-200 bg-gray-50">
+                            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                                 {[40, 120, 80, 60, 60, 60, 80].map((w, i) => (
                                     <th key={i} className="px-3 py-3 text-left">
-                                        <div className="h-3 animate-pulse rounded bg-slate-200" style={{ width: w }} />
+                                        <div className="h-3 animate-pulse rounded bg-slate-200 dark:bg-gray-600" style={{ width: w }} />
                                     </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {Array.from({ length: 10 }).map((_, i) => (
-                                <tr key={i} className="border-b border-gray-100">
+                                <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
                                     {[40, 120, 80, 60, 60, 60, 80].map((w, j) => (
                                         <td key={j} className="px-3 py-3">
-                                            <div className="h-3 animate-pulse rounded bg-slate-100" style={{ width: w }} />
+                                            <div className="h-3 animate-pulse rounded bg-slate-100 dark:bg-gray-600" style={{ width: w }} />
                                         </td>
                                     ))}
                                 </tr>
@@ -1139,9 +1139,9 @@ export default function ScoresClient({
                 </div>
             ) : students.length > 0 ? (
                 <div className="card overflow-hidden">
-                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-center gap-3">
-                            <h3 className="font-semibold text-gray-900">Student Scores</h3>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Student Scores</h3>
                             {canViewParentPreview && (
                                 <button
                                     onClick={() => setShowParentPreview(true)}
@@ -1155,8 +1155,8 @@ export default function ScoresClient({
                             )}
                         </div>
                         <div className="text-sm space-x-4">
-                            <span className="text-gray-500">Avg: <span className="font-bold text-gray-900">{classAverage}</span></span>
-                            <span className="text-gray-500">Pass Rate: <span className="font-bold text-green-600">{passRate}%</span></span>
+                            <span className="text-gray-500 dark:text-gray-400">Avg: <span className="font-bold text-gray-900 dark:text-gray-100">{classAverage}</span></span>
+                            <span className="text-gray-500 dark:text-gray-400">Pass Rate: <span className="font-bold text-green-600 dark:text-green-400">{passRate}%</span></span>
                         </div>
                     </div>
 
@@ -1164,16 +1164,16 @@ export default function ScoresClient({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
-                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
+                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">S/N</TableHead>
+                                    <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Student</TableHead>
                                     {scoreColumns.map((col) => (
-                                        <TableHead key={col.field} className={`px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24 ${col.kind === "ca-total" ? "bg-gray-50" : ""}`}>
+                                        <TableHead key={col.field} className={`px-2 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-24 ${col.kind === "ca-total" ? "bg-gray-50 dark:bg-gray-700" : ""}`}>
                                             {col.name} ({col.maxScore})
                                         </TableHead>
                                     ))}
-                                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
-                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>}
-                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>}
+                                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-20">Total</TableHead>
+                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-20">Grade</TableHead>}
+                                    {!hasComponentCols && <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Remark</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1184,19 +1184,19 @@ export default function ScoresClient({
                                         ? calculateGrade(displayTotal)
                                         : { color: "bg-gray-100 text-gray-400" };
                                     return (
-                                        <TableRow key={student.id} className="hover:bg-gray-50">
-                                            <TableCell className="px-4 py-3 text-sm text-gray-500">{index + 1}</TableCell>
+                                        <TableRow key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{index + 1}</TableCell>
                                             <TableCell className="px-4 py-3">
-                                                <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
-                                                <div className="text-xs text-gray-400">{student.admissionNumber}</div>
+                                                <div className="font-medium text-gray-900 dark:text-gray-100">{student.lastName} {student.firstName}</div>
+                                                <div className="text-xs text-gray-400 dark:text-gray-500">{student.admissionNumber}</div>
                                             </TableCell>
                                             {scoreColumns.map((col) => {
                                                 const rawVal = Number((student as any)[col.field]) || 0;
                                                 const displayVal = rawVal === 0 ? "" : rawVal.toFixed(1).replace(/\.0$/, "");
                                                 if (col.isReadOnly) {
                                                     return (
-                                                        <TableCell key={col.field} className="px-2 py-3 bg-gray-50 text-center">
-                                                            <span className="text-sm font-bold text-gray-900">
+                                                        <TableCell key={col.field} className="px-2 py-3 bg-gray-50 dark:bg-gray-700 text-center">
+                                                            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                                                                 {rawVal > 0 ? displayVal : "—"}
                                                             </span>
                                                         </TableCell>
@@ -1207,7 +1207,7 @@ export default function ScoresClient({
                                                         <input
                                                             type="number"
                                                             step="0.1"
-                                                            className={`w-full h-8 text-center border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 text-sm ${canEditScores ? "" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`}
+                                                            className={`w-full h-8 text-center border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 focus:border-primary-500 text-sm dark:bg-gray-700 dark:text-gray-100 ${canEditScores ? "" : "bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"}`}
                                                             value={displayVal}
                                                             placeholder="0"
                                                             max={col.maxScore}
@@ -1218,7 +1218,7 @@ export default function ScoresClient({
                                                 );
                                             })}
                                             <TableCell className="px-4 py-3 text-center">
-                                                <div className="font-bold text-gray-900">
+                                                <div className="font-bold text-gray-900 dark:text-gray-100">
                                                     {Number(displayTotal) % 1 === 0 ? Number(displayTotal).toString() : Number(displayTotal).toFixed(1)}
                                                 </div>
                                                 {student.isAdjusted && (
@@ -1237,7 +1237,7 @@ export default function ScoresClient({
                                                 </TableCell>
                                             )}
                                             {!hasComponentCols && (
-                                                <TableCell className="px-4 py-3 text-sm text-gray-500">
+                                                <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                                     {showGradeAndRemark ? student.remark : ""}
                                                 </TableCell>
                                             )}
@@ -1250,8 +1250,8 @@ export default function ScoresClient({
                 </div>
             ) : (
                 selectedArmId && selectedSubjectId ? (
-                    <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                        <p className="text-gray-500">
+                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <p className="text-gray-500 dark:text-gray-400">
                             {hasEnrollments
                                 ? "No students are currently enrolled in this subject. Click \"Manage Students\" to enroll students."
                                 : "No students found in this class."
@@ -1272,8 +1272,8 @@ export default function ScoresClient({
                             <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                             </svg>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Select Class and Subject</h3>
-                            <p className="text-gray-500 max-w-md">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Select Class and Subject</h3>
+                            <p className="text-gray-500 dark:text-gray-400 max-w-md">
                                 Please select a Class Arm and a Subject to start entering scores.
                             </p>
                         </div>
@@ -1283,19 +1283,19 @@ export default function ScoresClient({
 
             {showParentPreview && canViewParentPreview && (
                 <div className="fixed inset-x-3 bottom-3 top-24 z-40 sm:inset-x-auto sm:right-6 sm:w-[min(44rem,calc(100vw-2rem))]">
-                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0px_24px_80px_-32px_rgba(15,23,42,0.45)]">
-                        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+                    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-[0px_24px_80px_-32px_rgba(15,23,42,0.45)]">
+                        <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 px-5 py-4">
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+                                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
                                         Parent Subject Preview
                                     </span>
-                                    <span className="text-xs text-slate-500">{selectedArmLabel}</span>
+                                    <span className="text-xs text-slate-500 dark:text-gray-400">{selectedArmLabel}</span>
                                 </div>
-                                <h3 className="text-lg font-semibold text-slate-900">
+                                <h3 className="text-lg font-semibold text-slate-900 dark:text-gray-100">
                                     {effectiveSubjectMeta.parentSubjectName || "Parent Subject"}
                                 </h3>
-                                <p className="text-sm text-slate-600">
+                                <p className="text-sm text-slate-600 dark:text-gray-400">
                                     Read-only totals for this arm. Save component scores to refresh the parent subject automatically.
                                 </p>
                             </div>
@@ -1303,13 +1303,13 @@ export default function ScoresClient({
                                 <button
                                     onClick={() => void fetchParentPreview()}
                                     disabled={parentPreviewLoading}
-                                    className={`rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 ${parentPreviewLoading ? "cursor-not-allowed opacity-60" : ""}`}
+                                    className={`rounded-lg border border-slate-200 dark:border-gray-600 px-3 py-2 text-sm font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-600 ${parentPreviewLoading ? "cursor-not-allowed opacity-60" : ""}`}
                                 >
                                     {parentPreviewLoading ? "Refreshing..." : "Refresh"}
                                 </button>
                                 <button
                                     onClick={() => setShowParentPreview(false)}
-                                    className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                    className="rounded-lg border border-slate-200 dark:border-gray-600 p-2 text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-gray-600 hover:text-slate-700 dark:hover:text-gray-200"
                                     aria-label="Close parent subject preview"
                                 >
                                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1319,19 +1319,19 @@ export default function ScoresClient({
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3 text-sm">
-                            <div className="text-slate-500">
-                                Viewing <span className="font-semibold text-slate-800">{effectiveSubjectMeta.parentSubjectName || "parent subject"}</span> for <span className="font-semibold text-slate-800">{selectedArmLabel}</span>
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-gray-600 px-5 py-3 text-sm">
+                            <div className="text-slate-500 dark:text-gray-400">
+                                Viewing <span className="font-semibold text-slate-800 dark:text-gray-200">{effectiveSubjectMeta.parentSubjectName || "parent subject"}</span> for <span className="font-semibold text-slate-800 dark:text-gray-200">{selectedArmLabel}</span>
                             </div>
                             <div className="space-x-4">
-                                <span className="text-slate-500">Avg: <span className="font-bold text-slate-900">{parentPreviewAverage}</span></span>
-                                <span className="text-slate-500">Pass Rate: <span className="font-bold text-emerald-600">{parentPreviewPassRate}%</span></span>
+                                <span className="text-slate-500 dark:text-gray-400">Avg: <span className="font-bold text-slate-900 dark:text-gray-100">{parentPreviewAverage}</span></span>
+                                <span className="text-slate-500 dark:text-gray-400">Pass Rate: <span className="font-bold text-emerald-600 dark:text-emerald-400">{parentPreviewPassRate}%</span></span>
                             </div>
                         </div>
 
-                        <div className="min-h-0 flex-1 overflow-auto bg-white p-5">
+                        <div className="min-h-0 flex-1 overflow-auto bg-white dark:bg-gray-800 p-5">
                             {parentPreviewError ? (
-                                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-700 dark:text-red-300">
                                     {parentPreviewError}
                                 </div>
                             ) : parentPreviewLoading && !parentPreviewData ? (
@@ -1340,22 +1340,22 @@ export default function ScoresClient({
                                 </div>
                             ) : parentPreviewData ? (
                                 <div className="space-y-4">
-                                    <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                                    <div className="rounded-xl border border-blue-100 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
                                         This preview is read-only. It mirrors the computed parent subject scores for students in this arm.
                                     </div>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">S/N</TableHead>
-                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</TableHead>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">S/N</TableHead>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Student</TableHead>
                                                 {parentPreviewColumns.map((type) => (
                                                     <TableHead key={type.id} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-24">
                                                         {type.name} ({type.maxScore})
                                                     </TableHead>
                                                 ))}
-                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Total</TableHead>
-                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase w-20">Grade</TableHead>
-                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remark</TableHead>
+                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-20">Total</TableHead>
+                                                <TableHead className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-20">Grade</TableHead>
+                                                <TableHead className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Remark</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -1367,21 +1367,21 @@ export default function ScoresClient({
                                                     : { color: "bg-gray-100 text-gray-400" };
 
                                                 return (
-                                                    <TableRow key={student.id} className="hover:bg-gray-50">
-                                                        <TableCell className="px-4 py-3 text-sm text-gray-500">{index + 1}</TableCell>
+                                                    <TableRow key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                                        <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{index + 1}</TableCell>
                                                         <TableCell className="px-4 py-3">
-                                                            <div className="font-medium text-gray-900">{student.lastName} {student.firstName}</div>
-                                                            <div className="text-xs text-gray-400">{student.admissionNumber}</div>
+                                                            <div className="font-medium text-gray-900 dark:text-gray-100">{student.lastName} {student.firstName}</div>
+                                                            <div className="text-xs text-gray-400 dark:text-gray-500">{student.admissionNumber}</div>
                                                         </TableCell>
                                                         {parentPreviewColumns.map((type) => (
-                                                            <TableCell key={type.id} className="px-2 py-3 text-center text-sm font-medium text-slate-700">
+                                                            <TableCell key={type.id} className="px-2 py-3 text-center text-sm font-medium text-slate-700 dark:text-gray-300">
                                                                 {String(student[type.field] ?? "")}
                                                             </TableCell>
                                                         ))}
                                                         <TableCell className="px-4 py-3 text-center">
-                                                            <div className="font-bold text-gray-900">{Number(displayTotal) % 1 === 0 ? Number(displayTotal).toString() : Number(displayTotal).toFixed(1)}</div>
+                                                            <div className="font-bold text-gray-900 dark:text-gray-100">{Number(displayTotal) % 1 === 0 ? Number(displayTotal).toString() : Number(displayTotal).toFixed(1)}</div>
                                                             {student.isAdjusted && (
-                                                                <div className="text-xs text-amber-600" title={`Raw: ${student.total}, Adjusted: ${student.adjustedTotal}`}>
+                                                                <div className="text-xs text-amber-600 dark:text-amber-400" title={`Raw: ${student.total}, Adjusted: ${student.adjustedTotal}`}>
                                                                     *adj ({Number(student.total) % 1 === 0 ? Number(student.total).toString() : Number(student.total).toFixed(1)})
                                                                 </div>
                                                             )}
@@ -1393,7 +1393,7 @@ export default function ScoresClient({
                                                                 </span>
                                                             ) : null}
                                                         </TableCell>
-                                                        <TableCell className="px-4 py-3 text-sm text-gray-500">
+                                                        <TableCell className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                                             {showGradeAndRemark ? student.remark : ""}
                                                         </TableCell>
                                                     </TableRow>
@@ -1403,7 +1403,7 @@ export default function ScoresClient({
                                     </Table>
                                 </div>
                             ) : (
-                                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                                <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 p-6 text-sm text-slate-500 dark:text-gray-400">
                                     Parent subject preview is not available for this selection yet.
                                 </div>
                             )}
@@ -1417,21 +1417,21 @@ export default function ScoresClient({
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowTemplateModal(false)} />
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
-                            <div className="p-6 border-b border-gray-200">
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-semibold text-gray-900">Download Score Template</h2>
-                                    <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Download Score Template</h2>
+                                    <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">Select which assessment columns to include in the CSV template</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Select which assessment columns to include in the CSV template</p>
                             </div>
                             <div className="p-6 space-y-3">
                                 {/* All Columns option */}
-                                <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200">
+                                <label className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600">
                                     <input
                                         type="checkbox"
                                         checked={selectedColumns.length === getColumnOptions().length}
@@ -1444,11 +1444,11 @@ export default function ScoresClient({
                                         }}
                                         className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                     />
-                                    <span className="text-sm font-medium text-gray-900">All Columns</span>
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">All Columns</span>
                                 </label>
                                 {/* Individual column options */}
                                 {getColumnOptions().map(option => (
-                                    <label key={option.key} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200">
+                                    <label key={option.key} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600">
                                         <input
                                             type="checkbox"
                                             checked={selectedColumns.includes(option.key)}
@@ -1461,14 +1461,14 @@ export default function ScoresClient({
                                             }}
                                             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                         />
-                                        <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{option.label}</span>
                                     </label>
                                 ))}
                             </div>
-                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowTemplateModal(false)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
                                 >
                                     Cancel
                                 </button>
@@ -1490,11 +1490,11 @@ export default function ScoresClient({
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => !uploading && setShowUploadModal(false)} />
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full">
-                            <div className="p-6 border-b border-gray-200">
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-semibold text-gray-900">Upload Scores</h2>
-                                    <button onClick={() => !uploading && setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600">
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Upload Scores</h2>
+                                    <button onClick={() => !uploading && setShowUploadModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
@@ -1503,12 +1503,12 @@ export default function ScoresClient({
                             </div>
                             <div className="p-6 space-y-4">
                                 {/* Instructions */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg p-4">
                                     <div className="flex gap-3">
-                                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <div className="text-sm text-blue-700">
+                                        <div className="text-sm text-blue-700 dark:text-blue-300">
                                             <p className="font-medium mb-1">Instructions:</p>
                                             <ul className="list-disc list-inside space-y-1">
                                                 <li>Use the &quot;Download Template&quot; to get a pre-filled CSV</li>
@@ -1522,12 +1522,12 @@ export default function ScoresClient({
 
                                 {/* File Input */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select CSV File</label>
                                     <input
                                         type="file"
                                         accept=".csv"
                                         onChange={(e) => { setUploadFile(e.target.files?.[0] || null); setUploadResult(null); }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900"
                                     />
                                 </div>
 
@@ -1556,11 +1556,11 @@ export default function ScoresClient({
                                     </div>
                                 )}
                             </div>
-                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowUploadModal(false)}
                                     disabled={uploading}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
                                 >
                                     {uploadResult?.status === "saved" ? "Close" : "Cancel"}
                                 </button>
@@ -1585,33 +1585,33 @@ export default function ScoresClient({
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
                         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
                             <div className="p-6">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+                                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Existing Scores Detected</h3>
-                                        <p className="text-sm text-gray-500">{overrideData.conflictCount} student(s) already have scores</p>
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Existing Scores Detected</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{overrideData.conflictCount} student(s) already have scores</p>
                                     </div>
                                 </div>
-                                <div className="mb-4 max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                                    <p className="text-xs font-medium text-gray-500 mb-2">Affected students:</p>
+                                <div className="mb-4 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Affected students:</p>
                                     {overrideData.affectedStudents?.map((s: any, i: number) => (
-                                        <p key={i} className="text-sm text-gray-700">{s.name} ({s.admissionNumber})</p>
+                                        <p key={i} className="text-sm text-gray-700 dark:text-gray-300">{s.name} ({s.admissionNumber})</p>
                                     ))}
                                 </div>
-                                <p className="text-sm text-gray-600 mb-4">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                     Uploading will override the existing scores for these students. This action cannot be undone.
                                 </p>
                             </div>
-                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                                 <button
                                     onClick={() => { setShowOverrideConfirm(false); setOverrideData(null); }}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
                                 >
                                     Cancel
                                 </button>
@@ -1638,21 +1638,21 @@ export default function ScoresClient({
                         />
 
                         {/* Modal */}
-                        <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+                        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
                             {/* Header */}
-                            <div className="p-6 border-b border-gray-200">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-semibold text-gray-900">Manage Student Enrollment</h2>
+                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage Student Enrollment</h2>
                                     <button
                                         onClick={() => !enrollmentSaving && setShowEnrollmentModal(false)}
-                                        className="text-gray-400 hover:text-gray-600"
+                                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                     Select which students are offering this subject. Unenrolled students&apos; scores are preserved.
                                 </p>
 
@@ -1682,7 +1682,7 @@ export default function ScoresClient({
                                     >
                                         Unenroll All
                                     </button>
-                                    <span className="ml-auto text-xs text-gray-500">
+                                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
                                         {enrollmentStudents.filter(s => s.isEnrolled).length} / {enrollmentStudents.length} selected
                                     </span>
                                 </div>
@@ -1700,8 +1700,8 @@ export default function ScoresClient({
                                             <label
                                                 key={student.id}
                                                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${student.isEnrolled
-                                                        ? "bg-blue-50 hover:bg-blue-100"
-                                                        : "hover:bg-gray-50"
+                                                        ? "bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                                                        : "hover:bg-gray-50 dark:hover:bg-gray-700"
                                                     }`}
                                             >
                                                 <input
@@ -1711,22 +1711,22 @@ export default function ScoresClient({
                                                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-sm font-medium text-gray-900">
+                                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                         {student.lastName} {student.firstName}
                                                     </div>
-                                                    <div className="text-xs text-gray-500">
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
                                                         {student.admissionNumber}
                                                     </div>
                                                 </div>
                                                 {student.isEnrolled && (
-                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
                                                         Enrolled
                                                     </span>
                                                 )}
                                             </label>
                                         ))}
                                         {filteredEnrollmentStudents.length === 0 && (
-                                            <p className="text-center text-gray-500 py-4 text-sm">
+                                            <p className="text-center text-gray-500 dark:text-gray-400 py-4 text-sm">
                                                 No students found
                                             </p>
                                         )}
@@ -1735,11 +1735,11 @@ export default function ScoresClient({
                             </div>
 
                             {/* Footer */}
-                            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+                            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowEnrollmentModal(false)}
                                     disabled={enrollmentSaving}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
                                 >
                                     Cancel
                                 </button>

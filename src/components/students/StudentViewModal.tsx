@@ -177,7 +177,7 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
     >
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto"
         style={{ animation: 'modalIn 0.18s ease-out' }}
       >
         <style>{`
@@ -188,14 +188,14 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
         `}</style>
 
         {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b border-gray-100">
+        <div className="flex items-start justify-between p-6 pb-4 border-b border-gray-100 dark:border-gray-700">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{studentName}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{student.admissionNumber}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{studentName}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{student.admissionNumber}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              student.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+              student.isActive ? 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
             }`}>
               {student.isActive ? 'Active' : 'Inactive'}
             </span>
@@ -203,14 +203,14 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
               href={`/dashboard/students/${student.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="Open full page"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -221,16 +221,16 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
         <div className="p-6">
           {loading ? (
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 animate-pulse">
-              <div className="h-64 bg-gray-100 rounded-2xl" />
+              <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded-2xl" />
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="h-48 bg-gray-100 rounded-2xl" />
-                <div className="h-48 bg-gray-100 rounded-2xl" />
+                <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-2xl" />
+                <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded-2xl" />
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
               {/* Left: Avatar card */}
-              <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex flex-col items-center text-center">
                   <div className={`w-24 h-24 rounded-full overflow-hidden flex items-center justify-center text-white text-2xl font-semibold ${
                     student.gender === 'FEMALE' ? 'bg-pink-500' : 'bg-blue-500'
@@ -241,11 +241,11 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
                       <span>{student.firstName[0]}{student.lastName[0]}</span>
                     )}
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900 mt-3">{studentName}</h3>
-                  <p className="text-sm text-gray-500">{classLabel}</p>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-3">{studentName}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{classLabel}</p>
                 </div>
 
-                <div className="mt-5 pt-5 border-t border-gray-200 space-y-4">
+                <div className="mt-5 pt-5 border-t border-gray-200 dark:border-gray-600 space-y-4">
                   <InfoRow label="Gender" value={student.gender === 'FEMALE' ? 'Female' : 'Male'} />
                   <InfoRow label="Date of Birth" value={formatDate(student.dateOfBirth)} />
                   <InfoRow
@@ -297,21 +297,21 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{label}</p>
-      <p className="text-sm font-medium text-gray-900 mt-0.5 break-all">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 font-medium">{label}</p>
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 break-all">{value}</p>
     </div>
   );
 }
 
 function InfoCard({ title, items }: { title: string; items: { label: string; value: string }[] }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>
       <dl className="space-y-3">
         {items.map((item) => (
           <div key={item.label} className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
-            <dt className="text-xs text-gray-500">{item.label}</dt>
-            <dd className="text-xs font-medium text-gray-900 sm:text-right break-all">{item.value}</dd>
+            <dt className="text-xs text-gray-500 dark:text-gray-400">{item.label}</dt>
+            <dd className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-right break-all">{item.value}</dd>
           </div>
         ))}
       </dl>
@@ -376,11 +376,11 @@ function LoginCredentialsCard({
     : [];
 
   return (
-    <div className={`bg-white rounded-2xl border border-gray-200 shadow-sm p-5 ${className || ''}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 ${className || ''}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-5">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Login Credentials</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Login Credentials</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
             Copy the details below and send them to the parent or guardian.
           </p>
           {activeModes.length > 0 ? (
@@ -388,7 +388,7 @@ function LoginCredentialsCard({
               {activeModes.map((mode) => (
                 <span
                   key={mode}
-                  className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+                  className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/40 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300"
                 >
                   {mode}
                 </span>
@@ -401,7 +401,7 @@ function LoginCredentialsCard({
             type="button"
             onClick={() => onCopy('parent-message', parentMessage, 'Login details copied.')}
             disabled={!credentials || !parentMessage}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {copiedKey === 'parent-message' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             Copy details
@@ -424,20 +424,20 @@ function LoginCredentialsCard({
             ))}
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-amber-700">Important</p>
-            <p className="mt-2 text-sm leading-6 text-amber-900">{credentials.loginInstructions}</p>
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-5 py-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">Important</p>
+            <p className="mt-2 text-sm leading-6 text-amber-900 dark:text-amber-300">{credentials.loginInstructions}</p>
             {credentials.defaultPasswordActive ? (
-              <p className="mt-2 text-sm leading-6 text-amber-900">
+              <p className="mt-2 text-sm leading-6 text-amber-900 dark:text-amber-300">
                 The default password works because this account is still on its temporary password.
               </p>
             ) : (
-              <p className="mt-2 text-sm leading-6 text-amber-900">
+              <p className="mt-2 text-sm leading-6 text-amber-900 dark:text-amber-300">
                 The student password has already been changed. Use the admin reset-password action before sharing a new temporary password.
               </p>
             )}
             {!credentials.isProvisioned ? (
-              <p className="mt-2 text-sm leading-6 text-amber-900">
+              <p className="mt-2 text-sm leading-6 text-amber-900 dark:text-amber-300">
                 This student account has not been provisioned yet. Ask the admin to generate student login
                 accounts before sharing these credentials.
               </p>
@@ -445,7 +445,7 @@ function LoginCredentialsCard({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
           Login credentials are not available for this student yet.
         </div>
       )}
@@ -467,13 +467,13 @@ function CredentialRow({
   icon?: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-4">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-700/50 px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">{label}</p>
           <div className="mt-2 flex items-start gap-2">
             {icon ? <span className="mt-0.5">{icon}</span> : null}
-            <p className="text-base font-semibold text-gray-900 break-all">{value}</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100 break-all">{value}</p>
           </div>
         </div>
         <CopyButton isCopied={isCopied} onClick={onCopy} />
@@ -493,7 +493,7 @@ function CopyButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 transition hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200"
       title={isCopied ? 'Copied' : 'Copy'}
     >
       {isCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

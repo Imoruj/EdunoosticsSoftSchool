@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { handleUnauthorizedApiResponse } from "@/lib/client-session";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 interface Branch {
     id: string;
@@ -38,6 +39,7 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     const { data: session, update } = useSession();
     const router = useRouter();
     const pathname = usePathname();
+    const { theme, toggleTheme } = useTheme();
 
     const [showNotifications, setShowNotifications] = useState(false);
     const [notificationItems, setNotificationItems] = useState<HeaderNotification[]>([]);
@@ -364,13 +366,13 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
     return (
         <header
             ref={topBarRef}
-            className="fixed top-0 left-0 right-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur lg:left-64"
+            className="fixed top-0 left-0 right-0 z-30 border-b border-gray-200 dark:border-gray-700/60 bg-white/95 dark:bg-gray-900/95 backdrop-blur lg:left-64 transition-colors duration-200"
         >
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
                 <div className="flex min-w-0 items-center gap-4">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+                        className="lg:hidden p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                         aria-label="Open navigation menu"
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -380,15 +382,15 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
 
                     {/* Breadcrumb / Page Title */}
                     <div className="min-w-0">
-                        <h2 className="truncate text-lg font-semibold text-gray-900">
+                        <h2 className="truncate text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {findPageTitle()}
                         </h2>
-                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-gray-500">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                             <span className="truncate">
                                 {currentTermInfo ? `${currentTermInfo.session} - ${currentTermInfo.term}` : "Loading term info..."}
                             </span>
                             {activeBranchAssignedClass && (
-                                <span className="hidden md:flex items-center gap-1 bg-primary-50 text-primary-700 px-2 py-0.5 rounded-md font-medium text-xs border border-primary-100">
+                                <span className="hidden md:flex items-center gap-1 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-md font-medium text-xs border border-primary-100 dark:border-primary-800/50">
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
@@ -405,14 +407,14 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                         <button
                             onClick={() => setBranchMenuOpen((v) => !v)}
                             disabled={switchingBranch}
-                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60 max-w-[180px]"
+                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-60 max-w-[180px]"
                             aria-label="Switch branch"
                         >
                             <svg className="w-4 h-4 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                             <span className="truncate">{activeBranch?.branchCode ?? activeBranch?.name ?? optimisticBranchName ?? "Branch"}</span>
-                            <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -420,27 +422,27 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                         {branchMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setBranchMenuOpen(false)} />
-                                <div className="absolute left-0 mt-2 min-w-[16rem] max-w-xs rounded-xl border border-gray-200 bg-white shadow-lg z-50 overflow-hidden">
-                                    <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Switch Branch</p>
+                                <div className="absolute left-0 mt-2 min-w-[16rem] max-w-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-50 overflow-hidden">
+                                    <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Switch Branch</p>
                                     </div>
                                     {branches.map((branch) => (
                                         <button
                                             key={branch.id}
                                             onClick={() => handleBranchSwitch(branch.id)}
-                                            className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 transition-colors ${branch.id === activeBranchId ? "bg-primary-50 text-primary-700 font-semibold" : "text-gray-700"}`}
+                                            className={`w-full flex items-start gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${branch.id === activeBranchId ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-semibold" : "text-gray-700 dark:text-gray-200"}`}
                                         >
-                                            <svg className={`w-4 h-4 shrink-0 mt-0.5 ${branch.id === activeBranchId ? "text-primary-600" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className={`w-4 h-4 shrink-0 mt-0.5 ${branch.id === activeBranchId ? "text-primary-600 dark:text-primary-400" : "text-gray-400 dark:text-gray-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
                                             <div className="flex-1 min-w-0">
                                                 <p className="whitespace-normal break-words leading-snug">{branch.name}</p>
                                                 {branch.branchCode && (
-                                                    <p className="text-xs text-gray-400">{branch.branchCode}</p>
+                                                    <p className="text-xs text-gray-400 dark:text-gray-500">{branch.branchCode}</p>
                                                 )}
                                             </div>
                                             {branch.id === activeBranchId && (
-                                                <svg className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
                                             )}
@@ -459,19 +461,37 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                             <input
                                 type="text"
                                 placeholder="Search students, classes..."
-                                className="w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                className="w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
-                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
                     </div>
 
+                    {/* Theme toggle */}
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                        title={theme === "dark" ? "Light mode" : "Dark mode"}
+                    >
+                        {theme === "dark" ? (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                        )}
+                    </button>
+
                     {/* Notifications */}
                     <div className="relative">
                         <button
                             onClick={() => setShowNotifications((prev) => !prev)}
-                            className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             aria-label="Open notifications"
                         >
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -488,13 +508,13 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                         {showNotifications && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
-                                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
-                                        <h3 className="font-semibold text-gray-900">Notifications</h3>
+                                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
                                         {unreadCount > 0 && (
                                             <button
                                                 onClick={markAllAsRead}
-                                                className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                                                className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium"
                                             >
                                                 Mark all as read
                                             </button>
@@ -502,24 +522,24 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                                     </div>
                                     <div className="max-h-80 overflow-y-auto">
                                         {notifications.length === 0 ? (
-                                            <div className="p-4 text-center text-gray-500">No new notifications</div>
+                                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">No new notifications</div>
                                         ) : (
                                             notifications.map((notification) => (
                                                 <div
                                                     key={notification.id}
                                                     onClick={() => openNotification(notification)}
-                                                    className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-primary-50/50' : ''}`}
+                                                    className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${!notification.read ? 'bg-primary-50/50 dark:bg-primary-900/20' : ''}`}
                                                 >
                                                     <div className="flex items-start gap-3">
                                                         {!notification.read && (
                                                             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-500"></span>
                                                         )}
                                                         <div className={!notification.read ? '' : 'ml-5'}>
-                                                            <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                                                            <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
                                                                 {notification.title}
                                                             </p>
-                                                            <p className="text-xs text-gray-500 mt-0.5">{notification.message}</p>
-                                                            <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{notification.message}</p>
+                                                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{notification.time}</p>
                                                         </div>
                                                     </div>
                                                 </div>

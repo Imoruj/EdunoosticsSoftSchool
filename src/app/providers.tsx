@@ -5,9 +5,11 @@ import { Toaster } from "react-hot-toast";
 import GlobalSuccessModal from "@/components/ui/GlobalSuccessModal";
 import GlobalAppMessageBox from "@/components/ui/GlobalAppMessageBox";
 import { DynamicFavicon } from "@/components/branding/DynamicFavicon";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
+        <ThemeProvider>
         <SessionProvider>
             <DynamicFavicon />
             {children}
@@ -36,5 +38,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 }}
             />
         </SessionProvider>
+        </ThemeProvider>
     );
 }
