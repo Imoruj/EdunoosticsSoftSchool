@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 export interface FeatureFlags {
+    darkModeEnabled: boolean;
     studentsEnabled: boolean;
     teachersEnabled: boolean;
     scoreEntryEnabled: boolean;
@@ -23,6 +24,8 @@ export interface FeatureFlags {
     settingsEnabled: boolean;
 }
 
+export type SchoolFeatureField = Exclude<keyof FeatureFlags, "darkModeEnabled">;
+
 export const SCHOOL_FEATURE_SELECT = {
     studentsEnabled: true,
     teachersEnabled: true,
@@ -44,9 +47,10 @@ export const SCHOOL_FEATURE_SELECT = {
     communicationEnabled: true,
     feesEnabled: true,
     settingsEnabled: true,
-} satisfies Record<keyof FeatureFlags, true>;
+} satisfies Record<SchoolFeatureField, true>;
 
 export const ALL_ENABLED_FEATURES: FeatureFlags = {
+    darkModeEnabled: true,
     studentsEnabled: true,
     teachersEnabled: true,
     scoreEntryEnabled: true,
@@ -103,9 +107,7 @@ export const SCHOOL_FEATURE_FIELDS = [
     "reportCardsEnabled", "legacyRecordsEnabled", "uploadRequestsEnabled",
     "attendanceEnabled", "behaviourEnabled", "communicationEnabled",
     "feesEnabled", "settingsEnabled",
-] as const satisfies Array<keyof FeatureFlags>;
-
-export type SchoolFeatureField = typeof SCHOOL_FEATURE_FIELDS[number];
+] as const;
 
 /**
  * Picks only known boolean feature fields from any record.
@@ -117,6 +119,7 @@ export function extractFeatureFlags(
     for (const field of SCHOOL_FEATURE_FIELDS) {
         features[field] = typeof raw[field] === "boolean" ? raw[field] as boolean : true;
     }
+    features.darkModeEnabled = typeof raw.darkModeEnabled === "boolean" ? raw.darkModeEnabled : true;
     return features;
 }
 

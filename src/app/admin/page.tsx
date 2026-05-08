@@ -44,7 +44,9 @@ export default function AdminDashboard() {
 
     // Platform settings
     const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
+    const [darkModeEnabled, setDarkModeEnabled] = useState<boolean | null>(null);
     const [togglingSignup, setTogglingSignup] = useState(false);
+    const [togglingDarkMode, setTogglingDarkMode] = useState(false);
 
     // Pending schools
     const [pendingSchools, setPendingSchools] = useState<PendingSchool[]>([]);
@@ -59,7 +61,11 @@ export default function AdminDashboard() {
 
         fetch("/api/admin/platform-settings")
             .then((r) => r.ok ? r.json() : null)
-            .then((d) => d && setSignupEnabled(d.signupEnabled))
+            .then((d) => {
+                if (!d) return;
+                setSignupEnabled(d.signupEnabled);
+                setDarkModeEnabled(d.darkModeEnabled);
+            })
             .catch(() => {});
 
         fetch("/api/admin/schools")
@@ -83,6 +89,25 @@ export default function AdminDashboard() {
             }
         } finally {
             setTogglingSignup(false);
+        }
+    };
+
+    const toggleDarkMode = async () => {
+        if (darkModeEnabled === null) return;
+        setTogglingDarkMode(true);
+        try {
+            const res = await fetch("/api/admin/platform-settings", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ darkModeEnabled: !darkModeEnabled }),
+            });
+            if (res.ok) {
+                const d = await res.json();
+                setDarkModeEnabled(d.darkModeEnabled);
+                window.dispatchEvent(new Event("school-features-updated"));
+            }
+        } finally {
+            setTogglingDarkMode(false);
         }
     };
 
@@ -131,8 +156,11 @@ export default function AdminDashboard() {
 
             <PlatformControls 
                 signupEnabled={signupEnabled}
+                darkModeEnabled={darkModeEnabled}
                 togglingSignup={togglingSignup}
+                togglingDarkMode={togglingDarkMode}
                 toggleSignup={toggleSignup}
+                toggleDarkMode={toggleDarkMode}
                 pendingSchoolsCount={pendingSchools.length}
             />
 

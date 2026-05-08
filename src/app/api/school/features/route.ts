@@ -7,6 +7,7 @@ import {
     getSchoolFeatures,
 } from "@/lib/getSchoolFeatures";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { prisma } from "@/lib/prisma";
 
 const NO_CACHE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -29,18 +30,28 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const platformSettings = await prisma.platformSettings.findUnique({
+            where: { id: "platform" },
+            select: { darkModeEnabled: true },
+        });
+        const darkModeEnabled = platformSettings?.darkModeEnabled ?? true;
+        const withPlatformFeatures = (features: typeof ALL_ENABLED_FEATURES) => ({
+            ...features,
+            darkModeEnabled,
+        });
+
         const schoolId = (await getActiveSchoolId(user.schoolId)) as any;
         if (!schoolId) {
             // Super admin or users with no school => all features enabled
             return NextResponse.json(
-                { features: ALL_ENABLED_FEATURES },
+                { features: withPlatformFeatures(ALL_ENABLED_FEATURES) },
                 { headers: NO_CACHE_HEADERS }
             );
         }
 
         const features = await getSchoolFeatures(schoolId);
         return NextResponse.json(
-            { features: extractFeatureFlags(features) },
+            { features: withPlatformFeatures(extractFeatureFlags(features)) },
             { headers: NO_CACHE_HEADERS }
         );
     } catch (error: unknown) {

@@ -6,11 +6,13 @@ type Theme = "light" | "dark";
 
 interface ThemeContextValue {
     theme: Theme;
+    darkModeEnabled: boolean;
     toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
     theme: "light",
+    darkModeEnabled: true,
     toggleTheme: () => {},
 });
 
@@ -21,15 +23,58 @@ function applyTheme(t: Theme) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const [theme, setTheme] = useState<Theme>("light");
+    const [darkModeEnabled, setDarkModeEnabled] = useState(true);
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("ed-theme");
-        const nextTheme: Theme = savedTheme === "dark" ? "dark" : "light";
-        setTheme(nextTheme);
-        applyTheme(nextTheme);
+        let cancelled = false;
+
+        const syncThemeAvailability = async () => {
+            let enabled = true;
+            try {
+                const response = await fetch("/api/school/features", { cache: "no-store" });
+                if (response.ok) {
+                    const data = await response.json();
+                    enabled = data?.features?.darkModeEnabled !== false;
+                }
+            } catch {
+                enabled = localStorage.getItem("ed-dark-mode-feature-enabled") !== "false";
+            }
+
+            if (cancelled) return;
+
+            localStorage.setItem("ed-dark-mode-feature-enabled", String(enabled));
+            setDarkModeEnabled(enabled);
+
+            if (!enabled) {
+                localStorage.removeItem("ed-theme");
+                setTheme("light");
+                applyTheme("light");
+                return;
+            }
+
+            const savedTheme = localStorage.getItem("ed-theme");
+            const nextTheme: Theme = savedTheme === "dark" ? "dark" : "light";
+            setTheme(nextTheme);
+            applyTheme(nextTheme);
+        };
+
+        void syncThemeAvailability();
+        window.addEventListener("school-features-updated", syncThemeAvailability);
+
+        return () => {
+            cancelled = true;
+            window.removeEventListener("school-features-updated", syncThemeAvailability);
+        };
     }, []);
 
     const toggleTheme = () => {
+        if (!darkModeEnabled) {
+            localStorage.removeItem("ed-theme");
+            setTheme("light");
+            applyTheme("light");
+            return;
+        }
+
         setTheme((prev) => {
             const next: Theme = prev === "dark" ? "light" : "dark";
             localStorage.setItem("ed-theme", next);
@@ -39,7 +84,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, darkModeEnabled, toggleTheme }}>
             {children}
         </ThemeContext.Provider>
     );

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { FeatureFlags } from "@/lib/getSchoolFeatures";
 
 const DEFAULT_FEATURES: FeatureFlags = {
+    darkModeEnabled: true,
     studentsEnabled: true,
     teachersEnabled: true,
     scoreEntryEnabled: true,

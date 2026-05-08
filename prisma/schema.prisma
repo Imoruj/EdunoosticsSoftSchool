@@ -1215,9 +1215,10 @@ model SignalingMessage {
 }
 
 model PlatformSettings {
-  id            String   @id @default("platform")
-  signupEnabled Boolean  @default(true)
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default("platform")
+  signupEnabled   Boolean  @default(true)
+  darkModeEnabled Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
 }
 
 // ─── Scheme of Work ────────────────────────────────────────────────────────────

@@ -16,8 +16,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
-                {/* Force light mode — runs before React hydrates */}
-                <script dangerouslySetInnerHTML={{ __html: `try{document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light');localStorage.removeItem('ed-theme');}catch(e){}` }} />
+                <script dangerouslySetInnerHTML={{ __html: `try{var enabled=localStorage.getItem('ed-dark-mode-feature-enabled')!=='false';var saved=enabled?localStorage.getItem('ed-theme'):'light';var theme=saved==='dark'?'dark':'light';document.documentElement.classList.toggle('dark',theme==='dark');document.documentElement.setAttribute('data-theme',theme);}catch(e){}` }} />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
                 <link rel="preconnect" href="https://api.fontshare.com" />
