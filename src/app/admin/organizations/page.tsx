@@ -19,6 +19,27 @@ interface Org {
     branches: OrgSchool[];
 }
 
+function normalizeName(value: string) {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function inferBranchName(schoolName: string, orgName: string, isHeadBranch: boolean) {
+    if (isHeadBranch) return "Head Branch";
+
+    const normalizedSchool = normalizeName(schoolName);
+    const normalizedOrg = normalizeName(orgName);
+    if (normalizedSchool.startsWith(normalizedOrg)) {
+        const suffix = schoolName.slice(orgName.length).replace(/^[-\s]+/, "").trim();
+        if (suffix) return suffix;
+    }
+
+    return schoolName;
+}
+
+function getBranchDisplayName(school: OrgSchool, orgName: string) {
+    return school.branchCode?.trim() || inferBranchName(school.name, orgName, school.isHeadBranch);
+}
+
 export default function AdminOrganizationsPage() {
     const [orgs, setOrgs] = useState<Org[]>([]);
     const [unassigned, setUnassigned] = useState<OrgSchool[]>([]);
@@ -37,7 +58,7 @@ export default function AdminOrganizationsPage() {
     const [assignIsHead, setAssignIsHead] = useState(false);
     const [assigning, setAssigning] = useState(false);
 
-    // Edit school in org (name, branchCode, isHeadBranch)
+    // Edit school in org (branch name/code, isHeadBranch)
     const [editSchool, setEditSchool] = useState<{ school: OrgSchool; orgId: string } | null>(null);
     const [editBranchCode, setEditBranchCode] = useState("");
     const [editIsHead, setEditIsHead] = useState(false);
@@ -131,7 +152,8 @@ export default function AdminOrganizationsPage() {
 
     const openEditSchool = (school: OrgSchool, orgId: string) => {
         setEditSchool({ school, orgId });
-        setEditBranchCode(school.branchCode ?? "");
+        const orgName = orgs.find((org) => org.id === orgId)?.name ?? school.name;
+        setEditBranchCode(school.branchCode ?? inferBranchName(school.name, orgName, school.isHeadBranch));
         setEditIsHead(school.isHeadBranch);
     };
 
@@ -250,7 +272,7 @@ export default function AdminOrganizationsPage() {
                                         <thead>
                                             <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
                                                 <th className="px-6 py-2">School</th>
-                                                <th className="px-6 py-2">Branch Code</th>
+                                                <th className="px-6 py-2">Branch Name</th>
                                                 <th className="px-6 py-2 text-center">Students</th>
                                                 <th className="px-6 py-2 text-center">Users</th>
                                                 <th className="px-6 py-2">Type</th>
@@ -262,7 +284,7 @@ export default function AdminOrganizationsPage() {
                                                 <tr key={school.id} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-6 py-3">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-gray-900">{school.name}</span>
+                                                            <span className="font-medium text-gray-900">{org.name}</span>
                                                             {school.isHeadBranch && (
                                                                 <span title="Head Branch">
                                                                     <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
@@ -272,7 +294,7 @@ export default function AdminOrganizationsPage() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-3 text-gray-500">{school.branchCode ?? <span className="text-gray-300">—</span>}</td>
+                                                    <td className="px-6 py-3 text-gray-700 font-medium">{getBranchDisplayName(school, org.name)}</td>
                                                     <td className="px-6 py-3 text-center text-gray-700 font-semibold">{school._count.students}</td>
                                                     <td className="px-6 py-3 text-center text-gray-600">{school._count.users}</td>
                                                     <td className="px-6 py-3">
@@ -403,12 +425,12 @@ export default function AdminOrganizationsPage() {
                             ))}
                         </select>
 
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch Code <span className="text-gray-400 font-normal">(optional)</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name <span className="text-gray-400 font-normal">(optional)</span></label>
                         <input
                             type="text"
                             value={assignBranchCode}
                             onChange={(e) => setAssignBranchCode(e.target.value)}
-                            placeholder="e.g. TIS-HQ, TIS-NW"
+                            placeholder="e.g. Boarding, Day, Metro, Primary"
                             className="input w-full mb-3"
                         />
 
@@ -436,15 +458,15 @@ export default function AdminOrganizationsPage() {
             {editSchool && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">Edit Branch — {editSchool.school.name}</h3>
-                        <p className="text-sm text-gray-500 mb-4">Update the branch code and head branch designation.</p>
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">Edit Branch - {getBranchDisplayName(editSchool.school, orgs.find((org) => org.id === editSchool.orgId)?.name ?? editSchool.school.name)}</h3>
+                        <p className="text-sm text-gray-500 mb-4">Update the branch name and head branch designation.</p>
 
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch Code <span className="text-gray-400 font-normal">(optional)</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name <span className="text-gray-400 font-normal">(optional)</span></label>
                         <input
                             type="text"
                             value={editBranchCode}
                             onChange={(e) => setEditBranchCode(e.target.value)}
-                            placeholder="e.g. TIS-HQ"
+                            placeholder="e.g. Boarding, Day, Metro, Primary"
                             className="input w-full mb-3"
                         />
 
