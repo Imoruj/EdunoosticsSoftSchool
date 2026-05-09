@@ -2,6 +2,14 @@ export function normalizeEntityName(value: string) {
     return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+export function acronymFromName(value: string) {
+    return normalizeEntityName(value)
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join("");
+}
+
 export function inferBranchName(schoolName: string, organizationName: string, isHeadBranch = false) {
     if (isHeadBranch) return "Head Branch";
 
@@ -27,4 +35,23 @@ export function getBranchName(school: {
 }) {
     const organizationName = getSharedSchoolName(school);
     return school.branchCode?.trim() || inferBranchName(school.name, organizationName, school.isHeadBranch === true);
+}
+
+export function tenantSlugMatchesSchool(
+    tenantSlug: string,
+    school: { slug?: string | null; name?: string | null; organization?: { name?: string | null; slug?: string | null } | null }
+) {
+    const normalizedTenantSlug = tenantSlug.trim().toLowerCase();
+    if (!normalizedTenantSlug) return false;
+
+    const aliases = [
+        school.slug,
+        school.organization?.slug,
+        school.name ? acronymFromName(school.name) : null,
+        school.organization?.name ? acronymFromName(school.organization.name) : null,
+    ]
+        .map((alias) => alias?.trim().toLowerCase())
+        .filter(Boolean);
+
+    return aliases.includes(normalizedTenantSlug);
 }

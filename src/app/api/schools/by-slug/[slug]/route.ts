@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getBranchName, getSharedSchoolName } from "@/lib/branchDisplay";
+import { getBranchName, getSharedSchoolName, tenantSlugMatchesSchool } from "@/lib/branchDisplay";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export async function GET(
         } as const;
 
         const normalizedSlug = slug.trim().toLowerCase();
-        const school = await prisma.school.findFirst({
+        let school = await prisma.school.findFirst({
             where: { slug },
             select,
         }) ?? await prisma.school.findFirst({
@@ -50,6 +50,15 @@ export async function GET(
             select,
             orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
         });
+
+        if (!school) {
+            const activeSchools = await prisma.school.findMany({
+                where: { isActive: true },
+                select,
+                orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
+            });
+            school = activeSchools.find((candidate) => tenantSlugMatchesSchool(normalizedSlug, candidate)) ?? null;
+        }
 
         if (!school) {
             return NextResponse.json(

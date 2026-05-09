@@ -71,6 +71,7 @@ export default function SchoolLoginPage() {
                 email: identifier,
                 password,
                 loginType,
+                portalSlug: typeof slug === "string" ? slug : "",
                 redirect: false,
             });
 

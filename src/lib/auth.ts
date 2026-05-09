@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rateLimit";
 import { ensureUniqueStudentEmail, getSchoolInitials } from "@/lib/studentLoginCredentials";
+import { tenantSlugMatchesSchool } from "@/lib/branchDisplay";
 
 type AuthUserRecord = {
     id: string;
@@ -18,11 +19,16 @@ type AuthUserRecord = {
     isActive?: boolean | null;
     school?: {
         name?: string | null;
+        slug?: string | null;
         isActive?: boolean | null;
         registrationStatus?: string | null;
         registrationRejectionReason?: string | null;
         allowStudentAdmissionNumberLogin?: boolean | null;
         allowStudentEmailLogin?: boolean | null;
+        organization?: {
+            name?: string | null;
+            slug?: string | null;
+        } | null;
     } | null;
     // Populated via Prisma include for admin login
     classArms?: Array<{ armName: string; class: { name: string } }> | null;
@@ -149,7 +155,7 @@ async function resolveStudentUserByCanonicalEmail(identifier: string) {
             userId: true,
             user: {
                 include: {
-                    school: true,
+                    school: { include: { organization: true } },
                 },
             },
         },
@@ -199,6 +205,8 @@ export const authOptions: NextAuthOptions = {
                 email: { label: "Email/Admission", type: "text" },
                 password: { label: "Password/PIN", type: "password" },
                 loginType: { label: "Login Type", type: "text" },
+                /** When signing in from `/s/[slug]/login`, must match the school's slug. */
+                portalSlug: { label: "Portal slug", type: "text" },
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
@@ -228,7 +236,7 @@ export const authOptions: NextAuthOptions = {
                                 },
                             },
                             include: {
-                                school: true,
+                                school: { include: { organization: true } },
                                 classArms: {
                                     include: { class: true },
                                 },
@@ -246,7 +254,7 @@ export const authOptions: NextAuthOptions = {
                                     mode: "insensitive",
                                 },
                             },
-                            include: { school: true, parent: true },
+                            include: { school: { include: { organization: true } }, parent: true },
                         }) as AuthUserRecord | null;
 
                         if (user && !canUseSelectedLoginType(user.roles, "parent")) {
@@ -264,7 +272,7 @@ export const authOptions: NextAuthOptions = {
                                     },
                                 },
                                 include: {
-                                    school: true,
+                                    school: { include: { organization: true } },
                                     studentAccount: true,
                                 },
                             });
@@ -298,7 +306,7 @@ export const authOptions: NextAuthOptions = {
                                         mode: "insensitive",
                                     },
                                 },
-                                include: { user: { include: { school: true } } },
+                                include: { user: { include: { school: { include: { organization: true } } } } },
                             });
 
                             if (student) {
@@ -325,6 +333,16 @@ export const authOptions: NextAuthOptions = {
                     const isValid = await bcrypt.compare(password, user.passwordHash);
                     if (!isValid) {
                         throw new Error("Invalid credentials");
+                    }
+
+                    const portalSlugRaw = (credentials as { portalSlug?: string }).portalSlug?.trim().toLowerCase();
+                    if (portalSlugRaw) {
+                        const isSuperAdmin = user.roles.includes("SUPER_ADMIN");
+                        if (!isSuperAdmin) {
+                            if (!user.school || !tenantSlugMatchesSchool(portalSlugRaw, user.school)) {
+                                throw new Error("This account does not belong to this school portal.");
+                            }
+                        }
                     }
 
                     const firstArm = user.classArms?.[0];
@@ -374,6 +392,7 @@ export const authOptions: NextAuthOptions = {
                         roles: user.roles,
                         schoolId: user.schoolId || null,
                         schoolName: user.school?.name || null,
+                        schoolSlug: user.school?.slug ?? null,
                         loginType,
                         loginProfileId,
                         assignedClass,
@@ -402,6 +421,7 @@ export const authOptions: NextAuthOptions = {
                 token.roles = user.roles;
                 token.schoolId = user.schoolId;
                 token.schoolName = user.schoolName;
+                token.schoolSlug = user.schoolSlug ?? null;
                 token.loginType = user.loginType;
                 token.loginProfileId = user.loginProfileId;
                 token.assignedClass = user.assignedClass;
@@ -450,6 +470,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.roles = token.roles;
                 session.user.schoolId = token.schoolId;
                 session.user.schoolName = token.schoolName;
+                session.user.schoolSlug = token.schoolSlug ?? null;
                 session.user.loginType = token.loginType;
                 session.user.loginProfileId = token.loginProfileId;
                 session.user.assignedClass = token.assignedClass;
@@ -469,5 +490,6 @@ export const authOptions: NextAuthOptions = {
         error: "/auth/login",
     },
     debug: process.env.NODE_ENV === "development",
+    trustHost: true,
     secret: process.env.NEXTAUTH_SECRET,
 };
