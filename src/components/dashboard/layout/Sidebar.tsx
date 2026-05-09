@@ -21,6 +21,7 @@ const SCHOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedSchool: {
     logoUrl: string | null;
     name: string;
+    branchName: string | null;
     fetchedAt: number;
 } | null = null;
 
@@ -30,6 +31,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
     const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
     const [schoolName, setSchoolName] = useState<string>("Edunostics");
+    const [branchName, setBranchName] = useState<string | null>(null);
     const [userPhoto, setUserPhoto] = useState<string | null>(null);
     const [pendingUploadCount, setPendingUploadCount] = useState(0);
 
@@ -61,17 +63,18 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
     useEffect(() => {
         let mounted = true;
 
-        const applySchool = (name: string, logoUrl: string | null) => {
+        const applySchool = (name: string, branch: string | null, logoUrl: string | null) => {
             if (!mounted) return;
             setSchoolLogo(logoUrl);
             setSchoolName(name);
+            setBranchName(branch);
         };
 
         const fetchSchool = async (force = false) => {
             const schoolCache = cachedSchool;
             const cacheIsFresh = !!schoolCache && Date.now() - schoolCache.fetchedAt < SCHOOL_CACHE_TTL_MS;
             if (!force && cacheIsFresh && schoolCache) {
-                applySchool(schoolCache.name, schoolCache.logoUrl);
+                applySchool(schoolCache.name, schoolCache.branchName, schoolCache.logoUrl);
                 return;
             }
 
@@ -83,13 +86,15 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                 if (!response.ok) return;
                 const data = await response.json();
                 const nextName = data.name || "Edunostics";
+                const nextBranch = data.branchName || null;
                 const nextLogo = data.logoUrl || null;
                 cachedSchool = {
                     name: nextName,
+                    branchName: nextBranch,
                     logoUrl: nextLogo,
                     fetchedAt: Date.now(),
                 };
-                applySchool(nextName, nextLogo);
+                applySchool(nextName, nextBranch, nextLogo);
             } catch { }
         };
 
@@ -205,7 +210,9 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                     </div>
                     <div className="min-w-0 flex-1">
                         <h1 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight line-clamp-2">{schoolName}</h1>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Report Card System</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {branchName ? `${branchName} Branch` : "Report Card System"}
+                        </p>
                     </div>
                 </div>
 

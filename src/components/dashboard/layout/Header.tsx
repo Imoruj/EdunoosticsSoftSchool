@@ -10,6 +10,8 @@ import { useTheme } from "@/components/theme/ThemeProvider";
 interface Branch {
     id: string;
     name: string;
+    schoolName?: string;
+    branchName?: string;
     branchCode: string | null;
     logoUrl: string | null;
 }
@@ -413,7 +415,12 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                             <svg className="w-4 h-4 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
-                            <span className="truncate">{activeBranch?.branchCode ?? activeBranch?.name ?? optimisticBranchName ?? "Branch"}</span>
+                            <span className="truncate">{activeBranch?.schoolName ?? activeBranch?.name ?? optimisticBranchName ?? "School"}</span>
+                            {(activeBranch?.branchName || activeBranch?.branchCode) && (
+                                <span className="hidden xl:inline text-xs text-gray-400 dark:text-gray-500 max-w-[80px] truncate">
+                                    {activeBranch.branchName ?? activeBranch.branchCode}
+                                </span>
+                            )}
                             <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
@@ -436,10 +443,10 @@ export function Header({ setSidebarOpen, findPageTitle, topBarRef }: HeaderProps
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
                                             <div className="flex-1 min-w-0">
-                                                <p className="whitespace-normal break-words leading-snug">{branch.name}</p>
-                                                {branch.branchCode && (
-                                                    <p className="text-xs text-gray-400 dark:text-gray-500">{branch.branchCode}</p>
-                                                )}
+                                                <p className="whitespace-normal break-words leading-snug">{branch.schoolName ?? branch.name}</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500">
+                                                    Branch: {branch.branchName ?? branch.branchCode ?? "Main"}
+                                                </p>
                                             </div>
                                             {branch.id === activeBranchId && (
                                                 <svg className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

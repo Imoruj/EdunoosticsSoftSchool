@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
 import { emailMatchesNameLoginPrefix } from "@/lib/branchLoginIdentity";
+import { getBranchName, getSharedSchoolName } from "@/lib/branchDisplay";
 
 async function getOrgSchoolIds(schoolId: string): Promise<string[]> {
     const activeSchool = await prisma.school.findUnique({
@@ -63,7 +64,9 @@ export async function GET() {
                         name: true,
                         logoUrl: true,
                         branchCode: true,
+                        isHeadBranch: true,
                         slug: true,
+                        organization: { select: { name: true } },
                     },
                 },
             },
@@ -74,9 +77,12 @@ export async function GET() {
         for (const ub of userBranches) {
             branchesById.set(ub.school.id, {
                 id: ub.school.id,
-                name: ub.school.name,
+                name: getSharedSchoolName(ub.school),
+                schoolName: getSharedSchoolName(ub.school),
+                branchName: getBranchName(ub.school),
                 logoUrl: ub.school.logoUrl,
                 branchCode: ub.school.branchCode,
+                isHeadBranch: ub.school.isHeadBranch,
                 slug: ub.school.slug,
                 roles: ub.roles,
                 isActive: ub.isActive,
@@ -86,11 +92,26 @@ export async function GET() {
         if (userRecord.schoolId && eligibleSchoolIds.has(userRecord.schoolId) && !branchesById.has(userRecord.schoolId)) {
             const primarySchool = await prisma.school.findUnique({
                 where: { id: userRecord.schoolId },
-                select: { id: true, name: true, logoUrl: true, branchCode: true, slug: true },
+                select: {
+                    id: true,
+                    name: true,
+                    logoUrl: true,
+                    branchCode: true,
+                    isHeadBranch: true,
+                    slug: true,
+                    organization: { select: { name: true } },
+                },
             });
             if (primarySchool) {
                 branchesById.set(primarySchool.id, {
-                    ...primarySchool,
+                    id: primarySchool.id,
+                    name: getSharedSchoolName(primarySchool),
+                    schoolName: getSharedSchoolName(primarySchool),
+                    branchName: getBranchName(primarySchool),
+                    logoUrl: primarySchool.logoUrl,
+                    branchCode: primarySchool.branchCode,
+                    isHeadBranch: primarySchool.isHeadBranch,
+                    slug: primarySchool.slug,
                     roles: user.roles,
                     isActive: true,
                 });
@@ -117,11 +138,30 @@ export async function GET() {
 
         const school = await prisma.school.findUnique({
             where: { id: schoolId },
-            select: { id: true, name: true, logoUrl: true, branchCode: true, slug: true },
+            select: {
+                id: true,
+                name: true,
+                logoUrl: true,
+                branchCode: true,
+                isHeadBranch: true,
+                slug: true,
+                organization: { select: { name: true } },
+            },
         });
 
         return NextResponse.json({
-            branches: school ? [{ ...school, roles: user.roles, isActive: true }] : [],
+            branches: school ? [{
+                id: school.id,
+                name: getSharedSchoolName(school),
+                schoolName: getSharedSchoolName(school),
+                branchName: getBranchName(school),
+                logoUrl: school.logoUrl,
+                branchCode: school.branchCode,
+                isHeadBranch: school.isHeadBranch,
+                slug: school.slug,
+                roles: user.roles,
+                isActive: true,
+            }] : [],
         });
     }
 }

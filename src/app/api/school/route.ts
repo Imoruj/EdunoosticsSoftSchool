@@ -6,6 +6,7 @@ import { requireSchoolAdmin } from "@/lib/rbac";
 import { STALE_SCHOOL_SESSION_MESSAGE, sessionSchoolExists } from "@/lib/session-school";
 import { normalizeSignatureDataUrl } from "@/lib/signature-images";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { getBranchName, getSharedSchoolName } from "@/lib/branchDisplay";
 
 export async function GET(req: NextRequest) {
     try {
@@ -36,11 +37,15 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        const school = await prisma.school.findUnique({
+        const activeSchool = await prisma.school.findUnique({
             where: { id: schoolId },
             select: {
                 id: true,
                 name: true,
+                organizationId: true,
+                branchCode: true,
+                isHeadBranch: true,
+                organization: { select: { name: true } },
                 motto: true,
                 address: true,
                 city: true,
@@ -57,14 +62,49 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        if (!school) {
+        if (!activeSchool) {
             return NextResponse.json(
                 { error: STALE_SCHOOL_SESSION_MESSAGE },
                 { status: 401 }
             );
         }
 
-        return NextResponse.json(school, {
+        const sharedSchool = activeSchool.organizationId
+            ? await prisma.school.findFirst({
+                where: { organizationId: activeSchool.organizationId, isHeadBranch: true },
+                select: {
+                    id: true,
+                    name: true,
+                    organizationId: true,
+                    branchCode: true,
+                    isHeadBranch: true,
+                    organization: { select: { name: true } },
+                    motto: true,
+                    address: true,
+                    city: true,
+                    state: true,
+                    country: true,
+                    phone: true,
+                    email: true,
+                    website: true,
+                    logoUrl: true,
+                    principalSignatureUrl: true,
+                    stampUrl: true,
+                    allowStudentAdmissionNumberLogin: true,
+                    allowStudentEmailLogin: true,
+                },
+            }) ?? activeSchool
+            : activeSchool;
+
+        return NextResponse.json({
+            ...sharedSchool,
+            id: activeSchool.id,
+            name: getSharedSchoolName(activeSchool),
+            schoolName: getSharedSchoolName(activeSchool),
+            branchName: getBranchName(activeSchool),
+            branchCode: activeSchool.branchCode,
+            isHeadBranch: activeSchool.isHeadBranch,
+        }, {
             headers: {
                 "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
             },
@@ -122,6 +162,11 @@ export async function PUT(req: NextRequest) {
             allowStudentEmailLogin,
         } = body;
 
+        const currentSchool = await prisma.school.findUnique({
+            where: { id: schoolId },
+            select: { organizationId: true },
+        });
+
         const normalizedAllowStudentAdmissionNumberLogin =
             typeof allowStudentAdmissionNumberLogin === "boolean" ? allowStudentAdmissionNumberLogin : true;
         const normalizedAllowStudentEmailLogin =
@@ -138,8 +183,15 @@ export async function PUT(req: NextRequest) {
                 ? await normalizeSignatureDataUrl(principalSignatureUrl)
                 : principalSignatureUrl;
 
-        const updatedSchool = await prisma.school.update({
-            where: { id: schoolId },
+        const sharedSchoolId = currentSchool?.organizationId
+            ? (await prisma.school.findFirst({
+                where: { organizationId: currentSchool.organizationId, isHeadBranch: true },
+                select: { id: true },
+            }))?.id ?? schoolId
+            : schoolId;
+
+        await prisma.school.update({
+            where: { id: sharedSchoolId },
             data: {
                 name,
                 motto,
@@ -156,7 +208,67 @@ export async function PUT(req: NextRequest) {
             },
         });
 
-        return NextResponse.json(updatedSchool, {
+        const updatedSchool = await prisma.school.findUnique({
+            where: { id: schoolId },
+            select: {
+                id: true,
+                name: true,
+                organizationId: true,
+                branchCode: true,
+                isHeadBranch: true,
+                organization: { select: { name: true } },
+                motto: true,
+                address: true,
+                city: true,
+                state: true,
+                country: true,
+                phone: true,
+                email: true,
+                website: true,
+                logoUrl: true,
+                principalSignatureUrl: true,
+                stampUrl: true,
+                allowStudentAdmissionNumberLogin: true,
+                allowStudentEmailLogin: true,
+            },
+        });
+
+        const sharedUpdatedSchool = updatedSchool?.organizationId
+            ? await prisma.school.findFirst({
+                where: { organizationId: updatedSchool.organizationId, isHeadBranch: true },
+                select: {
+                    id: true,
+                    name: true,
+                    organizationId: true,
+                    branchCode: true,
+                    isHeadBranch: true,
+                    organization: { select: { name: true } },
+                    motto: true,
+                    address: true,
+                    city: true,
+                    state: true,
+                    country: true,
+                    phone: true,
+                    email: true,
+                    website: true,
+                    logoUrl: true,
+                    principalSignatureUrl: true,
+                    stampUrl: true,
+                    allowStudentAdmissionNumberLogin: true,
+                    allowStudentEmailLogin: true,
+                },
+            }) ?? updatedSchool
+            : updatedSchool;
+
+        return NextResponse.json(updatedSchool && sharedUpdatedSchool ? {
+            ...sharedUpdatedSchool,
+            id: updatedSchool.id,
+            name: getSharedSchoolName(updatedSchool),
+            schoolName: getSharedSchoolName(updatedSchool),
+            branchName: getBranchName(updatedSchool),
+            branchCode: updatedSchool.branchCode,
+            isHeadBranch: updatedSchool.isHeadBranch,
+        } : null, {
             headers: {
                 "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
             },

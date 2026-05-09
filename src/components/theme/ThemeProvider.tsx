@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type Theme = "light" | "dark";
 
@@ -22,14 +23,25 @@ function applyTheme(t: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
     const [theme, setTheme] = useState<Theme>("light");
     const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
+        const shouldFetchThemeFeatures = pathname?.startsWith("/dashboard") === true;
 
         const syncThemeAvailability = async () => {
             let enabled = false;
+            if (!shouldFetchThemeFeatures) {
+                localStorage.setItem("ed-dark-mode-feature-enabled", "false");
+                setDarkModeEnabled(false);
+                localStorage.removeItem("ed-theme");
+                setTheme("light");
+                applyTheme("light");
+                return;
+            }
+
             try {
                 const response = await fetch("/api/school/features", { cache: "no-store" });
                 if (response.ok) {
@@ -65,9 +77,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         };
 
         void syncThemeAvailability();
-        window.addEventListener("school-features-updated", syncThemeAvailability);
-        window.addEventListener("focus", syncThemeAvailability);
-        document.addEventListener("visibilitychange", syncWhenVisible);
+        if (shouldFetchThemeFeatures) {
+            window.addEventListener("school-features-updated", syncThemeAvailability);
+            window.addEventListener("focus", syncThemeAvailability);
+            document.addEventListener("visibilitychange", syncWhenVisible);
+        }
 
         return () => {
             cancelled = true;
@@ -75,7 +89,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             window.removeEventListener("focus", syncThemeAvailability);
             document.removeEventListener("visibilitychange", syncWhenVisible);
         };
-    }, []);
+    }, [pathname]);
 
     const toggleTheme = () => {
         if (!darkModeEnabled) {

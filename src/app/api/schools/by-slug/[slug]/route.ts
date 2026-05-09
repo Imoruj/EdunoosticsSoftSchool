@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getBranchName, getSharedSchoolName } from "@/lib/branchDisplay";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +18,37 @@ export async function GET(
             );
         }
 
+        const select = {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            primaryColor: true,
+            motto: true,
+            branchCode: true,
+            isHeadBranch: true,
+            organization: { select: { name: true, slug: true } },
+            allowStudentAdmissionNumberLogin: true,
+            allowStudentEmailLogin: true,
+        } as const;
+
+        const normalizedSlug = slug.trim().toLowerCase();
         const school = await prisma.school.findFirst({
             where: { slug },
-            select: {
-                id: true,
-                name: true,
-                logoUrl: true,
-                primaryColor: true,
-                motto: true,
-                allowStudentAdmissionNumberLogin: true,
-                allowStudentEmailLogin: true,
+            select,
+        }) ?? await prisma.school.findFirst({
+            where: {
+                OR: [
+                    { slug: { startsWith: `${normalizedSlug}-` } },
+                    { slug: { contains: `-${normalizedSlug}-` } },
+                    { slug: { endsWith: `-${normalizedSlug}` } },
+                    { organization: { slug: normalizedSlug } },
+                    { organization: { slug: { startsWith: `${normalizedSlug}-` } } },
+                ],
+                isActive: true,
             },
+            select,
+            orderBy: [{ isHeadBranch: "desc" }, { name: "asc" }],
         });
 
         if (!school) {
@@ -37,7 +58,12 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(school, {
+        return NextResponse.json({
+            ...school,
+            name: getSharedSchoolName(school),
+            schoolName: getSharedSchoolName(school),
+            branchName: getBranchName(school),
+        }, {
             headers: {
                 "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
             },
