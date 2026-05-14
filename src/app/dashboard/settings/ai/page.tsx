@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import AICommentSettings from "@/components/settings/AICommentSettings";
 

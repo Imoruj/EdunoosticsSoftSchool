@@ -79,7 +79,7 @@ export const ALL_ENABLED_FEATURES: FeatureFlags = {
  * Automatically creates a default record (all features enabled) if none exists.
  */
 export async function getSchoolFeatures(schoolId: string): Promise<FeatureFlags> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const client = prisma as any;
 
     if (typeof client.schoolFeatureControl?.upsert !== "function") {

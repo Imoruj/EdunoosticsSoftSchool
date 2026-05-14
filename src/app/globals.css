@@ -552,3 +552,49 @@ body {
 .dark .dashboard-content .dashboard-light-surface textarea::placeholder {
   color: #9ca3af !important;
 }
+
+/* Premium Design System Utilities */
+@layer utilities {
+  .ed-page {
+    background:
+      radial-gradient(circle at 20% 8%, rgba(0,169,154,.08), transparent 25rem),
+      radial-gradient(circle at 82% 12%, rgba(91,45,170,.06), transparent 24rem),
+      linear-gradient(180deg, #f8fafc 0%, #ffffff 48%, #f1f5f9 100%);
+    color: #111827;
+  }
+
+  .dark .ed-page {
+    background:
+      radial-gradient(circle at 20% 8%, rgba(0,169,154,.22), transparent 25rem),
+      radial-gradient(circle at 82% 12%, rgba(91,45,170,.20), transparent 24rem),
+      linear-gradient(180deg, #08070b 0%, #0d0b12 48%, #09080c 100%);
+    color: #F7FAFA;
+  }
+
+  .ed-page::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: .015;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  .dark .ed-page::after {
+    opacity: .028;
+  }
+
+  .ed-glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .ed-glass-card {
+    background: rgba(19, 17, 26, 0.8);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(247, 250, 250, 0.08);
+  }
+}

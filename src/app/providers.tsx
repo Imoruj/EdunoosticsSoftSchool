@@ -6,38 +6,41 @@ import GlobalSuccessModal from "@/components/ui/GlobalSuccessModal";
 import GlobalAppMessageBox from "@/components/ui/GlobalAppMessageBox";
 import { DynamicFavicon } from "@/components/branding/DynamicFavicon";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider>
-        <SessionProvider>
-            <DynamicFavicon />
-            {children}
-            <GlobalSuccessModal />
-            <GlobalAppMessageBox />
-            <Toaster
-                position="top-right"
-                containerStyle={{ zIndex: 10000 }}
-                toastOptions={{
-                    duration: 3500,
-                    style: {
-                        borderRadius: "10px",
-                        background: "#111827",
-                        color: "#fff",
-                    },
-                    success: {
-                        style: {
-                            background: "#065f46",
-                        },
-                    },
-                    error: {
-                        style: {
-                            background: "#991b1b",
-                        },
-                    },
-                }}
-            />
-        </SessionProvider>
+            <QueryProvider>
+                <SessionProvider>
+                    <DynamicFavicon />
+                    {children}
+                    <GlobalSuccessModal />
+                    <GlobalAppMessageBox />
+                    <Toaster
+                        position="top-right"
+                        containerStyle={{ zIndex: 10000 }}
+                        toastOptions={{
+                            duration: 3500,
+                            style: {
+                                borderRadius: "10px",
+                                background: "#111827",
+                                color: "#fff",
+                            },
+                            success: {
+                                style: {
+                                    background: "#065f46",
+                                },
+                            },
+                            error: {
+                                style: {
+                                    background: "#991b1b",
+                                },
+                            },
+                        }}
+                    />
+                </SessionProvider>
+            </QueryProvider>
         </ThemeProvider>
     );
 }

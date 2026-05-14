@@ -42,7 +42,7 @@ export function TextElementView({ data, editing = false, onEditEnd, onEditCancel
       sel?.removeAllRanges();
       sel?.addRange(range);
     } catch (_) { /* ignore */ }
-  }, [editing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editing]);  
 
   function handleBlur() {
     if (cancelEditRef.current) {

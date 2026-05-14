@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { absolutePortalUrlForSlug } from "@/lib/portalUrl";
 
 async function requireSuperAdmin(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
         select: {
             id: true,
             name: true,
+            slug: true,
             email: true,
             phone: true,
             city: true,
@@ -40,7 +42,12 @@ export async function GET(req: NextRequest) {
         },
     });
 
-    return NextResponse.json(schools);
+    const payload = schools.map((school: { slug: string | null }) => ({
+        ...school,
+        portalUrl: absolutePortalUrlForSlug(school.slug),
+    }));
+
+    return NextResponse.json(payload);
 }
 
 // PATCH — toggle isActive, or approve/reject a school registration

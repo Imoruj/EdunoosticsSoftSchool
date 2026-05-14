@@ -94,27 +94,29 @@ export default function RegisterPage() {
         }
     };
 
+    const inputClasses = "flex h-11 w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#08070b]/50 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#00A99A] focus:border-transparent transition-all";
+    const btnClasses = "flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#00A99A] to-[#008f82] hover:from-[#00bdae] hover:to-[#00A99A] shadow-lg shadow-[#00A99A]/20";
+    const btnSecondaryClasses = "flex items-center justify-center rounded-lg px-4 py-3 text-sm font-bold text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:text-white transition-all bg-white dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10";
+
     const leftPanel = (
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative">
             <div>
-                <Link href="/" className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                        <span className="text-primary-600 font-bold text-2xl">E</span>
-                    </div>
-                    <span className="text-white font-semibold text-2xl">Edunostics</span>
+                <Link href="/" className="flex items-center gap-3 w-fit">
+                    <div className="bg-white p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
+                    <span className="text-gray-900 dark:text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
                 </Link>
             </div>
 
             <div className="max-w-md">
-                <h1 className="text-4xl font-bold text-white mb-6">Register Your School</h1>
-                <p className="text-white/70 text-lg mb-8">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 font-['Satoshi',sans-serif]">Register Your School</h1>
+                <p className="text-gray-600 dark:text-white/70 text-lg mb-8 font-['Manrope',sans-serif]">
                     Get started with Edunostics today. Set up your school in minutes and
                     start generating professional report cards.
                 </p>
-                <ul className="space-y-4">
+                <ul className="space-y-4 font-['Manrope',sans-serif]">
                     {["Automated report card generation", "Nigerian grading system (A1-F9)", "Parent & student portals", "SMS notifications"].map((item) => (
-                        <li key={item} className="flex items-center gap-3 text-white/80">
-                            <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <li key={item} className="flex items-center gap-3 text-gray-700 dark:text-white/80">
+                            <svg className="w-6 h-6 text-[#00A99A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             {item}
@@ -123,9 +125,9 @@ export default function RegisterPage() {
                 </ul>
             </div>
 
-            <div className="text-white/50 text-sm">
+            <div className="text-gray-500 dark:text-white/50 text-sm font-['Manrope',sans-serif]">
                 Already using Edunostics?{" "}
-                <Link href="/auth/login" className="text-white hover:underline">
+                <Link href="/auth/login" className="text-gray-900 dark:text-white hover:text-[#00A99A] dark:hover:text-[#00A99A] transition-colors">
                     Sign in here
                 </Link>
             </div>
@@ -135,129 +137,123 @@ export default function RegisterPage() {
     // Loading state
     if (signupEnabled === null) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-            </div>
+            <main className="ed-page min-h-screen flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-gray-200 dark:border-white/30 border-t-[#00A99A] dark:border-t-[#00A99A] rounded-full animate-spin" />
+            </main>
         );
     }
 
     // Signup disabled
     if (!signupEnabled) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+            <main className="ed-page min-h-screen flex">
                 {leftPanel}
-                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 z-10 relative">
                     <div className="w-full max-w-lg">
-                        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+                        <div className="ed-glass-card rounded-2xl p-8 text-center shadow-2xl">
                             <div className="lg:hidden flex justify-center mb-8">
-                                <Link href="/" className="flex items-center gap-2">
-                                    <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                                        <span className="text-white font-bold text-xl">E</span>
-                                    </div>
-                                    <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                                <Link href="/" className="flex items-center gap-3">
+                                    <div className="bg-white p-1.5 rounded-lg shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 22, width: "auto" }} /></div>
+                                    <span className="text-gray-900 dark:text-white font-bold text-xl font-['Satoshi',sans-serif]">Edunostics</span>
                                 </Link>
                             </div>
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-16 h-16 bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-orange-500 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Closed</h2>
-                            <p className="text-gray-500 mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 font-['Satoshi',sans-serif]">Registration Closed</h2>
+                            <p className="text-gray-500 dark:text-white/60 mb-6 font-['Manrope',sans-serif]">
                                 New school registrations are currently not being accepted. Please contact the platform administrator for assistance.
                             </p>
-                            <Link href="/auth/login" className="btn-primary inline-block px-6 py-3">
+                            <Link href="/auth/login" className={btnClasses + " inline-block"}>
                                 Go to Login
                             </Link>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         );
     }
 
     // Submission success — pending approval
     if (submitted) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+            <main className="ed-page min-h-screen flex">
                 {leftPanel}
-                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 z-10 relative">
                     <div className="w-full max-w-lg">
-                        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+                        <div className="ed-glass-card rounded-2xl p-8 text-center shadow-2xl">
                             <div className="lg:hidden flex justify-center mb-8">
-                                <Link href="/" className="flex items-center gap-2">
-                                    <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                                        <span className="text-white font-bold text-xl">E</span>
-                                    </div>
-                                    <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                                <Link href="/" className="flex items-center gap-3">
+                                    <div className="bg-white p-1.5 rounded-lg shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 22, width: "auto" }} /></div>
+                                    <span className="text-gray-900 dark:text-white font-bold text-xl font-['Satoshi',sans-serif]">Edunostics</span>
                                 </Link>
                             </div>
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-[#00A99A]/10 border border-emerald-200 dark:border-[#00A99A]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-8 h-8 text-[#00A99A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Submitted!</h2>
-                            <p className="text-gray-500 mb-2">
-                                <span className="font-semibold text-gray-700">{schoolData.schoolName}</span> has been registered successfully.
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 font-['Satoshi',sans-serif]">Registration Submitted!</h2>
+                            <p className="text-gray-600 dark:text-white/60 mb-2 font-['Manrope',sans-serif]">
+                                <span className="font-semibold text-gray-900 dark:text-white/90">{schoolData.schoolName}</span> has been registered successfully.
                             </p>
-                            <p className="text-gray-500 mb-6">
-                                Your registration is <span className="font-semibold text-orange-600">pending approval</span> by the platform administrator. You will be notified once your account is activated.
+                            <p className="text-gray-500 dark:text-white/60 mb-6 font-['Manrope',sans-serif]">
+                                Your registration is <span className="font-semibold text-[#00A99A]">pending approval</span> by the platform administrator. You will be notified once your account is activated.
                             </p>
-                            <Link href="/auth/login" className="btn-primary inline-block px-6 py-3">
+                            <Link href="/auth/login" className={btnClasses + " inline-block"}>
                                 Go to Login
                             </Link>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+        <main className="ed-page min-h-screen flex">
             {leftPanel}
 
             {/* Right Panel - Registration Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto z-10 relative">
                 <div className="w-full max-w-lg">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <div className="ed-glass-card rounded-2xl p-8 shadow-2xl">
                         {/* Mobile Logo */}
                         <div className="lg:hidden flex justify-center mb-8">
-                            <Link href="/" className="flex items-center gap-2">
-                                <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-bold text-xl">E</span>
-                                </div>
-                                <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                            <Link href="/" className="flex items-center gap-3">
+                                <div className="bg-white p-1.5 rounded-lg shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 22, width: "auto" }} /></div>
+                                <span className="text-gray-900 dark:text-white font-bold text-xl font-['Satoshi',sans-serif]">Edunostics</span>
                             </Link>
                         </div>
 
                         {/* Progress Steps */}
                         <div className="flex items-center justify-center gap-2 mb-8">
-                            <div className={`w-3 h-3 rounded-full ${step >= 1 ? "bg-primary-600" : "bg-gray-200"}`} />
-                            <div className={`w-12 h-1 ${step >= 2 ? "bg-primary-600" : "bg-gray-200"}`} />
-                            <div className={`w-3 h-3 rounded-full ${step >= 2 ? "bg-primary-600" : "bg-gray-200"}`} />
+                            <div className={`w-3 h-3 rounded-full ${step >= 1 ? "bg-[#00A99A] shadow-[0_0_8px_rgba(0,169,154,0.5)]" : "bg-gray-200 dark:bg-white/10"}`} />
+                            <div className={`w-12 h-1 rounded-full ${step >= 2 ? "bg-[#00A99A] shadow-[0_0_8px_rgba(0,169,154,0.5)]" : "bg-gray-200 dark:bg-white/10"}`} />
+                            <div className={`w-3 h-3 rounded-full ${step >= 2 ? "bg-[#00A99A] shadow-[0_0_8px_rgba(0,169,154,0.5)]" : "bg-gray-200 dark:bg-white/10"}`} />
                         </div>
 
-                        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2 font-['Satoshi',sans-serif]">
                             {step === 1 ? "School Information" : "Admin Account"}
                         </h2>
-                        <p className="text-gray-500 text-center mb-8">
+                        <p className="text-gray-500 dark:text-white/60 text-center mb-8 font-['Manrope',sans-serif]">
                             {step === 1
                                 ? "Tell us about your school"
                                 : "Create your administrator account"}
                         </p>
 
                         {error && (
-                            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+                            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-sm font-['Manrope',sans-serif]">
                                 {error}
                             </div>
                         )}
 
                         {step === 1 && (
-                            <form onSubmit={handleStep1Continue} className="space-y-5">
+                            <form onSubmit={handleStep1Continue} className="space-y-5 font-['Manrope',sans-serif]">
                                 <div>
-                                    <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         School Name *
                                     </label>
                                     <input
@@ -265,42 +261,44 @@ export default function RegisterPage() {
                                         name="schoolName"
                                         type="text"
                                         required
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="Victory Academy"
+                                        defaultValue={schoolData.schoolName}
                                     />
                                 </div>
 
                                 <div>
-                                    <label htmlFor="schoolAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="schoolAddress" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         Address
                                     </label>
                                     <input
                                         id="schoolAddress"
                                         name="schoolAddress"
                                         type="text"
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="123 Education Road, Lekki"
+                                        defaultValue={schoolData.schoolAddress}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                             City
                                         </label>
                                         <input
                                             id="city"
                                             name="city"
                                             type="text"
-                                            className="input"
+                                            className={inputClasses}
                                             placeholder="Lagos"
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                             State
                                         </label>
-                                        <select id="state" name="state" className="input">
+                                        <select id="state" name="state" className={inputClasses + " dark:[&>option]:bg-[#13111a] dark:[&>option]:text-white"}>
                                             <option value="">Select state</option>
                                             <option value="Lagos">Lagos</option>
                                             <option value="Abuja">Abuja (FCT)</option>
@@ -317,29 +315,30 @@ export default function RegisterPage() {
                                 </div>
 
                                 <div>
-                                    <label htmlFor="schoolPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="schoolPhone" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         School Phone
                                     </label>
                                     <input
                                         id="schoolPhone"
                                         name="schoolPhone"
                                         type="tel"
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="08012345678"
+                                        defaultValue={schoolData.schoolPhone}
                                     />
                                 </div>
 
-                                <button type="submit" className="btn-primary w-full py-3 text-base">
+                                <button type="submit" className={btnClasses}>
                                     Continue
                                 </button>
                             </form>
                         )}
 
                         {step === 2 && (
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={handleSubmit} className="space-y-5 font-['Manrope',sans-serif]">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                             First Name *
                                         </label>
                                         <input
@@ -347,12 +346,12 @@ export default function RegisterPage() {
                                             name="firstName"
                                             type="text"
                                             required
-                                            className="input"
+                                            className={inputClasses}
                                             placeholder="John"
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                             Last Name *
                                         </label>
                                         <input
@@ -360,14 +359,14 @@ export default function RegisterPage() {
                                             name="lastName"
                                             type="text"
                                             required
-                                            className="input"
+                                            className={inputClasses}
                                             placeholder="Doe"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         Email Address *
                                     </label>
                                     <input
@@ -375,13 +374,13 @@ export default function RegisterPage() {
                                         name="email"
                                         type="email"
                                         required
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="admin@victoryacademy.edu.ng"
                                     />
                                 </div>
 
                                 <div>
-                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         Phone Number *
                                     </label>
                                     <input
@@ -389,13 +388,13 @@ export default function RegisterPage() {
                                         name="phone"
                                         type="tel"
                                         required
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="08012345678"
                                     />
                                 </div>
 
                                 <div>
-                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         Password *
                                     </label>
                                     <input
@@ -404,13 +403,13 @@ export default function RegisterPage() {
                                         type="password"
                                         required
                                         minLength={8}
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="Min. 8 characters"
                                     />
                                 </div>
 
                                 <div>
-                                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                         Confirm Password *
                                     </label>
                                     <input
@@ -418,7 +417,7 @@ export default function RegisterPage() {
                                         name="confirmPassword"
                                         type="password"
                                         required
-                                        className="input"
+                                        className={inputClasses}
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -428,15 +427,15 @@ export default function RegisterPage() {
                                         id="terms"
                                         type="checkbox"
                                         required
-                                        className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                                        className="mt-1 w-4 h-4 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 text-[#00A99A] focus:ring-[#00A99A] focus:ring-offset-0 transition-colors"
                                     />
-                                    <label htmlFor="terms" className="text-sm text-gray-600">
+                                    <label htmlFor="terms" className="text-sm text-gray-600 dark:text-white/60">
                                         I agree to the{" "}
-                                        <Link href="/terms" className="text-primary-600 hover:underline">
+                                        <Link href="/terms" className="text-[#00A99A] hover:text-[#00bdae] transition-colors">
                                             Terms of Service
                                         </Link>{" "}
                                         and{" "}
-                                        <Link href="/privacy" className="text-primary-600 hover:underline">
+                                        <Link href="/privacy" className="text-[#00A99A] hover:text-[#00bdae] transition-colors">
                                             Privacy Policy
                                         </Link>
                                     </label>
@@ -446,14 +445,14 @@ export default function RegisterPage() {
                                     <button
                                         type="button"
                                         onClick={() => setStep(1)}
-                                        className="btn-secondary flex-1 py-3"
+                                        className={btnSecondaryClasses + " flex-1"}
                                     >
                                         Back
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="btn-primary flex-1 py-3"
+                                        className={btnClasses + " flex-1"}
                                     >
                                         {isLoading ? "Submitting..." : "Submit Registration"}
                                     </button>
@@ -461,15 +460,15 @@ export default function RegisterPage() {
                             </form>
                         )}
 
-                        <p className="text-center text-gray-500 text-sm mt-8 lg:hidden">
+                        <p className="text-center text-gray-500 dark:text-white/60 text-sm mt-8 lg:hidden font-['Manrope',sans-serif]">
                             Already have an account?{" "}
-                            <Link href="/auth/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                            <Link href="/auth/login" className="text-[#00A99A] hover:text-[#00bdae] font-medium transition-colors">
                                 Sign in
                             </Link>
                         </p>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

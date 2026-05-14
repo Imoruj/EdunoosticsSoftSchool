@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useTheme } from "@/components/theme/ThemeProvider";
 import {
     Activity,
     ArrowRight,
@@ -45,10 +46,10 @@ const palette = {
 const navItems = ["Platform", "Hardware", "Insights", "Security", "Pricing"];
 
 const stats = [
-    { num: 24, suffix: "/7",   label: "School operations" },
-    { num: 99.9, suffix: "%",  label: "Cloud uptime target" },
-    { num: 1,  suffix: " day", label: "Typical onboarding" },
-    { num: 360, suffix: "°",   label: "Student profile" },
+    { num: 24, suffix: "/7", label: "School operations" },
+    { num: 99.9, suffix: "%", label: "Cloud uptime target" },
+    { num: 1, suffix: " day", label: "Typical onboarding" },
+    { num: 360, suffix: "°", label: "Student profile" },
 ];
 
 const capabilities = [
@@ -109,14 +110,16 @@ const diPhrases = [
 
 function Logo({ compact = false }: { compact?: boolean }) {
     return (
-        <Link href="/" aria-label="Edunostics home" className="brand">
-            <img
-                src="/images/brand/logo-mark.png"
-                alt=""
-                aria-hidden="true"
-                style={{ height: compact ? 30 : 38, width: "auto", display: "block", flexShrink: 0 }}
-            />
-            <span>Edunostics</span>
+        <Link href="/" aria-label="Edunostics home" className="brand" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ background: '#fff', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                <img
+                    src="/images/brand/logo-mark.png"
+                    alt=""
+                    aria-hidden="true"
+                    style={{ height: compact ? 22 : 28, width: "auto", display: "block", flexShrink: 0 }}
+                />
+            </div>
+            <span style={{ margin: 0 }}>Edunostics</span>
         </Link>
     );
 }
@@ -375,7 +378,7 @@ export default function LandingPage() {
     const [hwIdx, setHwIdx] = useState(0);
     const [hwPhase, setHwPhase] = useState<"idle" | "exit" | "reset" | "enter">("idle");
     const hwTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    const hwRaf   = useRef<number>(0);
+    const hwRaf = useRef<number>(0);
 
     useEffect(() => {
         const id = setInterval(() => {
@@ -466,23 +469,7 @@ export default function LandingPage() {
     }, []);
 
     /* ── Theme toggle ─────────────────────────────────────────── */
-    const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-    useEffect(() => {
-        const saved = localStorage.getItem("ed-theme") as "dark" | "light" | null;
-        const initial = saved ?? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-        setTheme(initial);
-        document.documentElement.setAttribute("data-theme", initial);
-    }, []);
-
-    const toggleTheme = () => {
-        setTheme(prev => {
-            const next = prev === "dark" ? "light" : "dark";
-            localStorage.setItem("ed-theme", next);
-            document.documentElement.setAttribute("data-theme", next);
-            return next;
-        });
-    };
+    const { theme, toggleTheme } = useTheme();
 
     return (
         <main className="ed-page">

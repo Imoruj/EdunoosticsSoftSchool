@@ -9,13 +9,9 @@ import {
   syncStudentTemporaryLoginCredentials,
 } from '@/lib/studentLoginCredentials';
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { buildPortalUrl } from "@/lib/portalUrl";
 
 export const dynamic = 'force-dynamic';
-
-function buildPortalUrl(req: NextRequest, slug?: string | null) {
-  const origin = new URL(req.url).origin;
-  return slug ? `${origin}/s/${slug}/login` : `${origin}/auth/login`;
-}
 
 function resolveLoginInstructions(params: {
   allowStudentEmailLogin: boolean;

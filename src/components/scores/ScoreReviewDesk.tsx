@@ -125,7 +125,7 @@ export default function ScoreReviewDesk({
         termId: string | null;
     } | null>(null);
 
-    if (!initialQueryRef.current) {
+    if (initialQueryRef.current == null) {
         initialQueryRef.current = {
             workflowId: searchParams.get("workflowId"),
             classArmId: searchParams.get("classArmId"),

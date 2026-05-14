@@ -7,11 +7,7 @@ import {
     generateStudentDefaultPasswordHash,
 } from "@/lib/studentLoginCredentials";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
-
-function buildPortalUrl(req: NextRequest, slug?: string | null) {
-    const origin = new URL(req.url).origin;
-    return slug ? `${origin}/s/${slug}/login` : `${origin}/auth/login`;
-}
+import { buildPortalUrl } from "@/lib/portalUrl";
 
 function formatStudentName(student: { firstName: string; lastName: string; otherNames?: string | null }) {
     return [student.firstName, student.lastName, student.otherNames || ""].filter(Boolean).join(" ");

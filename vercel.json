@@ -1,4 +1,5 @@
 {
+  "name": "edunoostics-soft-school",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs"

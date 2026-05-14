@@ -191,7 +191,7 @@ export function TargetAudienceSelector({
         if (needsUpdate) {
             onAssignedToChange(newAssignedTo);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [students, classArmIds]);
 
     const handleStudentToggle = (studentId: string) => {
@@ -259,7 +259,7 @@ export function TargetAudienceSelector({
         if (!activeClassName || !onClassChange) return;
         const classObj = classes.find((c) => c.name === activeClassName);
         if (classObj) onClassChange(classObj.id);
-    }, [activeClassName]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeClassName]);  
 
     const visibleArms = activeClassName
         ? (applicableArmsByClass[activeClassName] || [])

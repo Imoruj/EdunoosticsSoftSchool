@@ -76,7 +76,7 @@ export function StudentViewModal({ student, onClose }: StudentViewModalProps) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [student.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [student.id]);  
 
   useEffect(() => {
     const handleLoginModeUpdate = (event: Event) => {

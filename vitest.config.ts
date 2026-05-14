@@ -9,6 +9,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      '**/smoke/**', // Run only via `npm run test:smoke` (network; optional env)
       '**/lib/grade-calculation.test.ts', // Uses custom runner, not vitest
     ],
   },

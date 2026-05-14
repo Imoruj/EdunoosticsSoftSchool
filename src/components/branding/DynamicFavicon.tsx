@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { handleUnauthorizedApiResponse } from "@/lib/client-session";
+import { getTenantSlugFromHostname, tenantSubdomainsEnabled } from "@/lib/hostContext";
 
 type CachedBranding = {
     logoUrl: string | null;
@@ -12,12 +13,7 @@ type CachedBranding = {
 
 const BRANDING_CACHE_TTL_MS = 5 * 60 * 1000;
 
-const DEFAULT_FAVICON = `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-        <rect width="64" height="64" rx="14" fill="#16a34a"/>
-        <text x="50%" y="53%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#ffffff">E</text>
-    </svg>`
-)}`;
+const DEFAULT_FAVICON = "/images/brand/logo-mark.png";
 
 let cachedSchoolBranding: CachedBranding | null = null;
 const cachedSlugBranding = new Map<string, CachedBranding>();
@@ -59,6 +55,13 @@ export function DynamicFavicon() {
     const { data: session, status } = useSession();
 
     const schoolSlug = useMemo(() => {
+        if (tenantSubdomainsEnabled() && typeof window !== "undefined") {
+            const fromHost = getTenantSlugFromHostname(
+                window.location.hostname,
+                process.env.NEXT_PUBLIC_APP_ROOT_DOMAIN
+            );
+            if (fromHost) return fromHost;
+        }
         if (!pathname) return null;
         // Only match /s/[slug]/login — other /s/... routes use literal segments (assignments, quizzes, progress)
         const match = pathname.match(/^\/s\/([^/]+)\/login/);

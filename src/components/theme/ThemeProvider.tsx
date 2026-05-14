@@ -29,27 +29,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         let cancelled = false;
-        const shouldFetchThemeFeatures = pathname?.startsWith("/dashboard") === true;
+        const isDashboard = pathname?.startsWith("/dashboard") === true;
+        const isPublicPage = pathname === "/" || pathname?.startsWith("/auth") === true;
 
         const syncThemeAvailability = async () => {
             let enabled = false;
-            if (!shouldFetchThemeFeatures) {
-                localStorage.setItem("ed-dark-mode-feature-enabled", "false");
-                setDarkModeEnabled(false);
-                localStorage.removeItem("ed-theme");
-                setTheme("light");
-                applyTheme("light");
-                return;
-            }
 
-            try {
-                const response = await fetch("/api/school/features", { cache: "no-store" });
-                if (response.ok) {
-                    const data = await response.json();
-                    enabled = data?.features?.darkModeEnabled !== false;
+            if (isPublicPage) {
+                enabled = true;
+            } else if (!isDashboard) {
+                // Not dashboard, maybe admin or parent? We can just enable it for non-dashboard logged in users, or disabled?
+                // Let's enable it by default.
+                enabled = true;
+            } else {
+                try {
+                    const response = await fetch("/api/school/features", { cache: "no-store" });
+                    if (response.ok) {
+                        const data = await response.json();
+                        enabled = data?.features?.darkModeEnabled !== false;
+                    }
+                } catch {
+                    enabled = false;
                 }
-            } catch {
-                enabled = false;
             }
 
             if (cancelled) return;
@@ -58,14 +59,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             setDarkModeEnabled(enabled);
 
             if (!enabled) {
-                localStorage.removeItem("ed-theme");
                 setTheme("light");
                 applyTheme("light");
                 return;
             }
 
             const savedTheme = localStorage.getItem("ed-theme");
-            const nextTheme: Theme = savedTheme === "dark" ? "dark" : "light";
+            const nextTheme: Theme = savedTheme ? (savedTheme as Theme) : "light";
             setTheme(nextTheme);
             applyTheme(nextTheme);
         };
@@ -77,7 +77,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         };
 
         void syncThemeAvailability();
-        if (shouldFetchThemeFeatures) {
+        if (isDashboard) {
             window.addEventListener("school-features-updated", syncThemeAvailability);
             window.addEventListener("focus", syncThemeAvailability);
             document.addEventListener("visibilitychange", syncWhenVisible);

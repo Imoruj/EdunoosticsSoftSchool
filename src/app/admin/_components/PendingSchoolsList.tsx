@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { SchoolPortalCell } from "@/components/admin/SchoolPortalCell";
 
 export interface PendingSchool {
     id: string;
     name: string;
+    slug: string | null;
+    portalUrl: string | null;
     email: string | null;
     phone: string | null;
     city: string | null;
@@ -52,6 +55,7 @@ export default function PendingSchoolsList({
                     <thead>
                         <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
                             <th className="px-6 py-3">School</th>
+                            <th className="px-6 py-3">Portal</th>
                             <th className="px-6 py-3">Contact</th>
                             <th className="px-6 py-3">Location</th>
                             <th className="px-6 py-3">Registered</th>
@@ -75,6 +79,9 @@ export default function PendingSchoolsList({
                                                 <p className="text-xs text-gray-400">{school.id.slice(0, 8)}…</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="px-6 py-4 align-top">
+                                        <SchoolPortalCell slug={school.slug} portalUrl={school.portalUrl} />
                                     </td>
                                     <td className="px-6 py-4 text-gray-500">
                                         <p>{school.email ?? "—"}</p>

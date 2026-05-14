@@ -270,7 +270,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       await handleSave({ silent: true });
     }, AUTOSAVE_DELAY);
     return () => clearTimeout(autosaveTimer.current);
-  }, [state.lesson, state.isDirty]); // eslint-disable-line
+  }, [state.lesson, state.isDirty]);  
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -284,7 +284,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [state.zoom, dispatch]); // eslint-disable-line
+  }, [state.zoom, dispatch]);  
 
   // 1. When narration URL changes (new slide or URL updated): reset audio element
   const narrationUrl = activeSlide()?.narrationUrl ?? null;
@@ -295,7 +295,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     audio.currentTime = 0;
     audio.src = narrationUrl ?? '';
     audio.load();
-  }, [narrationUrl]); // eslint-disable-line
+  }, [narrationUrl]);  
 
   // 2. Play / pause in sync with timeline
   useEffect(() => {
@@ -310,14 +310,14 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
     } else {
       audio.pause();
     }
-  }, [state.playing]); // eslint-disable-line
+  }, [state.playing]);  
 
   // 3. Scrub: seek audio when playhead changes while paused
   useEffect(() => {
     const audio = narrationRef.current;
     if (!audio || !narrationUrl || state.playing) return;
     audio.currentTime = state.playhead;
-  }, [state.playhead]); // eslint-disable-line
+  }, [state.playhead]);  
 
   async function persistLesson(nextLesson: Lesson, options?: { silent?: boolean; published?: boolean }) {
     setSaving(true);
@@ -491,7 +491,7 @@ export function LessonStudio({ lesson: initialLesson, userId }: LessonStudioProp
       <style>{ANIMATION_STYLES}</style>
 
       {/* Hidden narration audio — synced to timeline playhead */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      { }
       <audio ref={narrationRef} preload="auto" style={{ display: 'none' }} />
 
       <div

@@ -1624,13 +1624,13 @@ export function LessonEditor({ lesson, userId }: LessonEditorProps) {
       .then((data) => setSowWeeks(data.weeks || []))
       .catch(() => setSowWeeks([]))
       .finally(() => setSowLoading(false));
-  }, [subjectId, classId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [subjectId, classId]);  
 
   useEffect(() => {
     setSelectedWeekId('');
     setTitle('');
     clearSowState();
-  }, [selectedTermNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTermNumber]);  
 
   useEffect(() => {
     if (!selectedWeekId) { setSowReferences([]); return; }

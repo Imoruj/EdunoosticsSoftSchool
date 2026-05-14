@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSchoolAdmin } from "@/lib/rbac";
 import { getActiveSchoolId } from "@/lib/getActiveSchoolId";
+import { buildPortalUrl } from "@/lib/portalUrl";
 
 const ROLE_LABELS: Record<string, string> = {
     SUPER_ADMIN: "Platform Admin",
@@ -10,11 +11,6 @@ const ROLE_LABELS: Record<string, string> = {
     CLASS_TEACHER: "Class Teacher",
     SUBJECT_TEACHER: "Subject Teacher",
 };
-
-function buildPortalUrl(req: NextRequest, slug?: string | null) {
-    const origin = new URL(req.url).origin;
-    return slug ? `${origin}/s/${slug}/login` : `${origin}/auth/login`;
-}
 
 function formatTeacherContext(teacher: {
     roles: string[];

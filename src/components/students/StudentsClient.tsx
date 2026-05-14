@@ -17,6 +17,8 @@ import {
     printLoginCredentials,
     type LoginCredentialExportPayload,
 } from "@/lib/loginCredentialExport";
+import { useQueryClient } from "@tanstack/react-query";
+import { useStudentsList, useStudentChangeRequests, studentKeys } from "@/hooks/queries/useStudents";
 
 interface StudentsClientProps {
     initialSessions: SessionOption[];
@@ -55,6 +57,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
     const [selectedGender, setSelectedGender] = useState("");
     const router = useRouter();
     const photoInputRef = useRef<HTMLInputElement | null>(null);
+    const queryClient = useQueryClient();
 
     // UI state
     const [viewStudent, setViewStudent] = useState<Student | null>(null);
@@ -120,7 +123,6 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         atomic?: boolean;
     } | null>(null);
     const [studentChangeRequests, setStudentChangeRequests] = useState<StudentChangeRequest[]>([]);
-    const [loadingStudentChangeRequests, setLoadingStudentChangeRequests] = useState(false);
     const [reviewingStudentChangeRequestId, setReviewingStudentChangeRequestId] = useState<string | null>(null);
     const [reviewConfirm, setReviewConfirm] = useState<{ requestId: string; action: 'approve' | 'reject' } | null>(null);
     const [reviewNote, setReviewNote] = useState('');
@@ -134,70 +136,58 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         return "";
     };
 
-    // Fetch students from API
-    const fetchStudents = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const params = new URLSearchParams({
-                page: pagination.page.toString(),
-                limit: pagination.limit.toString(),
-            });
-            const fallbackSessionId = sessions.find((s) => s.isCurrent)?.id || sessions[0]?.id || "";
-            const effectiveSessionId = selectedSessionId || (restrictToAssignedScope ? fallbackSessionId : "");
-            const effectiveClassArmId = selectedClassArm || (restrictToAssignedScope ? getFirstClassArmId(classes) : "");
+    // Calculate parameters for query
+    const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+    });
+    const fallbackSessionId = sessions.find((s) => s.isCurrent)?.id || sessions[0]?.id || "";
+    const effectiveSessionId = selectedSessionId || (restrictToAssignedScope ? fallbackSessionId : "");
+    const effectiveClassArmId = selectedClassArm || (restrictToAssignedScope ? getFirstClassArmId(classes) : "");
 
-            if (searchQuery) params.append("search", searchQuery);
-            if (effectiveSessionId) params.append("sessionId", effectiveSessionId);
-            if (effectiveClassArmId) params.append("classArmId", effectiveClassArmId);
-            if (selectedGender) params.append("gender", selectedGender);
+    if (searchQuery) params.append("search", searchQuery);
+    if (effectiveSessionId) params.append("sessionId", effectiveSessionId);
+    if (effectiveClassArmId) params.append("classArmId", effectiveClassArmId);
+    if (selectedGender) params.append("gender", selectedGender);
 
-            const response = await fetch(`/api/students?${params.toString()}`);
-            if (!response.ok) throw new Error("Failed to fetch students");
+    // TanStack Query Hooks
+    const { 
+        data: studentsResponse, 
+        isLoading: loadingStudents, 
+        error: studentsErrorObj 
+    } = useStudentsList(params.toString());
+    
+    const { 
+        data: changeRequestsResponse, 
+        isLoading: loadingStudentChangeRequests 
+    } = useStudentChangeRequests(isAdmin);
 
-            const data = await response.json();
-            setStudents(data.students || []);
-            setPagination(data.pagination || pagination);
-        } catch (err: any) {
-            setError(err.message || "Failed to load students");
-            // Keep showing existing data if available
-        } finally {
+    useEffect(() => {
+        if (studentsResponse) {
+            setStudents(studentsResponse.students || []);
+            setPagination(studentsResponse.pagination || pagination);
+            setLoading(false);
+            setError(null);
+        }
+        if (studentsErrorObj) {
+            setError(studentsErrorObj.message || "Failed to load students");
             setLoading(false);
         }
-    }, [
-        pagination.page,
-        pagination.limit,
-        searchQuery,
-        selectedSessionId,
-        selectedClassArm,
-        selectedGender,
-        restrictToAssignedScope,
-        sessions,
-        classes
-    ]);
+    }, [studentsResponse, studentsErrorObj]);
 
-    const fetchStudentChangeRequests = useCallback(async () => {
-        if (!isAdmin) {
-            setStudentChangeRequests([]);
-            return;
+    useEffect(() => {
+        if (changeRequestsResponse) {
+            setStudentChangeRequests(changeRequestsResponse.requests || []);
         }
+    }, [changeRequestsResponse]);
 
-        setLoadingStudentChangeRequests(true);
-        try {
-            const response = await fetch("/api/students/change-requests?status=PENDING&limit=20");
-            if (!response.ok) {
-                throw new Error("Failed to load student approval requests");
-            }
+    const fetchStudents = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: studentKeys.lists() });
+    }, [queryClient]);
 
-            const data = await response.json();
-            setStudentChangeRequests(data.requests || []);
-        } catch (err) {
-            console.error(err);
-            toast.error(err instanceof Error ? err.message : "Failed to load student approval requests");
-        } finally {
-            setLoadingStudentChangeRequests(false);
-        }
-    }, [isAdmin]);
+    const fetchStudentChangeRequests = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: studentKeys.changeRequests() });
+    }, [queryClient]);
 
     // Initial data load setup
     useEffect(() => {
@@ -268,18 +258,7 @@ export default function StudentsClient({ initialSessions, initialClasses, initia
         setPagination((prev) => ({ ...prev, page: 1 }));
     }, [selectedSessionId, initialClasses, restrictToAssignedScope]);
 
-    // Fetch students when filters change (with debounce for search)
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchStudents();
-        }, searchQuery ? 300 : 0); // Debounce search
-
-        return () => clearTimeout(timer);
-    }, [fetchStudents, searchQuery]);
-
-    useEffect(() => {
-        fetchStudentChangeRequests();
-    }, [fetchStudentChangeRequests]);
+    // Removed manual useEffect for fetchStudents and fetchStudentChangeRequests since React Query handles it automatically.
 
     // Get all class arms as flat list for dropdown
     const classArmOptions = classes.flatMap(cls =>

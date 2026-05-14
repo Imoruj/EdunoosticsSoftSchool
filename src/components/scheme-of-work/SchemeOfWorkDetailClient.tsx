@@ -687,7 +687,7 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
     // Teachers can always edit live SOW data — approved snapshot is separate
     const canEdit = isAdmin || isOwner || isCollaborator;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleWeeksChange = (termId: string, weeks: any[]) => {
         if (!sow) return;
         setSow({
@@ -696,7 +696,7 @@ export function SchemeOfWorkDetailClient({ id }: { id: string }) {
         });
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const handleWeekUpdated = (weekId: string, updates: any) => {
         if (!sow) return;
         setSow({

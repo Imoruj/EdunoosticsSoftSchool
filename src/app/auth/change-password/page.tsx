@@ -68,79 +68,78 @@ export default function ChangePasswordPage() {
         }
     };
 
+    const inputClasses = "flex h-11 w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#08070b]/50 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#00A99A] focus:border-transparent transition-all";
+    const btnClasses = "flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#00A99A] to-[#008f82] hover:from-[#00bdae] hover:to-[#00A99A] shadow-lg shadow-[#00A99A]/20";
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 flex">
+        <main className="ed-page min-h-screen flex">
             {/* Left Panel - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12">
+            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative">
                 <div>
-                    <Link href="/" className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                            <span className="text-primary-600 font-bold text-2xl">E</span>
-                        </div>
-                        <span className="text-white font-semibold text-2xl">Edunostics</span>
+                    <Link href="/" className="flex items-center gap-3 w-fit">
+                        <div className="bg-white p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
+                        <span className="text-gray-900 dark:text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
                     </Link>
                 </div>
 
                 <div className="max-w-md">
-                    <h1 className="text-4xl font-bold text-white mb-6">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 font-['Satoshi',sans-serif]">
                         Secure your account
                     </h1>
-                    <p className="text-white/70 text-lg">
+                    <p className="text-gray-600 dark:text-white/70 text-lg font-['Manrope',sans-serif]">
                         For your security, please create a new password before continuing.
                         Choose a strong password that you&apos;ll remember.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-4 font-['Manrope',sans-serif]">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                     </div>
-                    <p className="text-white/60 text-sm">
+                    <p className="text-gray-500 dark:text-white/60 text-sm">
                         Your password must be at least 6 characters long
                     </p>
                 </div>
             </div>
 
             {/* Right Panel - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 z-10 relative">
                 <div className="w-full max-w-md">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <div className="ed-glass-card rounded-2xl shadow-2xl p-8">
                         {/* Mobile Logo */}
                         <div className="lg:hidden flex justify-center mb-8">
-                            <Link href="/" className="flex items-center gap-2">
-                                <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-bold text-xl">E</span>
-                                </div>
-                                <span className="text-gray-900 font-semibold text-xl">Edunostics</span>
+                            <Link href="/" className="flex items-center gap-3">
+                                <div className="bg-white p-1.5 rounded-lg shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 22, width: "auto" }} /></div>
+                                <span className="text-gray-900 dark:text-white font-bold text-xl font-['Satoshi',sans-serif]">Edunostics</span>
                             </Link>
                         </div>
 
                         <div className="flex justify-center mb-6">
-                            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center">
-                                <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
                             </div>
                         </div>
 
-                        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2 font-['Satoshi',sans-serif]">
                             Change your password
                         </h2>
-                        <p className="text-gray-500 text-center mb-8">
+                        <p className="text-gray-500 dark:text-white/60 text-center mb-8 font-['Manrope',sans-serif]">
                             You&apos;re using a default password. Please create a new one to continue.
                         </p>
 
                         {error && (
-                            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
+                            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-sm font-['Manrope',sans-serif]">
                                 {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        <form onSubmit={handleSubmit} className="space-y-5 font-['Manrope',sans-serif]">
                             <div>
-                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                     New Password
                                 </label>
                                 <input
@@ -148,7 +147,7 @@ export default function ChangePasswordPage() {
                                     type="password"
                                     required
                                     minLength={6}
-                                    className="input"
+                                    className={inputClasses}
                                     placeholder="Enter new password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
@@ -156,7 +155,7 @@ export default function ChangePasswordPage() {
                             </div>
 
                             <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-2">
                                     Confirm Password
                                 </label>
                                 <input
@@ -164,7 +163,7 @@ export default function ChangePasswordPage() {
                                     type="password"
                                     required
                                     minLength={6}
-                                    className="input"
+                                    className={inputClasses}
                                     placeholder="Confirm new password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -174,7 +173,7 @@ export default function ChangePasswordPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn-primary w-full py-3 text-base"
+                                className={btnClasses}
                             >
                                 {isLoading ? (
                                     <span className="flex items-center justify-center gap-2">
@@ -204,6 +203,6 @@ export default function ChangePasswordPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

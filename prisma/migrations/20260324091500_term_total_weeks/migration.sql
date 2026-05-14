@@ -1,2 +1,0 @@
-ALTER TABLE "Term"
-ADD COLUMN "totalWeeks" INTEGER;

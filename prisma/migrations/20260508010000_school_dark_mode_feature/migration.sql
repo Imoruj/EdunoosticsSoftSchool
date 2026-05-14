@@ -1,2 +1,0 @@
-ALTER TABLE "SchoolFeatureControl"
-ADD COLUMN IF NOT EXISTS "darkModeEnabled" BOOLEAN NOT NULL DEFAULT true;
