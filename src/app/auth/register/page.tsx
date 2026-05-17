@@ -99,24 +99,29 @@ export default function RegisterPage() {
     const btnSecondaryClasses = "flex items-center justify-center rounded-lg px-4 py-3 text-sm font-bold text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:text-white transition-all bg-white dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10";
 
     const leftPanel = (
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative overflow-hidden bg-gradient-to-br from-[#00A99A] via-[#009487] to-[#005f57]">
+            {/* Decorative background shapes */}
+            <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute top-1/2 -left-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute -bottom-16 right-1/4 w-72 h-72 rounded-full bg-black/10 pointer-events-none" />
+
             <div>
                 <Link href="/" className="flex items-center gap-3 w-fit">
-                    <div className="bg-white p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
-                    <span className="text-gray-900 dark:text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
+                    <div className="bg-white/90 p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
+                    <span className="text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
                 </Link>
             </div>
 
             <div className="max-w-md">
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 font-['Satoshi',sans-serif]">Register Your School</h1>
-                <p className="text-gray-600 dark:text-white/70 text-lg mb-8 font-['Manrope',sans-serif]">
+                <h1 className="text-4xl font-bold text-white mb-6 font-['Satoshi',sans-serif]">Register Your School</h1>
+                <p className="text-white/80 text-lg mb-8 font-['Manrope',sans-serif]">
                     Get started with Edunostics today. Set up your school in minutes and
                     start generating professional report cards.
                 </p>
                 <ul className="space-y-4 font-['Manrope',sans-serif]">
                     {["Automated report card generation", "Nigerian grading system (A1-F9)", "Parent & student portals", "SMS notifications"].map((item) => (
-                        <li key={item} className="flex items-center gap-3 text-gray-700 dark:text-white/80">
-                            <svg className="w-6 h-6 text-[#00A99A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <li key={item} className="flex items-center gap-3 text-white/90">
+                            <svg className="w-6 h-6 text-white/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                             {item}
@@ -125,9 +130,9 @@ export default function RegisterPage() {
                 </ul>
             </div>
 
-            <div className="text-gray-500 dark:text-white/50 text-sm font-['Manrope',sans-serif]">
+            <div className="text-white/60 text-sm font-['Manrope',sans-serif]">
                 Already using Edunostics?{" "}
-                <Link href="/auth/login" className="text-gray-900 dark:text-white hover:text-[#00A99A] dark:hover:text-[#00A99A] transition-colors">
+                <Link href="/auth/login" className="text-white font-medium hover:text-white/80 transition-colors underline underline-offset-2">
                     Sign in here
                 </Link>
             </div>

@@ -74,31 +74,36 @@ export default function ChangePasswordPage() {
     return (
         <main className="ed-page min-h-screen flex">
             {/* Left Panel - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative">
+            <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 z-10 relative overflow-hidden bg-gradient-to-br from-[#00A99A] via-[#009487] to-[#005f57]">
+                {/* Decorative background shapes */}
+                <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
+                <div className="absolute top-1/2 -left-20 w-64 h-64 rounded-full bg-white/5 pointer-events-none" />
+                <div className="absolute -bottom-16 right-1/4 w-72 h-72 rounded-full bg-black/10 pointer-events-none" />
+
                 <div>
                     <Link href="/" className="flex items-center gap-3 w-fit">
-                        <div className="bg-white p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
-                        <span className="text-gray-900 dark:text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
+                        <div className="bg-white/90 p-2 rounded-xl shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 26, width: "auto" }} /></div>
+                        <span className="text-white font-bold text-2xl font-['Satoshi',sans-serif]">Edunostics</span>
                     </Link>
                 </div>
 
                 <div className="max-w-md">
-                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6 font-['Satoshi',sans-serif]">
+                    <h1 className="text-4xl font-bold text-white mb-6 font-['Satoshi',sans-serif]">
                         Secure your account
                     </h1>
-                    <p className="text-gray-600 dark:text-white/70 text-lg font-['Manrope',sans-serif]">
+                    <p className="text-white/80 text-lg font-['Manrope',sans-serif]">
                         For your security, please create a new password before continuing.
                         Choose a strong password that you&apos;ll remember.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-4 font-['Manrope',sans-serif]">
-                    <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                     </div>
-                    <p className="text-gray-500 dark:text-white/60 text-sm">
+                    <p className="text-white/70 text-sm">
                         Your password must be at least 6 characters long
                     </p>
                 </div>

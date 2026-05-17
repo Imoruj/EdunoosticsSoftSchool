@@ -3,7 +3,10 @@ import Link from "next/link";
 export default function ForgotPasswordPage() {
     return (
         <main className="ed-page min-h-screen flex items-center justify-center p-6">
-            <div className="ed-glass-card w-full max-w-md rounded-2xl shadow-2xl p-8 z-10 relative">
+            <div className="ed-glass-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden z-10 relative">
+                {/* Brand accent bar */}
+                <div className="h-1.5 bg-gradient-to-r from-[#00A99A] to-[#008f82]" />
+                <div className="p-8">
                 <div className="flex justify-center mb-8">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="bg-white p-1.5 rounded-lg shadow-sm flex items-center justify-center shrink-0"><img src="/images/brand/logo-mark.png" alt="" aria-hidden="true" style={{ height: 22, width: "auto" }} /></div>
@@ -11,8 +14,8 @@ export default function ForgotPasswordPage() {
                     </Link>
                 </div>
 
-                <div className="w-14 h-14 bg-[#00A99A]/10 border border-[#00A99A]/20 rounded-full flex items-center justify-center mx-auto mb-5">
-                    <svg className="w-7 h-7 text-[#00A99A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-14 h-14 bg-[#00A99A] rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#00A99A]/30">
+                    <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                 </div>
@@ -35,6 +38,7 @@ export default function ForgotPasswordPage() {
                     >
                         Register a new school
                     </Link>
+                </div>
                 </div>
             </div>
         </main>

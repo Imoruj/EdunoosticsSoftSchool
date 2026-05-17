@@ -8,7 +8,7 @@
   --foreground: #111827;
   --card: #ffffff;
   --card-foreground: #111827;
-  --primary: #1E40AF;
+  --primary: #00A99A;
   --primary-foreground: #ffffff;
   --secondary: #F3F4F6;
   --secondary-foreground: #111827;
@@ -20,9 +20,13 @@
   --destructive-foreground: #ffffff;
   --border: #E5E7EB;
   --input: #E5E7EB;
-  --ring: #1E40AF;
+  --ring: #00A99A;
   --radius: 0.5rem;
   --dashboard-topbar-height: 64px;
+  --brand: #00A99A;
+  --brand-light: #00bdae;
+  --brand-dark: #008f82;
+  --brand-foreground: #ffffff;
 }
 
 .dark {
@@ -30,7 +34,7 @@
   --foreground: #F9FAFB;
   --card: #1F2937;
   --card-foreground: #F9FAFB;
-  --primary: #3B82F6;
+  --primary: #00bdae;
   --primary-foreground: #ffffff;
   --secondary: #374151;
   --secondary-foreground: #F9FAFB;
@@ -42,7 +46,11 @@
   --destructive-foreground: #ffffff;
   --border: #374151;
   --input: #374151;
-  --ring: #3B82F6;
+  --ring: #00bdae;
+  --brand: #00bdae;
+  --brand-light: #33c9bb;
+  --brand-dark: #00A99A;
+  --brand-foreground: #ffffff;
 }
 
 /* ===== Base Styles ===== */
