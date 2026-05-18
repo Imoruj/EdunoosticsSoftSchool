@@ -338,18 +338,16 @@ function CognitiveProfile() {
                         </defs>
                         {/* Track */}
                         <circle cx="48" cy="48" r={R} strokeWidth="5" className="cog-ring-track" />
-                        {/* Animated arc */}
+                        {/* Animated arc — loops infinitely */}
                         <circle
                             cx="48" cy="48" r={R}
                             strokeWidth="5"
                             strokeLinecap="round"
                             className="cog-ring-arc"
                             style={{
-                                strokeDasharray: circ,
-                                strokeDashoffset: +((1 - overall / 100) * circ).toFixed(2),
                                 transform: "rotate(-90deg)",
                                 transformOrigin: "48px 48px",
-                                animation: "cogArc 1.4s cubic-bezier(.22,1,.36,1) .3s both",
+                                animation: "cogArcLoop 4s cubic-bezier(.22,1,.36,1) .2s infinite",
                             } as React.CSSProperties}
                         />
                     </svg>
@@ -1843,8 +1841,11 @@ export default function LandingPage() {
                     fill: none;
                     stroke: url(#cog-grad);
                 }
-                @keyframes cogArc {
-                    from { stroke-dashoffset: 276.46; }
+                @keyframes cogArcLoop {
+                    0%   { stroke-dasharray: 0 276.46; }
+                    38%  { stroke-dasharray: 226.7 276.46; }
+                    72%  { stroke-dasharray: 226.7 276.46; }
+                    100% { stroke-dasharray: 0 276.46; }
                 }
                 .cog-ring-center {
                     position: absolute;
@@ -1905,10 +1906,14 @@ export default function LandingPage() {
                     border-radius: 99px;
                     background: var(--c, #00A99A);
                     width: var(--w, 0%);
-                    animation: cogBar .95s cubic-bezier(.22,1,.36,1) var(--bar-delay, 0s) both;
+                    transform-origin: left center;
+                    animation: cogBar 4s ease-in-out var(--bar-delay, 0s) infinite;
                 }
                 @keyframes cogBar {
-                    from { width: 0%; }
+                    0%   { transform: scaleX(0); }
+                    38%  { transform: scaleX(1); }
+                    72%  { transform: scaleX(1); }
+                    100% { transform: scaleX(0); }
                 }
 
                 .device-stack {
