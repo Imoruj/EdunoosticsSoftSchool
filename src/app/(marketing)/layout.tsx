@@ -108,14 +108,6 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                     transform: translateY(0) scale(.97) !important;
                 }
 
-                /* ── Heading font ────────────────────────────────────── */
-                .mkt-layout h1,
-                .mkt-layout h2,
-                .mkt-layout h3 {
-                    font-family: 'Plus Jakarta Sans', 'Satoshi', system-ui, -apple-system, sans-serif;
-                    letter-spacing: -0.02em;
-                }
-
                 /* ── Heading reveal animation ─────────────────────────── */
                 @keyframes mkt-fade-up {
                     from { opacity: 0; transform: translateY(30px); }
