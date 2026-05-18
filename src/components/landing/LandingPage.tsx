@@ -91,11 +91,11 @@ const capabilities = [
 ];
 
 const profileSignals = [
-    ["Academic mastery", "82%"],
-    ["Attendance stability", "94%"],
-    ["Behavior trend", "76%"],
-    ["STEM readiness", "68%"],
-    ["Parent engagement", "89%"],
+    { label: "Academic mastery",     value: 82, color: "#00A99A" },
+    { label: "Attendance stability", value: 94, color: "#8B6BF2" },
+    { label: "Behavior trend",       value: 76, color: "#00A99A" },
+    { label: "STEM readiness",       value: 68, color: "#C69214" },
+    { label: "Parent engagement",    value: 89, color: "#8B6BF2" },
 ];
 
 const steps = [
@@ -316,23 +316,74 @@ function ScoreEntryConsole() {
 }
 
 function CognitiveProfile() {
+    const overall = Math.round(profileSignals.reduce((s, x) => s + x.value, 0) / profileSignals.length);
+    const R = 44;
+    const circ = 276.46; // 2π × 44
+
     return (
-        <div className="profile-board">
-            <div className="radar">
-                <div style={{ marginBottom: 20 }}>
-                    <p style={{ margin: 0, color: "var(--teal)", fontSize: ".68rem", fontWeight: 850, textTransform: "uppercase", letterSpacing: ".08em" }}>Core alignment</p>
-                    <p style={{ margin: "8px 0 0", color: "var(--text-sec)", fontSize: ".78rem", lineHeight: 1.5 }}>Strong academic pattern with high assessment consistency and engagement signals.</p>
+        <div className="cog-card">
+            {/* Top row: label + description left, animated ring right */}
+            <div className="cog-top">
+                <div>
+                    <p className="cog-eyebrow">Core Alignment</p>
+                    <p className="cog-sub">Strong academic pattern with high assessment consistency and engagement signals.</p>
                 </div>
-                <div className="radar-core" />
-                <div className="radar-axis a" />
-                <div className="radar-axis b" />
-                <div className="radar-axis c" />
+                <div className="cog-ring-wrap" aria-label={`Overall score ${overall}%`}>
+                    <svg width="88" height="88" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="cog-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#00A99A" />
+                                <stop offset="100%" stopColor="#8B6BF2" />
+                            </linearGradient>
+                        </defs>
+                        {/* Track */}
+                        <circle cx="48" cy="48" r={R} strokeWidth="5" className="cog-ring-track" />
+                        {/* Animated arc */}
+                        <circle
+                            cx="48" cy="48" r={R}
+                            strokeWidth="5"
+                            strokeLinecap="round"
+                            className="cog-ring-arc"
+                            style={{
+                                strokeDasharray: circ,
+                                strokeDashoffset: +((1 - overall / 100) * circ).toFixed(2),
+                                transform: "rotate(-90deg)",
+                                transformOrigin: "48px 48px",
+                                animation: "cogArc 1.4s cubic-bezier(.22,1,.36,1) .3s both",
+                            } as React.CSSProperties}
+                        />
+                    </svg>
+                    <div className="cog-ring-center">
+                        <span className="cog-ring-pct">{overall}%</span>
+                        <span className="cog-ring-lbl">overall</span>
+                    </div>
+                </div>
             </div>
-            <div className="signal-list">
-                {profileSignals.map(([label, value]) => (
-                    <div className="signal" key={label}>
-                        <span>{label}</span>
-                        <b>{value}</b>
+
+            <div className="cog-divider" />
+
+            {/* Metric rows with staggered animated bars */}
+            <div className="cog-metrics">
+                {profileSignals.map(({ label, value, color }, i) => (
+                    <div
+                        className="cog-row"
+                        key={label}
+                        style={{ "--delay": `${0.15 + i * 0.09}s` } as React.CSSProperties}
+                    >
+                        <div className="cog-row-head">
+                            <span className="cog-row-label">{label}</span>
+                            <b className="cog-row-val">{value}%</b>
+                        </div>
+                        <div className="cog-track">
+                            <div
+                                className="cog-fill"
+                                style={{
+                                    "--w": `${value}%`,
+                                    "--c": color,
+                                    "--bar-delay": `${0.4 + i * 0.09}s`,
+                                } as React.CSSProperties}
+                            />
+                        </div>
                     </div>
                 ))}
             </div>
@@ -1744,62 +1795,121 @@ export default function LandingPage() {
                     border-bottom: 1px solid rgba(247,250,250,.08);
                 }
 
-                .profile-board {
-                    min-height: 430px;
-                    display: grid;
-                    grid-template-columns: 1fr .78fr;
-                    gap: 1px;
-                    overflow: hidden;
+                /* ── Cognitive Profile Card ─────────────────────────── */
+                .cog-card {
+                    border-radius: 20px;
                     border: 1px solid rgba(247,250,250,.1);
-                    border-radius: 18px;
-                    background: rgba(247,250,250,.08);
-                }
-                .radar,
-                .signal-list {
-                    background: rgba(247,250,250,.035);
+                    background:
+                        radial-gradient(circle at 88% 8%, rgba(91,45,170,.18), transparent 52%),
+                        rgba(247,250,250,.04);
+                    backdrop-filter: blur(14px);
                     padding: 28px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
                 }
-                .radar {
+                .cog-top {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 20px;
+                }
+                .cog-eyebrow {
+                    font-size: .64rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .1em;
+                    color: #00A99A;
+                    margin: 0 0 10px;
+                }
+                .cog-sub {
+                    font-size: .74rem;
+                    line-height: 1.65;
+                    color: rgba(247,250,250,.44);
+                    margin: 0;
+                    max-width: 190px;
+                }
+                .cog-ring-wrap {
                     position: relative;
-                    display: grid;
-                    place-items: center;
-                    background:
-                        radial-gradient(circle, rgba(247,250,250,.12) 0 1px, transparent 1px 100%),
-                        rgba(247,250,250,.035);
-                    background-size: 32px 32px;
+                    flex-shrink: 0;
+                    width: 88px;
+                    height: 88px;
                 }
-                .radar-core {
-                    width: min(260px, 80%);
-                    aspect-ratio: 1;
-                    border-radius: 50%;
-                    background:
-                        conic-gradient(from -30deg, rgba(247,250,250,.1), #fff, rgba(0,169,154,.25), rgba(91,45,170,.5), rgba(198,146,20,.5), rgba(247,250,250,.08)),
-                        radial-gradient(circle, rgba(255,255,255,.5), transparent 36%);
-                    box-shadow: inset 0 0 40px rgba(0,0,0,.75), 0 0 80px rgba(0,169,154,.18);
+                .cog-ring-track {
+                    fill: none;
+                    stroke: rgba(247,250,250,.09);
                 }
-                .radar-axis {
+                .cog-ring-arc {
+                    fill: none;
+                    stroke: url(#cog-grad);
+                }
+                @keyframes cogArc {
+                    from { stroke-dashoffset: 276.46; }
+                }
+                .cog-ring-center {
                     position: absolute;
-                    width: 74%;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .cog-ring-pct {
+                    font-size: 1.05rem;
+                    font-weight: 800;
+                    color: #fff;
+                    line-height: 1;
+                }
+                .cog-ring-lbl {
+                    font-size: .54rem;
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: .06em;
+                    color: rgba(247,250,250,.38);
+                    margin-top: 4px;
+                }
+                .cog-divider {
                     height: 1px;
-                    background: rgba(247,250,250,.15);
+                    background: rgba(247,250,250,.07);
                 }
-                .radar-axis.b { transform: rotate(60deg); }
-                .radar-axis.c { transform: rotate(-60deg); }
-                .signal-list {
-                    display: grid;
-                    align-content: center;
-                    gap: 12px;
+                .cog-metrics {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 14px;
                 }
-                .signal {
+                .cog-row {
+                    opacity: 0;
+                    animation: cogRow .5s ease var(--delay, 0s) both;
+                }
+                @keyframes cogRow {
+                    from { opacity: 0; transform: translateX(10px); }
+                    to   { opacity: 1; transform: translateX(0); }
+                }
+                .cog-row-head {
                     display: flex;
                     justify-content: space-between;
-                    gap: 16px;
-                    border-bottom: 1px solid rgba(247,250,250,.08);
-                    padding-bottom: 12px;
-                    color: rgba(247,250,250,.64);
-                    font-size: .78rem;
+                    align-items: center;
+                    margin-bottom: 7px;
+                    font-size: .73rem;
                 }
-                .signal b { color: #fff; }
+                .cog-row-label { color: rgba(247,250,250,.55); }
+                .cog-row-val   { color: #fff; font-weight: 700; }
+                .cog-track {
+                    height: 3px;
+                    border-radius: 99px;
+                    background: rgba(247,250,250,.09);
+                    overflow: hidden;
+                }
+                .cog-fill {
+                    height: 100%;
+                    border-radius: 99px;
+                    background: var(--c, #00A99A);
+                    width: var(--w, 0%);
+                    animation: cogBar .95s cubic-bezier(.22,1,.36,1) var(--bar-delay, 0s) both;
+                }
+                @keyframes cogBar {
+                    from { width: 0%; }
+                }
 
                 .device-stack {
                     min-height: 460px;
@@ -2402,24 +2512,21 @@ export default function LandingPage() {
                     background: linear-gradient(105deg, transparent 20%, rgba(0,169,154,.05) 40%, rgba(255,255,255,.2) 50%, rgba(0,169,154,.05) 60%, transparent 80%);
                 }
 
-                /* Cognitive profile */
-                [data-theme="light"] .profile-board {
+                /* Cognitive profile — light mode */
+                [data-theme="light"] .cog-card {
                     border-color: rgba(15,23,42,.09);
-                    background: rgba(15,23,42,.05);
-                }
-                [data-theme="light"] .radar {
                     background:
-                        radial-gradient(circle, rgba(15,23,42,.05) 0 1px, transparent 1px 100%),
-                        #fff;
-                    background-size: 32px 32px;
+                        radial-gradient(circle at 88% 8%, rgba(91,45,170,.07), transparent 52%),
+                        rgba(255,255,255,.92);
                 }
-                [data-theme="light"] .signal-list { background: #fff; }
-                [data-theme="light"] .radar-axis { background: rgba(15,23,42,.12); }
-                [data-theme="light"] .signal {
-                    border-bottom-color: rgba(15,23,42,.07);
-                    color: rgba(15,23,42,.62);
-                }
-                [data-theme="light"] .signal b { color: #0F172A; }
+                [data-theme="light"] .cog-ring-track { stroke: rgba(15,23,42,.09); }
+                [data-theme="light"] .cog-ring-pct   { color: #0F172A; }
+                [data-theme="light"] .cog-ring-lbl   { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .cog-sub        { color: rgba(15,23,42,.48); }
+                [data-theme="light"] .cog-divider    { background: rgba(15,23,42,.07); }
+                [data-theme="light"] .cog-row-label  { color: rgba(15,23,42,.58); }
+                [data-theme="light"] .cog-row-val    { color: #0F172A; }
+                [data-theme="light"] .cog-track      { background: rgba(15,23,42,.08); }
 
                 /* Device stack */
                 [data-theme="light"] .device-stack {
