@@ -16,6 +16,8 @@ import {
     Database,
     Fingerprint,
     GraduationCap,
+    HelpCircle,
+    LayoutDashboard,
     Layers3,
     Lock,
     LockKeyhole,
@@ -24,10 +26,13 @@ import {
     Network,
     ScanLine,
     School,
+    Settings,
     ShieldCheck,
     Sparkles,
     TabletSmartphone,
     TrendingUp,
+    User,
+    Users,
     UsersRound,
     Wifi,
     Sun,
@@ -111,12 +116,12 @@ const diPhrases = [
 function Logo({ compact = false }: { compact?: boolean }) {
     return (
         <Link href="/" aria-label="Edunostics home" className="brand" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: '#fff', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <div style={{ background: '#00A99A', padding: '6px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <img
                     src="/images/brand/logo-mark.png"
                     alt=""
                     aria-hidden="true"
-                    style={{ height: compact ? 22 : 28, width: "auto", display: "block", flexShrink: 0 }}
+                    style={{ height: compact ? 22 : 28, width: "auto", display: "block", flexShrink: 0, filter: "brightness(0) invert(1)" }}
                 />
             </div>
             <span style={{ margin: 0 }}>Edunostics</span>
@@ -138,65 +143,171 @@ function ProductConsole() {
         <div className="console-shell" aria-label="Edunostics platform preview">
             <div className="console-sidebar">
                 <Logo compact />
-                {[
-                    [School, "School"],
-                    [UsersRound, "Students"],
-                    [BookOpen, "Assessments"],
-                    [BarChart3, "Reports"],
-                    [Cpu, "Devices"],
-                    [LockKeyhole, "Access"],
-                ].map(([Icon, label]) => (
-                    <div className="side-item" key={label as string}>
-                        <Icon size={15} aria-hidden="true" />
-                        <span>{label as string}</span>
-                    </div>
-                ))}
+                <div className="side-item side-item--plain"><LayoutDashboard size={15} /><span>Dashboard</span></div>
+                <div className="side-item side-item--plain"><BarChart3 size={15} /><span>Insights</span></div>
+                <div className="side-item side-item--plain"><User size={15} /><span>My Profile</span></div>
+                <div className="side-divider" />
+                <div className="side-item side-item--group"><Users size={15} /><span>People</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-item side-item--active"><BookOpen size={15} /><span>Academics</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-item side-item--group"><GraduationCap size={15} /><span>Reports</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-item side-item--group"><School size={15} /><span>School</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-divider" />
+                <div className="side-item side-item--plain"><Settings size={15} /><span>Settings</span></div>
+                <div className="side-item side-item--plain"><HelpCircle size={15} /><span>Help &amp; Support</span></div>
             </div>
-            <div className="console-main">
-                <div className="console-top">
-                    <div>
-                        <p>Command Center</p>
-                        <h3>Greenfield Secondary School</h3>
-                    </div>
-                    <div className="sync-pill"><Wifi size={13} /> Live sync</div>
+            <div className="console-assess">
+                <div className="assess-header">
+                    <p className="assess-subtitle">Behaviour &amp; Skills · SS 3 Diligence</p>
+                    <p className="assess-title">Affective &amp; Psychomotor</p>
+                    <p className="assess-desc">Assess student traits and skills (1–5 Scale)</p>
                 </div>
-                <div className="metric-row">
+                <div className="assess-filters">
                     {[
-                        ["1,248", "Students"],
-                        ["320", "Assessments"],
-                        ["96%", "Attendance"],
-                    ].map(([value, label]) => (
-                        <div className="metric-card" key={label}>
-                            <strong>{value}</strong>
-                            <span>{label}</span>
+                        ["Academic Session", "2025/2026 (Current)"],
+                        ["Term", "Third Term"],
+                        ["Class", "SS 3 Diligence"],
+                    ].map(([label, value]) => (
+                        <div className="assess-filter-item" key={label}>
+                            <span className="assess-filter-label">{label}</span>
+                            <div className="assess-filter-select">
+                                <span>{value}</span>
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 3.75L5 6.25l2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
                         </div>
                     ))}
                 </div>
-                <div className="insight-panel">
-                    <div className="panel-heading">
-                        <span>Performance diagnostics</span>
-                        <Activity size={16} />
+                <div className="assess-groups">
+                    <div className="assess-student-col" />
+                    <div className="assess-group--aff">Affective Traits (1–5)</div>
+                    <div className="assess-group--psy">Psychomotor Skills (1–5)</div>
+                </div>
+                <div className="assess-cols">
+                    <div className="assess-student-col">Student</div>
+                    <div className="assess-scores-head">
+                        {["PUNC.", "NEAT.", "POLIT.", "CREAT.", "H/W", "SPORTS", "DRAW.", "PUB."].map(h => <span key={h}>{h}</span>)}
                     </div>
-                    <div className="chart-lines">
-                        <span />
-                        <span />
-                        <span />
+                </div>
+                {([
+                    ["Okafor Chukwudi", "KSS/2025/0042", [4,5,3,4,4,3,3,4]],
+                    ["Adebayo Fatimah", "KSS/2025/0051", [3,4,3,3,0,0,0,0]],
+                    ["Nwosu Emmanuel", "KSS/2025/0038", [3,5,4,3,5,3,3,4]],
+                    ["Abara Chidinma", "KSS/2025/0067", [3,4,4,3,3,4,3,3]],
+                ] as [string, string, number[]][]).map(([name, id, scores]) => (
+                    <div className="assess-row" key={id}>
+                        <div className="assess-student">
+                            <span>{name}</span>
+                            <small>{id}</small>
+                        </div>
+                        <div className="assess-bubbles">
+                            {scores.map((s, i) => (
+                                <div key={i} className={`bubble bubble--${s || "empty"}`}>{s || "–"}</div>
+                            ))}
+                        </div>
                     </div>
-                    <div className="risk-grid">
-                        <div><b>18</b><span>At-risk learners</span></div>
-                        <div><b>42</b><span>STEM accelerators</span></div>
-                    </div>
+                ))}
+                <div className="assess-footer">
+                    <span>Click any rating box to cycle score: 1 → 2 → 3 → 4 → 5 → 1</span>
+                    <div className="assess-save">Save</div>
                 </div>
             </div>
-            <div className="console-context">
-                <div className="context-card">
-                    <p>Device status</p>
-                    <strong>14 active</strong>
-                    <span>Classroom terminals online</span>
+        </div>
+    );
+}
+
+function ScoreEntryConsole() {
+    const rows = [
+        ["Okafor Chukwudi",  "KSS/2025/0042", 12.5, 13.0, 52.0, 77.5, "B2", "Good",      "high"],
+        ["Adebayo Fatimah",  "KSS/2025/0051",  9.0, 11.5, 44.3, 64.8, "C4", "Credit",    "mid"],
+        ["Nwosu Emmanuel",   "KSS/2025/0038", 14.0, 13.5, 61.0, 88.5, "A1", "Excellent", "top"],
+        ["Abara Chidinma",   "KSS/2025/0067", 11.0, 12.0, 48.5, 71.5, "B3", "Good",      "high"],
+    ] as [string, string, number, number, number, number, string, string, string][];
+
+    return (
+        <div className="console-shell" aria-label="Edunostics score entry preview">
+            <div className="console-sidebar">
+                <Logo compact />
+                <div className="side-item side-item--plain"><LayoutDashboard size={15} /><span>Dashboard</span></div>
+                <div className="side-item side-item--plain"><BarChart3 size={15} /><span>Insights</span></div>
+                <div className="side-divider" />
+                <div className="se-section-label">Academics</div>
+                <div className="side-item side-item--active"><Sparkles size={14} /><span>Score Entry</span></div>
+                <div className="side-item side-item--sub"><span>Score Reviews</span></div>
+                <div className="side-item side-item--sub"><span>Class Progress</span></div>
+                <div className="side-item side-item--sub"><span>Broadsheet</span></div>
+                <div className="side-divider" />
+                <div className="side-item side-item--group"><GraduationCap size={15} /><span>Reports</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-item side-item--group"><School size={15} /><span>School</span><ChevronRight size={11} className="side-chevron" /></div>
+                <div className="side-divider" />
+                <div className="side-item side-item--plain"><Settings size={15} /><span>Settings</span></div>
+                <div className="side-item side-item--plain"><HelpCircle size={15} /><span>Help &amp; Support</span></div>
+            </div>
+            <div className="console-se">
+                {/* Header */}
+                <div className="se-header">
+                    <div>
+                        <p className="se-title">Score Entry</p>
+                        <p className="se-subtitle">Record and manage assessment scores</p>
+                    </div>
+                    <div className="se-actions">
+                        <div className="se-action-btn">Download Template</div>
+                        <div className="se-action-btn se-action-btn--primary">Save Scores</div>
+                    </div>
                 </div>
-                <div className="context-list">
-                    {["JSS 2A mathematics gap", "SS 1 attendance decline", "Report cards ready"].map((item) => (
-                        <div key={item}><Check size={13} /><span>{item}</span></div>
+                {/* Filters */}
+                <div className="se-filters">
+                    {[["Session","2025/2026"],["Term","Third Term"],["Class","SS 3 Diligence"],["Subject","Economics (ECO)"]].map(([lbl,val]) => (
+                        <div className="se-filter" key={lbl}>
+                            <span className="se-filter-label">{lbl}</span>
+                            <div className="se-filter-val">
+                                <span>{val}</span>
+                                <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2.5 3.75L5 6.25l2.5-2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {/* Approval banner */}
+                <div className="se-approval">
+                    <span className="se-approved-badge">Approved</span>
+                    <span className="se-approval-text">Class teacher has approved these scores.</span>
+                    <div className="se-approval-btns">
+                        <div className="se-btn se-btn--green">Approve</div>
+                        <div className="se-btn se-btn--red">Reject</div>
+                        <div className="se-btn se-btn--blue">Broadcast</div>
+                    </div>
+                </div>
+                {/* Enrollment info */}
+                <div className="se-enroll">
+                    <span>24 of 24 students enrolled in this subject</span>
+                    <div className="se-avg">Avg: <strong>70.5</strong> &nbsp; Pass Rate: <strong className="se-pass">100%</strong></div>
+                </div>
+                {/* Table */}
+                <div className="se-table">
+                    <div className="se-thead">
+                        <span className="se-sn">#</span>
+                        <span className="se-stud">Student</span>
+                        <span className="se-score">CA1</span>
+                        <span className="se-score">CA2</span>
+                        <span className="se-score">Exam</span>
+                        <span className="se-score se-total-h">Total</span>
+                        <span className="se-grade-h">Grade</span>
+                        <span className="se-remark">Remark</span>
+                    </div>
+                    {rows.map(([name, id, ca1, ca2, exam, total, grade, remark, lvl], i) => (
+                        <div className="se-row" key={id}>
+                            <span className="se-sn se-muted">{i + 1}</span>
+                            <div className="se-stud">
+                                <span>{name}</span>
+                                <small>{id}</small>
+                            </div>
+                            <span className="se-score se-muted">{ca1}</span>
+                            <span className="se-score se-muted">{ca2}</span>
+                            <span className="se-score se-muted">{exam}</span>
+                            <span className={`se-score se-total-h se-total--${lvl}`}>{total}</span>
+                            <span className="se-grade-h">
+                                <span className={`se-grade-pill se-grade--${lvl}`}>{grade}</span>
+                            </span>
+                            <span className="se-remark se-muted">{remark}</span>
+                        </div>
                     ))}
                 </div>
             </div>
@@ -500,7 +611,7 @@ export default function LandingPage() {
                         radial-gradient(circle at 82% 12%, rgba(91,45,170,.20), transparent 24rem),
                         linear-gradient(180deg, #08070b 0%, #0d0b12 48%, #09080c 100%);
                     color: var(--cloud);
-                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
                     overflow-x: hidden;
                 }
 
@@ -641,12 +752,12 @@ export default function LandingPage() {
                 }
 
                 /* ── Brand type scale ─────────────────────────────────── */
-                /* Satoshi SemiBold → all headings (h1–h3, hero, section heads) */
+                /* Satoshi → all headings (h1–h3, hero, section heads) */
                 .ed-page h1,
                 .ed-page h2,
                 .ed-page h3 {
-                    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
-                    font-weight: 600;
+                    font-family: 'Satoshi', 'Manrope', system-ui, sans-serif;
+                    font-weight: 700;
                 }
                 /* Manrope Medium → UI chrome (console, metrics, pills, labels) */
                 .console-shell,
@@ -659,8 +770,7 @@ export default function LandingPage() {
                 .context-card,
                 .context-list,
                 .device-tags,
-                .logo-cloud div,
-                .email-box {
+                .logo-cloud div {
                     font-family: 'Manrope', system-ui, sans-serif;
                 }
 
@@ -709,7 +819,7 @@ export default function LandingPage() {
 
                 .brand span {
                     font-size: 1rem;
-                    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+                    font-family: 'Satoshi', 'Manrope', system-ui, sans-serif;
                     font-weight: 700;
                     letter-spacing: -.01em;
                 }
@@ -801,20 +911,20 @@ export default function LandingPage() {
                 .cta:hover svg { transform: translateX(3px); }
                 .cta:active { transform: translateY(0) scale(0.97) !important; box-shadow: none !important; }
 
-                /* Primary — lift + white glow + shimmer sweep */
-                .cta.primary { background: #fff; color: #130c19; }
+                /* Primary — teal consistent with marketing pages */
+                .cta.primary { background: #00A99A; color: #fff; }
                 .cta.primary::after {
                     content: '';
                     position: absolute;
                     top: 0; left: -80%;
                     width: 50%; height: 100%;
-                    background: linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent);
+                    background: linear-gradient(105deg, transparent, rgba(255,255,255,.25), transparent);
                     transform: skewX(-18deg);
                     transition: left .52s ease;
                     pointer-events: none;
                 }
                 .cta.primary:hover {
-                    box-shadow: 0 6px 28px rgba(247,250,250,.22), 0 2px 8px rgba(247,250,250,.12);
+                    box-shadow: 0 6px 28px rgba(0,169,154,.4), 0 2px 8px rgba(0,169,154,.2);
                 }
                 .cta.primary:hover::after { left: 140%; }
 
@@ -1047,10 +1157,10 @@ export default function LandingPage() {
                 .console-shell {
                     position: relative;
                     z-index: 2;
-                    width: min(680px, 100%);
+                    width: min(800px, 100%);
                     min-height: 500px;
                     display: grid;
-                    grid-template-columns: 172px 1fr 168px;
+                    grid-template-columns: 148px 1fr;
                     gap: 1px;
                     overflow: hidden;
                     border: 1px solid rgba(247,250,250,.12);
@@ -1074,19 +1184,193 @@ export default function LandingPage() {
                     display: flex;
                     align-items: center;
                     gap: 9px;
-                    height: 36px;
+                    height: 32px;
                     padding: 0 10px;
-                    border-radius: 10px;
-                    color: rgba(247,250,250,.62);
-                    font-size: .78rem;
-                    font-weight: 650;
+                    border-radius: 8px;
+                    color: rgba(247,250,250,.52);
+                    font-size: .72rem;
+                    font-weight: 600;
+                    cursor: default;
                 }
-                .side-item:nth-child(4) {
-                    background: rgba(247,250,250,.08);
-                    color: #fff;
-                }
+                .side-item--group { color: rgba(247,250,250,.42); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+                .side-item--active { background: rgba(99,102,241,.18); color: #818cf8; font-weight: 700; }
+                .side-item--sub { padding-left: 26px; height: 26px; font-size: .68rem; color: rgba(247,250,250,.38); }
+                .side-chevron { margin-left: auto; opacity: .5; }
+                .side-divider { height: 1px; background: rgba(247,250,250,.07); margin: 6px 10px; }
+                .se-section-label { font-size: .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: rgba(247,250,250,.28); padding: 4px 10px; margin-top: 2px; }
 
-                .console-main { padding: 22px; }
+                /* ── Assessment panel ─────────────────────────────────── */
+                .console-assess {
+                    grid-column: 2;
+                    padding: 14px 18px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    overflow: hidden;
+                    background: rgba(17,13,23,.92);
+                    backdrop-filter: blur(18px);
+                }
+                .assess-header { margin-bottom: 0; }
+                .assess-subtitle { margin: 0 0 2px; font-size: .58rem; color: rgba(247,250,250,.4); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+                .assess-title { margin: 0 0 1px; font-size: .88rem; font-weight: 700; color: #fff; }
+                .assess-desc { margin: 0; font-size: .6rem; color: rgba(247,250,250,.38); }
+
+                /* Filter bar (Academic Session / Term / Class) */
+                .assess-filters {
+                    display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+                    padding: 9px 10px; border-radius: 8px;
+                    border: 1px solid rgba(247,250,250,.08);
+                    background: rgba(247,250,250,.03);
+                }
+                .assess-filter-item { display: flex; flex-direction: column; gap: 4px; }
+                .assess-filter-label { font-size: .5rem; color: rgba(247,250,250,.35); font-weight: 600; letter-spacing: .05em; }
+                .assess-filter-select {
+                    display: flex; align-items: center; justify-content: space-between;
+                    padding: 4px 8px; border-radius: 5px;
+                    border: 1px solid rgba(247,250,250,.12);
+                    background: rgba(247,250,250,.05);
+                    font-size: .58rem; color: rgba(247,250,250,.75); font-weight: 500;
+                }
+                .assess-filter-select svg { opacity: .45; flex-shrink: 0; }
+
+                /* Group headers — 184px each = 4 bubbles×40px + 3 gaps×8px */
+                .assess-groups { display: flex; align-items: stretch; }
+                .assess-groups .assess-student-col { min-width: 108px; width: 108px; flex-shrink: 0; }
+                .assess-group--aff, .assess-group--psy {
+                    width: 184px; flex-shrink: 0; text-align: center;
+                    font-size: .52rem; font-weight: 700; text-transform: uppercase;
+                    letter-spacing: .06em; padding: 5px 4px;
+                    border-radius: 6px 6px 0 0; white-space: nowrap;
+                }
+                .assess-group--aff { background: rgba(99,102,241,.15); color: rgba(129,140,248,.9); margin-right: 8px; }
+                .assess-group--psy { background: rgba(34,197,94,.1); color: rgba(74,222,128,.85); }
+
+                .assess-cols { display: flex; align-items: center; padding-bottom: 6px; border-bottom: 1px solid rgba(247,250,250,.07); }
+                .assess-student-col { width: 108px; flex-shrink: 0; font-size: .52rem; font-weight: 700; color: rgba(247,250,250,.28); text-transform: uppercase; letter-spacing: .05em; }
+                .assess-scores-head { display: flex; gap: 8px; }
+                .assess-scores-head span { width: 40px; text-align: center; font-size: .5rem; font-weight: 700; color: rgba(247,250,250,.3); text-transform: uppercase; overflow: hidden; }
+                .assess-row { display: flex; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(247,250,250,.04); }
+                .assess-student { width: 108px; flex-shrink: 0; }
+                .assess-student span { display: block; font-size: .66rem; font-weight: 600; color: rgba(247,250,250,.82); line-height: 1.25; }
+                .assess-student small { display: block; font-size: .52rem; color: rgba(247,250,250,.32); }
+                .assess-bubbles { display: flex; gap: 8px; }
+                .bubble {
+                    width: 40px; height: 40px;
+                    border-radius: 10px;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: .76rem; font-weight: 700; flex-shrink: 0;
+                }
+                .bubble--5 { background: rgba(34,197,94,.18); color: #4ade80; border: 1px solid rgba(34,197,94,.28); }
+                .bubble--4 { background: rgba(99,102,241,.18); color: #818cf8; border: 1px solid rgba(99,102,241,.28); }
+                .bubble--3 { background: rgba(234,179,8,.18); color: #facc15; border: 1px solid rgba(234,179,8,.28); }
+                .bubble--empty { background: rgba(247,250,250,.05); color: rgba(247,250,250,.3); border: 1px solid rgba(247,250,250,.1); }
+                .assess-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+                .assess-footer span { font-size: .54rem; color: rgba(247,250,250,.28); }
+                .assess-save { background: #4f46e5; color: #fff; border-radius: 7px; padding: 5px 14px; font-size: .64rem; font-weight: 700; cursor: pointer; }
+
+                /* ── Report console panel ────────────────────────────── */
+                .console-report {
+                    grid-column: 2;
+                    padding: 14px 16px;
+                    display: flex; flex-direction: column; gap: 8px;
+                    overflow: hidden;
+                    background: rgba(17,13,23,.92);
+                    backdrop-filter: blur(18px);
+                }
+                .rpt-header { display: flex; justify-content: space-between; align-items: flex-start; }
+                .rpt-eyebrow { margin: 0 0 2px; font-size: .56rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: rgba(247,250,250,.38); }
+                .rpt-title { margin: 0; font-size: .88rem; font-weight: 700; color: #fff; }
+                .rpt-term-badge { font-size: .52rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(0,169,154,.14); color: #2dd4bf; border: 1px solid rgba(0,169,154,.22); white-space: nowrap; flex-shrink: 0; }
+                .rpt-student-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(247,250,250,.04); border: 1px solid rgba(247,250,250,.07); }
+                .rpt-avatar { width: 28px; height: 28px; border-radius: 50%; background: rgba(99,102,241,.25); color: #818cf8; font-size: .58rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+                .rpt-student-info { flex: 1; }
+                .rpt-student-info span { display: block; font-size: .66rem; font-weight: 600; color: rgba(247,250,250,.85); }
+                .rpt-student-info small { font-size: .5rem; color: rgba(247,250,250,.35); }
+                .rpt-overall { font-size: .9rem; font-weight: 800; flex-shrink: 0; }
+                .rpt-overall--high { color: #4ade80; }
+                .rpt-overall--mid  { color: #818cf8; }
+                .rpt-table { display: flex; flex-direction: column; gap: 0; }
+                .rpt-thead, .rpt-row { display: flex; align-items: center; padding: 5px 0; }
+                .rpt-thead { border-bottom: 1px solid rgba(247,250,250,.08); }
+                .rpt-row { border-bottom: 1px solid rgba(247,250,250,.04); }
+                .rpt-col-subj { flex: 1; font-size: .6rem; }
+                .rpt-thead .rpt-col-subj { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); font-size: .5rem; }
+                .rpt-col-num { width: 36px; text-align: center; font-size: .62rem; flex-shrink: 0; }
+                .rpt-thead .rpt-col-num { font-size: .5rem; font-weight: 700; text-transform: uppercase; color: rgba(247,250,250,.28); }
+                .rpt-col-grade { width: 40px; text-align: center; font-size: .62rem; font-weight: 700; flex-shrink: 0; }
+                .rpt-thead .rpt-col-grade { font-size: .5rem; text-transform: uppercase; color: rgba(247,250,250,.28); }
+                .rpt-muted { color: rgba(247,250,250,.45); }
+                .rpt-total--high { color: #4ade80; font-weight: 700; }
+                .rpt-total--mid  { color: #818cf8; font-weight: 700; }
+                .rpt-total--low  { color: #facc15; font-weight: 700; }
+                .rpt-grade--high { color: #4ade80; }
+                .rpt-grade--mid  { color: #818cf8; }
+                .rpt-grade--low  { color: #facc15; }
+                .rpt-row .rpt-col-subj { color: rgba(247,250,250,.78); }
+                .rpt-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+                .rpt-footer span { font-size: .52rem; color: rgba(247,250,250,.28); }
+                .rpt-download { background: rgba(0,169,154,.18); color: #2dd4bf; border: 1px solid rgba(0,169,154,.28); border-radius: 7px; padding: 5px 12px; font-size: .62rem; font-weight: 700; cursor: pointer; }
+
+                /* ── Score Entry console panel ─────────────────────────── */
+                .console-se {
+                    grid-column: 2;
+                    padding: 14px 18px;
+                    display: flex; flex-direction: column; gap: 8px;
+                    overflow: hidden;
+                    background: rgba(17,13,23,.92);
+                    backdrop-filter: blur(18px);
+                }
+                .se-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+                .se-title { margin: 0 0 1px; font-size: .88rem; font-weight: 700; color: #fff; }
+                .se-subtitle { margin: 0; font-size: .6rem; color: rgba(247,250,250,.38); }
+                .se-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; }
+                .se-action-btn { font-size: .58rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(247,250,250,.14); color: rgba(247,250,250,.62); cursor: default; white-space: nowrap; }
+                .se-action-btn--primary { background: #4f46e5; border-color: transparent; color: #fff; }
+                .se-filters { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(247,250,250,.08); background: rgba(247,250,250,.03); }
+                .se-filter { display: flex; flex-direction: column; gap: 3px; }
+                .se-filter-label { font-size: .5rem; color: rgba(247,250,250,.35); font-weight: 600; letter-spacing: .05em; }
+                .se-filter-val { display: flex; align-items: center; justify-content: space-between; padding: 4px 7px; border-radius: 5px; border: 1px solid rgba(247,250,250,.12); background: rgba(247,250,250,.05); font-size: .56rem; color: rgba(247,250,250,.75); font-weight: 500; }
+                .se-filter-val svg { opacity: .45; flex-shrink: 0; }
+                .se-approval { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 10px; border-radius: 8px; background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.18); }
+                .se-approved-badge { font-size: .52rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(34,197,94,.18); color: #4ade80; border: 1px solid rgba(34,197,94,.28); white-space: nowrap; flex-shrink: 0; }
+                .se-approval-text { font-size: .58rem; color: rgba(247,250,250,.55); flex: 1; }
+                .se-approval-btns { display: flex; gap: 5px; margin-left: auto; }
+                .se-btn { font-size: .52rem; font-weight: 700; padding: 3px 9px; border-radius: 6px; cursor: default; white-space: nowrap; }
+                .se-btn--green { background: rgba(34,197,94,.14); color: #4ade80; border: 1px solid rgba(34,197,94,.24); }
+                .se-btn--red   { background: rgba(239,68,68,.14);  color: #f87171; border: 1px solid rgba(239,68,68,.24); }
+                .se-btn--blue  { background: rgba(59,130,246,.14); color: #60a5fa; border: 1px solid rgba(59,130,246,.24); }
+                .se-enroll { display: flex; justify-content: space-between; align-items: center; font-size: .58rem; color: rgba(247,250,250,.42); }
+                .se-avg { font-size: .6rem; color: rgba(247,250,250,.55); }
+                .se-avg strong { color: #fff; }
+                .se-pass { color: #4ade80 !important; }
+                .se-table { display: flex; flex-direction: column; overflow: hidden; }
+                .se-thead, .se-row { display: flex; align-items: center; padding: 5px 0; gap: 6px; }
+                .se-thead { border-bottom: 1px solid rgba(247,250,250,.09); }
+                .se-row { border-bottom: 1px solid rgba(247,250,250,.04); }
+                .se-sn { width: 18px; text-align: center; font-size: .52rem; flex-shrink: 0; }
+                .se-thead .se-sn { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); }
+                .se-stud { flex: 1; min-width: 0; }
+                .se-thead .se-stud { font-size: .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); }
+                .se-row .se-stud span { display: block; font-size: .65rem; font-weight: 600; color: rgba(247,250,250,.82); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .se-row .se-stud small { display: block; font-size: .5rem; color: rgba(247,250,250,.32); }
+                .se-score { width: 36px; text-align: center; font-size: .6rem; flex-shrink: 0; }
+                .se-thead .se-score { font-size: .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); }
+                .se-total-h { font-weight: 700; }
+                .se-grade-h { width: 40px; text-align: center; flex-shrink: 0; }
+                .se-thead .se-grade-h { font-size: .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); }
+                .se-grade-pill { display: inline-block; font-size: .58rem; font-weight: 800; padding: 2px 7px; border-radius: 5px; }
+                .se-remark { width: 54px; font-size: .58rem; flex-shrink: 0; text-align: right; }
+                .se-thead .se-remark { font-size: .5rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: rgba(247,250,250,.28); }
+                .se-muted { color: rgba(247,250,250,.52); }
+                .se-total--top  { color: #4ade80; }
+                .se-total--high { color: #818cf8; }
+                .se-total--mid  { color: #facc15; }
+                .se-total--low  { color: #f87171; }
+                .se-grade--top  { background: rgba(34,197,94,.15);  color: #4ade80; }
+                .se-grade--high { background: rgba(99,102,241,.15); color: #818cf8; }
+                .se-grade--mid  { background: rgba(234,179,8,.15);  color: #facc15; }
+                .se-grade--low  { background: rgba(239,68,68,.15);  color: #f87171; }
+
                 .console-top {
                     display: flex;
                     justify-content: space-between;
@@ -1745,36 +2029,29 @@ export default function LandingPage() {
                     padding: 92px 0 68px;
                 }
                 .cta-panel h2 { margin: 0; font-size: clamp(1.7rem, 3vw, 3.4rem); line-height: 1.08; letter-spacing: -.01em; }
-                .email-box {
+                .cta-actions {
                     display: flex;
                     align-items: center;
-                    gap: 12px;
-                    width: min(560px, 100%);
-                    padding: 8px;
+                    gap: 14px;
+                    flex-wrap: wrap;
                     margin-left: auto;
-                    border-radius: 999px;
-                    background: rgba(247,250,250,.07);
-                    border: 1px solid rgba(247,250,250,.1);
                 }
-                .email-box input {
-                    flex: 1;
-                    min-width: 0;
-                    height: 44px;
-                    padding: 0 18px;
-                    border: 0;
-                    outline: 0;
-                    background: transparent;
-                    color: #fff;
-                    font: inherit;
-                    font-size: .85rem;
-                }
-                .email-box input::placeholder { color: rgba(247,250,250,.4); }
-                .email-box .cta { border: 0; }
 
                 .site-footer {
                     border-top: 1px solid rgba(247,250,250,.08);
                     padding: 36px 0 42px;
                 }
+                .footer-bottom {
+                    border-top: 1px solid rgba(247,250,250,.08);
+                    margin-top: 48px;
+                    padding-top: 24px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .footer-bottom p { font-size: .72rem; color: rgba(247,250,250,.45); margin: 0; }
                 .footer-grid {
                     display: grid;
                     grid-template-columns: 1.6fr repeat(4, 1fr);
@@ -1908,9 +2185,9 @@ export default function LandingPage() {
                 }
 
                 /* CTAs */
-                [data-theme="light"] .cta.primary { background: #0F172A; color: #fff; }
+                [data-theme="light"] .cta.primary { background: #00A99A; color: #fff; }
                 [data-theme="light"] .cta.primary:hover {
-                    box-shadow: 0 6px 28px rgba(15,23,42,.22), 0 2px 8px rgba(15,23,42,.14);
+                    box-shadow: 0 6px 28px rgba(0,169,154,.4), 0 2px 8px rgba(0,169,154,.2);
                 }
                 [data-theme="light"] .cta.ghost {
                     border-color: rgba(15,23,42,.16);
@@ -1945,15 +2222,96 @@ export default function LandingPage() {
                 }
                 [data-theme="light"] .console-sidebar,
                 [data-theme="light"] .console-main,
-                [data-theme="light"] .console-context {
+                [data-theme="light"] .console-context,
+                [data-theme="light"] .console-assess,
+                [data-theme="light"] .console-se {
                     background: #fff;
                     backdrop-filter: none;
                 }
+                [data-theme="light"] .assess-subtitle { color: rgba(15,23,42,.42); }
+                [data-theme="light"] .assess-title { color: #0F172A; }
+                [data-theme="light"] .assess-desc { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .assess-filters { background: rgba(15,23,42,.02); border-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .assess-filter-label { color: rgba(15,23,42,.42); }
+                [data-theme="light"] .assess-filter-select { background: #fff; border-color: rgba(15,23,42,.14); color: rgba(15,23,42,.75); }
+                [data-theme="light"] .assess-group--aff { background: rgba(99,102,241,.1); color: rgba(79,70,229,.88); }
+                [data-theme="light"] .assess-group--psy { background: rgba(34,197,94,.09); color: rgba(21,128,61,.82); }
+                [data-theme="light"] .assess-student-col,
+                [data-theme="light"] .assess-scores-head span { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .assess-student span { color: rgba(15,23,42,.85); }
+                [data-theme="light"] .assess-student small { color: rgba(15,23,42,.4); }
+                [data-theme="light"] .assess-row { border-bottom-color: rgba(15,23,42,.05); }
+                [data-theme="light"] .assess-cols { border-bottom-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .bubble--5 { background: rgba(34,197,94,.1); color: #16a34a; border-color: rgba(34,197,94,.22); }
+                [data-theme="light"] .bubble--4 { background: rgba(99,102,241,.1); color: #4f46e5; border-color: rgba(99,102,241,.22); }
+                [data-theme="light"] .bubble--3 { background: rgba(234,179,8,.1); color: #b45309; border-color: rgba(234,179,8,.22); }
+                [data-theme="light"] .bubble--empty { background: rgba(15,23,42,.04); color: rgba(15,23,42,.3); border-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .assess-footer span { color: rgba(15,23,42,.35); }
+                [data-theme="light"] .assess-save { background: #4f46e5; }
+                /* Report console — light */
+                [data-theme="light"] .console-report { background: #fff; backdrop-filter: none; }
+                [data-theme="light"] .rpt-eyebrow { color: rgba(15,23,42,.4); }
+                [data-theme="light"] .rpt-title { color: #0F172A; }
+                [data-theme="light"] .rpt-term-badge { background: rgba(0,169,154,.08); color: #0d9488; border-color: rgba(0,169,154,.18); }
+                [data-theme="light"] .rpt-student-row { background: rgba(15,23,42,.02); border-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .rpt-student-info span { color: #0F172A; }
+                [data-theme="light"] .rpt-student-info small { color: rgba(15,23,42,.4); }
+                [data-theme="light"] .rpt-avatar { background: rgba(99,102,241,.1); color: #4f46e5; }
+                [data-theme="light"] .rpt-thead { border-bottom-color: rgba(15,23,42,.1); }
+                [data-theme="light"] .rpt-row { border-bottom-color: rgba(15,23,42,.05); }
+                [data-theme="light"] .rpt-thead .rpt-col-subj,
+                [data-theme="light"] .rpt-thead .rpt-col-num,
+                [data-theme="light"] .rpt-thead .rpt-col-grade { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .rpt-row .rpt-col-subj { color: rgba(15,23,42,.78); }
+                [data-theme="light"] .rpt-muted { color: rgba(15,23,42,.45); }
+                [data-theme="light"] .rpt-total--high { color: #16a34a; }
+                [data-theme="light"] .rpt-total--mid  { color: #4f46e5; }
+                [data-theme="light"] .rpt-total--low  { color: #b45309; }
+                [data-theme="light"] .rpt-grade--high { color: #16a34a; }
+                [data-theme="light"] .rpt-grade--mid  { color: #4f46e5; }
+                [data-theme="light"] .rpt-grade--low  { color: #b45309; }
+                [data-theme="light"] .rpt-footer span { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .rpt-download { background: rgba(0,169,154,.08); color: #0d9488; border-color: rgba(0,169,154,.18); }
+                /* Score Entry console — light */
+                [data-theme="light"] .se-title { color: #0F172A; }
+                [data-theme="light"] .se-subtitle { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .se-action-btn { border-color: rgba(15,23,42,.14); color: rgba(15,23,42,.62); }
+                [data-theme="light"] .se-action-btn--primary { background: #4f46e5; border-color: transparent; color: #fff; }
+                [data-theme="light"] .se-filters { background: rgba(15,23,42,.02); border-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .se-filter-label { color: rgba(15,23,42,.42); }
+                [data-theme="light"] .se-filter-val { background: #fff; border-color: rgba(15,23,42,.14); color: rgba(15,23,42,.75); }
+                [data-theme="light"] .se-approval { background: rgba(34,197,94,.04); border-color: rgba(34,197,94,.15); }
+                [data-theme="light"] .se-approved-badge { background: rgba(34,197,94,.1); color: #16a34a; border-color: rgba(34,197,94,.22); }
+                [data-theme="light"] .se-approval-text { color: rgba(15,23,42,.55); }
+                [data-theme="light"] .se-btn--green { background: rgba(34,197,94,.08); color: #16a34a; border-color: rgba(34,197,94,.2); }
+                [data-theme="light"] .se-btn--red   { background: rgba(239,68,68,.08); color: #dc2626; border-color: rgba(239,68,68,.2); }
+                [data-theme="light"] .se-btn--blue  { background: rgba(59,130,246,.08); color: #2563eb; border-color: rgba(59,130,246,.2); }
+                [data-theme="light"] .se-enroll { color: rgba(15,23,42,.45); }
+                [data-theme="light"] .se-avg { color: rgba(15,23,42,.55); }
+                [data-theme="light"] .se-avg strong { color: #0F172A; }
+                [data-theme="light"] .se-pass { color: #16a34a !important; }
+                [data-theme="light"] .se-thead { border-bottom-color: rgba(15,23,42,.09); }
+                [data-theme="light"] .se-row { border-bottom-color: rgba(15,23,42,.05); }
+                [data-theme="light"] .se-thead .se-sn,
+                [data-theme="light"] .se-thead .se-stud,
+                [data-theme="light"] .se-thead .se-score,
+                [data-theme="light"] .se-thead .se-grade-h,
+                [data-theme="light"] .se-thead .se-remark { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .se-row .se-stud span { color: rgba(15,23,42,.85); }
+                [data-theme="light"] .se-row .se-stud small { color: rgba(15,23,42,.42); }
+                [data-theme="light"] .se-muted { color: rgba(15,23,42,.52); }
+                [data-theme="light"] .se-total--top  { color: #16a34a; }
+                [data-theme="light"] .se-total--high { color: #4f46e5; }
+                [data-theme="light"] .se-total--mid  { color: #b45309; }
+                [data-theme="light"] .se-grade--top  { background: rgba(34,197,94,.1);  color: #16a34a; }
+                [data-theme="light"] .se-grade--high { background: rgba(99,102,241,.1); color: #4f46e5; }
+                [data-theme="light"] .se-grade--mid  { background: rgba(234,179,8,.1);  color: #b45309; }
+                [data-theme="light"] .se-section-label { color: rgba(15,23,42,.3); }
+                [data-theme="light"] .side-item--sub { color: rgba(15,23,42,.38); }
                 [data-theme="light"] .side-item { color: rgba(15,23,42,.52); }
-                [data-theme="light"] .side-item:nth-child(4) {
-                    background: rgba(15,23,42,.06);
-                    color: #0F172A;
-                }
+                [data-theme="light"] .side-item--group { color: rgba(15,23,42,.38); }
+                [data-theme="light"] .side-item--active { background: rgba(99,102,241,.1); color: #4f46e5; }
+                [data-theme="light"] .side-divider { background: rgba(15,23,42,.08); }
                 [data-theme="light"] .console-top h3 { color: #0F172A; }
                 [data-theme="light"] .sync-pill {
                     border-color: rgba(0,169,154,.28);
@@ -2110,21 +2468,14 @@ export default function LandingPage() {
                 }
                 [data-theme="light"] .text-link:hover { color: #0F172A; border-bottom-color: rgba(15,23,42,.48); }
 
-                /* CTA panel */
-                [data-theme="light"] .email-box {
-                    background: #fff;
-                    border-color: rgba(15,23,42,.12);
-                    box-shadow: 0 2px 16px rgba(15,23,42,.06);
-                }
-                [data-theme="light"] .email-box input { color: #0F172A; }
-                [data-theme="light"] .email-box input::placeholder { color: rgba(15,23,42,.38); }
-
                 /* Footer */
                 [data-theme="light"] .site-footer { border-top-color: rgba(15,23,42,.08); }
                 [data-theme="light"] .footer-grid p { color: rgba(15,23,42,.45); }
                 [data-theme="light"] .footer-col h3 { color: rgba(15,23,42,.7); }
                 [data-theme="light"] .footer-col a { color: rgba(15,23,42,.42); }
                 [data-theme="light"] .footer-col a:hover { color: rgba(15,23,42,.82); }
+                [data-theme="light"] .footer-bottom { border-top-color: rgba(15,23,42,.08); }
+                [data-theme="light"] .footer-bottom p { color: rgba(15,23,42,.45); }
 
                 /* Brand pillars */
                 [data-theme="light"] .brand-pillars {
@@ -2149,7 +2500,7 @@ export default function LandingPage() {
                     .hero { padding-top: 42px; }
                     .hero-visual { min-height: 560px; }
                     .capability-grid { grid-template-columns: repeat(3, 1fr); }
-                    .email-box { margin-left: 0; }
+                    .cta-actions { margin-left: 0; }
                 }
 
                 @media (max-width: 820px) {
@@ -2160,8 +2511,7 @@ export default function LandingPage() {
                         grid-template-columns: 1fr;
                         min-height: 0;
                     }
-                    .console-sidebar,
-                    .console-context { display: none; }
+                    .console-sidebar { display: none; }
                     .profile-board,
                     .device-stack,
                     .step-grid,
@@ -2190,12 +2540,7 @@ export default function LandingPage() {
                     .work-row,
                     .proof,
                     .cta-panel { padding: 66px 0; }
-                    .email-box {
-                        align-items: stretch;
-                        flex-direction: column;
-                        border-radius: 18px;
-                    }
-                    .email-box .cta { width: 100%; }
+                    .cta-actions { flex-direction: column; align-items: stretch; }
                 }
             `}</style>
 
@@ -2282,7 +2627,7 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
-                <div data-reveal="right"><ProductConsole /></div>
+                <div data-reveal="right"><ScoreEntryConsole /></div>
             </section>
 
             <section className="section" id="insights">
@@ -2299,9 +2644,6 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section className="section" id="hardware">
-                <div data-reveal="scale"><DeviceStack /></div>
-            </section>
 
             <section className="section" id="security">
                 <div className="wide-heading" data-reveal="">
@@ -2371,13 +2713,10 @@ export default function LandingPage() {
                 <div data-reveal="left">
                     <h2>Step into the next era of school technology.</h2>
                 </div>
-                <form className="email-box" action="/auth/register" data-reveal="right">
-                    <input aria-label="Work email" placeholder="Enter your school email" type="email" />
-                    <button className="cta primary" type="submit">
-                        <span>Request demo</span>
-                        <ChevronRight size={16} aria-hidden="true" />
-                    </button>
-                </form>
+                <div className="cta-actions" data-reveal="right">
+                    <ArrowButton href="/auth/register">Request demo</ArrowButton>
+                    <ArrowButton href="/contact" variant="ghost">Talk to us</ArrowButton>
+                </div>
             </section>
 
             <section className="brand-pillars" data-reveal-group="">
@@ -2409,16 +2748,22 @@ export default function LandingPage() {
                         </p>
                     </div>
                     {[
-                        ["Product", "Overview", "Assessment", "Reports", "Hardware"],
-                        ["Resources", "Documentation", "Support", "School setup", "Data security"],
-                        ["Company", "About", "Contact", "Partners", "Careers"],
-                        ["Legal", "Privacy", "Terms", "Status", "Security"],
-                    ].map(([heading, ...links]) => (
-                        <div className="footer-col" key={heading}>
-                            <h3>{heading}</h3>
-                            {links.map((link) => <a href="#" key={link}>{link}</a>)}
+                        ["Product", ["Overview", "/overview"], ["Assessment", "/assessment"], ["Reports", "/reports"], ["Hardware", "/hardware"]],
+                        ["Resources", ["Documentation", "/documentation"], ["Support", "/support"], ["School setup", "/school-setup"], ["Data security", "/data-security"]],
+                        ["Company", ["About", "/about"], ["Contact", "/contact"], ["Partners", "/partners"]],
+                        ["Legal", ["Privacy", "/privacy"], ["Terms", "/terms"], ["Status", "/status"], ["Security", "/security"]],
+                    ].map(([heading, ...pairs]) => (
+                        <div className="footer-col" key={heading as string}>
+                            <h3>{heading as string}</h3>
+                            {(pairs as [string, string][]).map(([label, href]) => (
+                                <Link href={href} key={label}>{label}</Link>
+                            ))}
                         </div>
                     ))}
+                </div>
+                <div className="footer-bottom">
+                    <p>2026 Edunostics Limited. All rights reserved.</p>
+                    <p>Built for secondary education in Nigeria.</p>
                 </div>
             </footer>
         </main>

@@ -127,9 +127,6 @@ export default function LoginPage() {
                         <div className="w-10 h-10 rounded-full bg-white/30 border-2 border-white/40"></div>
                         <div className="w-10 h-10 rounded-full bg-white/35 border-2 border-white/40"></div>
                     </div>
-                    <p className="text-white/70 text-sm">
-                        Trusted by 500+ schools across Nigeria
-                    </p>
                 </div>
             </div>
 
