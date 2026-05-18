@@ -2832,7 +2832,7 @@ export default function LandingPage() {
             </section>
 
             <section className="brand-pillars" data-reveal-group="">
-                <div className="section pillars-grid">
+                <div className="pillars-grid">
                     {[
                         [Crosshair, "Precise"],
                         [ShieldCheck, "Trusted"],
