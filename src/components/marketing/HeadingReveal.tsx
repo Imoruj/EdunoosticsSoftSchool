@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 function isDescendantOf(el: HTMLElement, ancestors: Set<Element>): boolean {
     let p = el.parentElement;
@@ -12,6 +13,8 @@ function isDescendantOf(el: HTMLElement, ancestors: Set<Element>): boolean {
 }
 
 export function HeadingReveal() {
+    const pathname = usePathname();
+
     useEffect(() => {
         const layout = document.querySelector<HTMLElement>(".mkt-layout");
         if (!layout) return;
@@ -140,7 +143,7 @@ export function HeadingReveal() {
             cancelAnimationFrame(raf);
             observer.disconnect();
         };
-    }, []);
+    }, [pathname]);
 
     return null;
 }
