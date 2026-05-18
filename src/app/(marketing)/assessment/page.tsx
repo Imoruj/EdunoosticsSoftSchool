@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ClipboardList, Star, TrendingUp, Users } from "lucide-react";
 
@@ -24,6 +25,13 @@ const gradeScale = [
     { grade: "E8", range: "40-44", remark: "Pass" },
     { grade: "F9", range: "0-39", remark: "Fail" },
 ];
+
+export const metadata: Metadata = {
+    title: "Student Assessment Software for Nigerian Secondary Schools",
+    description: "Score, grade, and analyse student performance with Edunostics. Support for CA scores, exam scores, broadsheets, and WAEC-aligned grade computation.",
+    alternates: { canonical: "https://www.edunostics.com/assessment" },
+    openGraph: { url: "https://www.edunostics.com/assessment", title: "Assessment Software | Edunostics", description: "CA scores, exam scores, broadsheets, and WAEC-aligned grading." },
+};
 
 export default function AssessmentPage() {
     return (

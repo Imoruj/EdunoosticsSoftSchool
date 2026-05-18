@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Database, Eye, Key, Lock, RefreshCw, Shield } from "lucide-react";
 
@@ -21,6 +22,13 @@ const commitments = [
     "Staff and vendor access to production data requires written authorisation.",
     "Security patches are applied within 48 hours of critical vulnerability disclosure.",
 ];
+
+export const metadata: Metadata = {
+    title: "Data Security & Privacy Policy for Schools",
+    description: "Learn how Edunostics collects, stores, and protects student and school data. NDPR-aware data handling with granular access controls.",
+    alternates: { canonical: "https://www.edunostics.com/data-security" },
+    openGraph: { url: "https://www.edunostics.com/data-security", title: "Data Security | Edunostics", description: "NDPR-aware data handling with granular access controls." },
+};
 
 export default function DataSecurityPage() {
     return (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BookOpen, ChevronRight, GraduationCap, Settings, Users } from "lucide-react";
 
@@ -30,6 +31,13 @@ const guides = [
         links: ["Access the parent portal", "View student results", "Download report cards", "Update contact details"],
     },
 ];
+
+export const metadata: Metadata = {
+    title: "Documentation — Edunostics User Guides & API Reference",
+    description: "Browse Edunostics documentation for administrators, teachers, and developers. Step-by-step guides, feature references, and integration docs.",
+    alternates: { canonical: "https://www.edunostics.com/documentation" },
+    openGraph: { url: "https://www.edunostics.com/documentation", title: "Documentation | Edunostics", description: "User guides, feature references, and integration docs." },
+};
 
 export default function DocumentationPage() {
     return (

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 const teal = "#00A99A";
 const wrap = { width: "min(1180px, calc(100% - 40px))", margin: "0 auto" } as const;
 
@@ -24,6 +26,13 @@ function Dot({ status }: { status: string }) {
     const color = status === "operational" ? teal : status === "degraded" ? "#F59E0B" : "#EF4444";
     return <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}`, flexShrink: 0 }} />;
 }
+
+export const metadata: Metadata = {
+    title: "System Status — Edunostics Platform Uptime",
+    description: "Check the current operational status of the Edunostics platform, including API availability, report generation, and authentication services.",
+    alternates: { canonical: "https://www.edunostics.com/status" },
+    openGraph: { url: "https://www.edunostics.com/status", title: "System Status | Edunostics", description: "Current operational status of the Edunostics platform." },
+};
 
 export default function StatusPage() {
     const allOk = services.every(s => s.status === "operational");

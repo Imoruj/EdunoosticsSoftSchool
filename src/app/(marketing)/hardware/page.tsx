@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Cpu, Fingerprint, MonitorSmartphone, Network, ScanLine, Wifi } from "lucide-react";
 
@@ -12,6 +13,13 @@ const products = [
     { Icon: Network, title: "Offline-first architecture", body: "Hardware devices continue to record data even when internet connectivity is interrupted. All data syncs automatically when the connection is restored.", tag: "Available" },
     { Icon: Wifi, title: "Live sync dashboard", body: "Every device action including badge scans, score entries, and check-ins appears instantly in the platform dashboard with a live sync indicator.", tag: "Available" },
 ];
+
+export const metadata: Metadata = {
+    title: "Smart School Hardware — ID Cards, Terminals & Attendance Devices",
+    description: "Edunostics-compatible hardware including student ID card systems, biometric attendance terminals, and classroom touchpoints built for Nigerian secondary schools.",
+    alternates: { canonical: "https://www.edunostics.com/hardware" },
+    openGraph: { url: "https://www.edunostics.com/hardware", title: "School Hardware | Edunostics", description: "ID cards, biometric terminals, and classroom touchpoints." },
+};
 
 export default function HardwarePage() {
     return (

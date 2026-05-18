@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Mail, MapPin, MessageCircle } from "lucide-react";
 
@@ -16,6 +17,13 @@ const demoPoints = [
     "No commitment required",
     "Same-day response on booking requests",
 ];
+
+export const metadata: Metadata = {
+    title: "Contact Edunostics — Book a Demo or Get Support",
+    description: "Get in touch with the Edunostics team to book a school demo, request a quote, or ask any questions about our school management platform.",
+    alternates: { canonical: "https://www.edunostics.com/contact" },
+    openGraph: { url: "https://www.edunostics.com/contact", title: "Contact Us | Edunostics", description: "Book a demo, request a quote, or ask about our platform." },
+};
 
 export default function ContactPage() {
     return (

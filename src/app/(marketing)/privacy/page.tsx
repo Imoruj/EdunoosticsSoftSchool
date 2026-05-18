@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 const teal = "#00A99A";
 const wrap = { width: "min(860px, calc(100% - 40px))", margin: "0 auto" } as const;
 
@@ -39,6 +41,13 @@ const sections = [
         body: `For questions, concerns, or to exercise your data rights, contact our privacy team at privacy@edunostics.com. We aim to respond to all privacy requests within 5 business days.`,
     },
 ];
+
+export const metadata: Metadata = {
+    title: "Privacy Policy — Edunostics",
+    description: "Read the Edunostics privacy policy to understand how we collect, use, and protect your school's data in compliance with Nigerian data protection regulations.",
+    alternates: { canonical: "https://www.edunostics.com/privacy" },
+    openGraph: { url: "https://www.edunostics.com/privacy", title: "Privacy Policy | Edunostics", description: "How we collect, use, and protect your school's data." },
+};
 
 export default function PrivacyPage() {
     return (

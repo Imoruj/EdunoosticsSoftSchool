@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Building2, GraduationCap, Laptop } from "lucide-react";
 
@@ -24,6 +25,13 @@ const partnerTypes = [
         benefits: ["Research data collaboration", "Subsidised school access", "Pilot programme support", "Joint grant applications"],
     },
 ];
+
+export const metadata: Metadata = {
+    title: "Partner with Edunostics — Schools, Resellers & Technology Partners",
+    description: "Join the Edunostics partner network. We work with schools, education technology resellers, and system integrators across Nigeria.",
+    alternates: { canonical: "https://www.edunostics.com/partners" },
+    openGraph: { url: "https://www.edunostics.com/partners", title: "Partners | Edunostics", description: "Schools, resellers, and technology partners across Nigeria." },
+};
 
 export default function PartnersPage() {
     return (

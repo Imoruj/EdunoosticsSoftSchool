@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Mail, MessageCircle } from "lucide-react";
 
@@ -18,6 +19,13 @@ const faqs = [
     { q: "Can I configure a custom grading scale?", a: "Yes. Edunostics supports custom grading scales per school. Go to Settings then Grading Policy to configure your score ranges, grade letters, and remarks." },
     { q: "Is there a mobile app?", a: "The platform is fully mobile-responsive and works on any modern smartphone browser. Dedicated native apps are on our product roadmap." },
 ];
+
+export const metadata: Metadata = {
+    title: "Support — Get Help with Edunostics",
+    description: "Access Edunostics support resources including FAQs, troubleshooting guides, and direct contact with our school success team.",
+    alternates: { canonical: "https://www.edunostics.com/support" },
+    openGraph: { url: "https://www.edunostics.com/support", title: "Support | Edunostics", description: "FAQs, troubleshooting guides, and direct school support." },
+};
 
 export default function SupportPage() {
     return (

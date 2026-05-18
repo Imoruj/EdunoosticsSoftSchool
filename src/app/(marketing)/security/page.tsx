@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Eye, Fingerprint, Key, Lock, RefreshCw, Server, Shield, ShieldCheck } from "lucide-react";
 
@@ -25,6 +26,13 @@ const practices = [
     "Incident response drills are conducted quarterly",
     "Infrastructure access requires hardware security keys",
 ];
+
+export const metadata: Metadata = {
+    title: "Security & Compliance — How Edunostics Protects School Data",
+    description: "Edunostics uses role-based access control, encrypted data storage, and audit logs to keep student records safe and compliant with Nigerian data protection standards.",
+    alternates: { canonical: "https://www.edunostics.com/security" },
+    openGraph: { url: "https://www.edunostics.com/security", title: "Security | Edunostics", description: "Role-based access, encryption, and audit logs for school data." },
+};
 
 export default function SecurityPage() {
     return (

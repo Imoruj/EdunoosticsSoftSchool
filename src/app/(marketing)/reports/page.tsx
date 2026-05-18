@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, FileText, LayoutGrid, Printer, ScrollText, Sparkles } from "lucide-react";
 
@@ -19,6 +20,13 @@ const steps = [
     ["03", "Principal approves", "Reports pass through a review and approval workflow before they are published."],
     ["04", "Reports are published", "Parents receive PDF reports. Admins can print, download, or share digitally."],
 ];
+
+export const metadata: Metadata = {
+    title: "Academic Report Cards & Broadsheets for Secondary Schools",
+    description: "Generate verified term report cards, class broadsheets, academic transcripts, and parent-ready PDFs in seconds with Edunostics.",
+    alternates: { canonical: "https://www.edunostics.com/reports" },
+    openGraph: { url: "https://www.edunostics.com/reports", title: "Report Cards & Broadsheets | Edunostics", description: "Generate term reports, broadsheets, and transcripts in seconds." },
+};
 
 export default function ReportsPage() {
     return (

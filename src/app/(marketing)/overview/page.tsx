@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3, BookOpen, Cpu, Database, MessageSquareText, ShieldCheck, ArrowRight } from "lucide-react";
 
@@ -19,6 +20,13 @@ const stats = [
     { num: "99.9%", label: "Cloud uptime target" },
     { num: "24/7", label: "School operations" },
 ];
+
+export const metadata: Metadata = {
+    title: "Platform Overview — Assessment, Records & Attendance",
+    description: "See how Edunostics unifies assessment scoring, academic records, attendance tracking, conduct management, and parent communication for Nigerian secondary schools.",
+    alternates: { canonical: "https://www.edunostics.com/overview" },
+    openGraph: { url: "https://www.edunostics.com/overview", title: "Platform Overview | Edunostics", description: "One platform for assessment, records, attendance, and parent communication." },
+};
 
 export default function OverviewPage() {
     return (

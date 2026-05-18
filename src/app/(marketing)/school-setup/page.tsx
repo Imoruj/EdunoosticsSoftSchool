@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -36,6 +37,13 @@ const steps = [
         tasks: ["Review class broadsheet", "Approve reports as principal", "Publish to parent portal", "Print physical copies if needed"],
     },
 ];
+
+export const metadata: Metadata = {
+    title: "School Setup Guide — Onboard Your School in One Day",
+    description: "A step-by-step guide to getting your secondary school live on Edunostics. Configure classes, subjects, terms, grading policy, and staff roles in one day.",
+    alternates: { canonical: "https://www.edunostics.com/school-setup" },
+    openGraph: { url: "https://www.edunostics.com/school-setup", title: "School Setup | Edunostics", description: "Get your school live on Edunostics in one day." },
+};
 
 export default function SchoolSetupPage() {
     return (

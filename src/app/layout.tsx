@@ -3,10 +3,57 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 
+const BASE_URL = "https://www.edunostics.com";
+
 export const metadata: Metadata = {
-    title: "Edunostics - Report Card Management System",
-    description: "Comprehensive student report card management system for Nigerian schools",
-    keywords: ["school management", "report card", "Nigeria", "education", "grading"],
+    metadataBase: new URL(BASE_URL),
+    title: {
+        default: "Edunostics — School Technology Platform for Nigerian Secondary Schools",
+        template: "%s | Edunostics",
+    },
+    description: "Edunostics connects assessment software, academic records, attendance, smart hardware, and parent communication into one trusted operating system for Nigerian secondary schools.",
+    keywords: [
+        "school management system Nigeria",
+        "secondary school software Nigeria",
+        "report card management system",
+        "student assessment software",
+        "school attendance system",
+        "Nigerian school technology",
+        "academic records management",
+        "school ERP Nigeria",
+        "edunostics",
+    ],
+    authors: [{ name: "Edunostics Limited" }],
+    creator: "Edunostics Limited",
+    publisher: "Edunostics Limited",
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
+    openGraph: {
+        type: "website",
+        locale: "en_NG",
+        url: BASE_URL,
+        siteName: "Edunostics",
+        title: "Edunostics — School Technology Platform for Nigerian Secondary Schools",
+        description: "Assessment software, academic records, attendance, and parent communication — one operating system for secondary schools.",
+        images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Edunostics platform" }],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Edunostics — School Technology Platform",
+        description: "Assessment, records, attendance, and parent communication for Nigerian secondary schools.",
+        images: ["/og-image.png"],
+        creator: "@edunostics",
+    },
+    icons: {
+        icon: "/favicon.ico",
+        shortcut: "/favicon-16x16.png",
+        apple: "/apple-touch-icon.png",
+    },
+    manifest: "/manifest.webmanifest",
+    alternates: { canonical: BASE_URL },
 };
 
 export default function RootLayout({

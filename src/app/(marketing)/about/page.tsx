@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -16,6 +17,13 @@ const stats = [
     ["99.9%", "Cloud uptime target"],
     ["Nigeria", "Built specifically for"],
 ];
+
+export const metadata: Metadata = {
+    title: "About Edunostics — Built for Nigerian Secondary Education",
+    description: "Edunostics was built to modernise school administration and academic reporting in Nigerian secondary schools. Learn about our mission, team, and values.",
+    alternates: { canonical: "https://www.edunostics.com/about" },
+    openGraph: { url: "https://www.edunostics.com/about", title: "About Us | Edunostics", description: "Modernising school administration and academic reporting in Nigeria." },
+};
 
 export default function AboutPage() {
     return (

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 const teal = "#00A99A";
 const wrap = { width: "min(860px, calc(100% - 40px))", margin: "0 auto" } as const;
 
@@ -51,6 +53,13 @@ const sections = [
         body: `For questions about these terms, contact us at legal@edunostics.com.`,
     },
 ];
+
+export const metadata: Metadata = {
+    title: "Terms of Service — Edunostics",
+    description: "Read the Edunostics terms of service governing use of our school management platform, data handling, and subscription agreements.",
+    alternates: { canonical: "https://www.edunostics.com/terms" },
+    openGraph: { url: "https://www.edunostics.com/terms", title: "Terms of Service | Edunostics", description: "Terms governing use of the Edunostics school management platform." },
+};
 
 export default function TermsPage() {
     return (
