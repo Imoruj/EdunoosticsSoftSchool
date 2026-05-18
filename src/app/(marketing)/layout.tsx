@@ -44,7 +44,7 @@ const footerSections = [
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="mkt-layout" style={{ minHeight: "100vh", backgroundColor: "var(--background)", color: "var(--foreground)", fontFamily: "'Manrope', system-ui, -apple-system, sans-serif" }}>
+        <div className="mkt-layout" style={{ minHeight: "100vh", backgroundColor: "var(--background)", color: "var(--foreground)", fontFamily: "'Plus Jakarta Sans', 'Manrope', system-ui, -apple-system, sans-serif" }}>
             <style>{`
                 /* ── Dark mode background ─────────────────────────────── */
                 .dark .mkt-layout {
